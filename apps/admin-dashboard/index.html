@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#12355B" />
+    <meta name="description" content="Engage Solar — CRM, WhatsApp e automação para energia solar" />
+    <title>Engage Solar — Dashboard</title>
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+  </head>
+  <body class="es-page" data-es-panel-active="dashboard">
+    <div class="es-app" data-sidebar="expanded" data-mobile-nav="closed">
+      <aside class="es-sidebar" id="esSidebar" aria-label="Menu principal">
+        <div class="es-brand">
+          <img class="es-brand-mark" src="assets/logo.svg" width="36" height="36" alt="" />
+          <div class="es-brand-text">
+            <strong>Engage</strong>
+            <span>SOLAR</span>
+          </div>
+        </div>
+
+        <div class="es-tenant">
+          <select class="es-tenant-select" aria-label="Empresa">
+            <option>Engage Solar</option>
+          </select>
+        </div>
+
+        <nav class="es-nav" id="esNav" aria-label="Navegação"></nav>
+
+        <div class="es-quick">
+          <span class="es-quick-title">AÇÕES RÁPIDAS</span>
+          <button type="button" class="es-quick-btn">➕ Novo lead</button>
+          <button type="button" class="es-quick-btn">📋 Nova campanha</button>
+          <button type="button" class="es-quick-btn">💰 Nova proposta</button>
+        </div>
+
+        <div class="es-user">
+          <span class="es-user-avatar" aria-hidden="true">RC</span>
+          <div class="es-user-meta">
+            <strong>Roberto Carlos</strong>
+            <span>Administrador</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="es-main">
+        <header class="es-topbar">
+          <button type="button" class="es-topbar-toggle" id="esMobileToggle" aria-label="Abrir menu">☰</button>
+          <button type="button" class="es-topbar-toggle" id="esSidebarToggle" aria-label="Recolher menu">◀</button>
+          <label class="es-topbar-search">
+            <span aria-hidden="true">🔍</span>
+            <input type="search" placeholder="Buscar leads, clientes, propostas…" autocomplete="off" />
+          </label>
+          <div class="es-topbar-actions">
+            <button type="button" class="es-icon-btn" aria-label="Notificações">
+              🔔
+              <span class="es-dot" aria-hidden="true"></span>
+            </button>
+            <button type="button" class="es-icon-btn" aria-label="Ajuda">❓</button>
+            <div class="es-profile-chip">
+              <span class="es-user-avatar" aria-hidden="true">ES</span>
+              <div>
+                <strong>Engage Solar</strong>
+                <span>Admin</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <section class="es-hero">
+          <h1 id="esHeroTitle">☀️ Engage Solar CRM</h1>
+          <p id="esHeroSubtitle">Conectando leads em vendas — visão geral do seu negócio solar</p>
+        </section>
+
+        <div class="es-content">
+          <section class="es-panel" data-es-panel="dashboard" id="esPanelDashboard">
+            <div class="es-kpi-grid" id="esKpiGrid" aria-label="Resumo comercial"></div>
+
+            <div class="es-dashboard-grid">
+              <article class="es-card es-card--pipeline">
+                <h2>Pipeline de Vendas</h2>
+                <div id="esPipeline"></div>
+              </article>
+
+              <article class="es-card es-card--whatsapp">
+                <h2>WhatsApp — Resumo do dia</h2>
+                <div id="esWhatsapp"></div>
+              </article>
+
+              <article class="es-card es-card--insights">
+                <h2>Insights Inteligentes</h2>
+                <div class="es-insights" id="esInsights"></div>
+              </article>
+
+              <article class="es-card es-card--campaigns">
+                <h2>Campanhas Ativas</h2>
+                <div id="esCampaigns"></div>
+              </article>
+
+              <article class="es-card es-card--sellers">
+                <h2>Ranking de Vendedores</h2>
+                <div id="esSellers"></div>
+              </article>
+
+              <article class="es-card es-card--finance">
+                <h2>Resumo Financeiro</h2>
+                <div id="esFinance"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="es-panel" data-es-panel="leads" hidden>
+            <div class="es-placeholder"><strong>Leads</strong><br />Módulo previsto para Fase 2 — captura, origem e score.</div>
+          </section>
+          <section class="es-panel" data-es-panel="conversas" hidden>
+            <div class="es-placeholder"><strong>Conversas WhatsApp</strong><br />Inbox com janela 24h — Fase 1/2.</div>
+          </section>
+          <section class="es-panel" data-es-panel="campanhas" hidden>
+            <div class="es-placeholder"><strong>Campanhas</strong><br />Disparos e reativação — Fase 2.</div>
+          </section>
+          <section class="es-panel" data-es-panel="automacoes" hidden>
+            <div class="es-placeholder"><strong>Automações</strong><br />Fluxos e bots — Fase 3.</div>
+          </section>
+          <section class="es-panel" data-es-panel="followup" hidden>
+            <div class="es-placeholder"><strong>Follow-up</strong><br />Cadências automáticas — Fase 2.</div>
+          </section>
+          <section class="es-panel" data-es-panel="pipeline" hidden>
+            <div class="es-placeholder"><strong>Pipeline</strong><br />Kanban comercial — Fase 2.</div>
+          </section>
+          <section class="es-panel" data-es-panel="clientes" hidden>
+            <div class="es-placeholder"><strong>Clientes</strong><br />CRM de contatos — Fase 2.</div>
+          </section>
+          <section class="es-panel" data-es-panel="propostas" hidden>
+            <div class="es-placeholder"><strong>Propostas</strong><br />Orçamentos e PDF — Fase 2.</div>
+          </section>
+          <section class="es-panel" data-es-panel="relatorios" hidden>
+            <div class="es-placeholder"><strong>Relatórios</strong><br />Analytics comercial — Fase 2.</div>
+          </section>
+          <section class="es-panel" data-es-panel="configuracoes" hidden>
+            <div class="es-placeholder"><strong>Configurações</strong><br />Empresa, equipe e integrações — Fase 2.</div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/app.js"></script>
+  </body>
+</html>

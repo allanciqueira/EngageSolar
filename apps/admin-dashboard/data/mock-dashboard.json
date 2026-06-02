@@ -1,0 +1,63 @@
+{
+  "kpis": [
+    { "key": "leads", "label": "Leads Capturados", "value": "1.247", "delta": "+18% vs ontem", "tone": "up", "icon": "leads" },
+    { "key": "conversations", "label": "Conversas Ativas", "value": "312", "delta": "+7% vs ontem", "tone": "up", "icon": "chat" },
+    { "key": "response-rate", "label": "Taxa de Resposta", "value": "67%", "delta": "+8% vs ontem", "tone": "up", "icon": "reply" },
+    { "key": "proposals", "label": "Propostas Enviadas", "value": "89", "delta": "+11% vs ontem", "tone": "up", "icon": "proposal" },
+    { "key": "sales", "label": "Vendas Fechadas", "value": "17", "delta": "+21% vs ontem", "tone": "up", "icon": "sale" },
+    { "key": "pipeline", "label": "Valor em Pipeline", "value": "R$ 842.000", "delta": "+15% vs ontem", "tone": "up", "icon": "money" }
+  ],
+  "pipeline": [
+    { "stage": "Leads Novos", "count": 320, "pct": 25 },
+    { "stage": "Primeiro Contato", "count": 215, "pct": 17 },
+    { "stage": "Qualificados", "count": 134, "pct": 11 },
+    { "stage": "Proposta", "count": 62, "pct": 5 },
+    { "stage": "Negociação", "count": 29, "pct": 2 },
+    { "stage": "Fechados", "count": 17, "pct": 1 }
+  ],
+  "pipelineConversion": "5,3%",
+  "whatsapp": {
+    "sent": 4280,
+    "delivered": 4101,
+    "read": 3582,
+    "replied": 2431,
+    "responseRate": 59,
+    "responseDelta": "+8% vs ontem"
+  },
+  "insights": [
+    { "tone": "danger", "text": "34 leads sem resposta há mais de 7 dias" },
+    { "tone": "warn", "text": "12 propostas vencem esta semana" },
+    { "tone": "info", "text": "18 leads quentes sem follow-up" },
+    { "tone": "success", "text": "5 oportunidades de upsell" }
+  ],
+  "campaigns": [
+    {
+      "name": "Reativação — Leads Frios",
+      "sent": 3000,
+      "responsePct": 12,
+      "appointments": 54,
+      "sales": 7
+    },
+    {
+      "name": "Indicação de Clientes",
+      "sent": 1200,
+      "responsePct": 18,
+      "appointments": 31,
+      "sales": 4
+    }
+  ],
+  "sellers": [
+    { "name": "Carlos", "initials": "CA", "proposals": 23, "sales": 6, "revenue": "R$ 128.400" },
+    { "name": "André", "initials": "AN", "proposals": 18, "sales": 5, "revenue": "R$ 96.200" },
+    { "name": "João", "initials": "JO", "proposals": 14, "sales": 3, "revenue": "R$ 54.800" },
+    { "name": "Mariana", "initials": "MA", "proposals": 12, "sales": 2, "revenue": "R$ 41.500" },
+    { "name": "Lucas", "initials": "LU", "proposals": 9, "sales": 1, "revenue": "R$ 22.100" }
+  ],
+  "finance": {
+    "pipeline": "R$ 842.000",
+    "openProposals": "R$ 510.000",
+    "closedMonth": "R$ 214.000",
+    "goal": "R$ 250.000",
+    "goalPct": 85
+  }
+}

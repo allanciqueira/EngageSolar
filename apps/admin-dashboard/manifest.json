@@ -1,0 +1,17 @@
+{
+  "name": "Engage Solar CRM",
+  "short_name": "Engage Solar",
+  "description": "Plataforma de relacionamento e vendas para energia solar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#12355B",
+  "theme_color": "#12355B",
+  "icons": [
+    {
+      "src": "assets/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
