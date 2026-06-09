@@ -1,0 +1,613 @@
+/* Engage — Dashboard de campanhas (extraído do ReservaAI admin-shell) */
+
+body[data-es-panel-active="campanhas"] .es-page-heading {
+  display: none !important;
+}
+
+body[data-es-panel-active="campanhas"] .es-content {
+  margin-top: -0.65rem;
+  padding: 0;
+  background: var(--es-bg, #f0f6ff);
+  border-radius: 1.35rem 1.35rem 0 0;
+  box-shadow: 0 -4px 24px rgba(11, 42, 91, 0.06);
+  overflow: hidden;
+}
+
+body[data-es-panel-active="campanhas"] .es-panel[data-es-panel="campanhas"] {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: var(--es-bg, #f0f6ff);
+  min-height: 100%;
+}
+
+.engage-config-head {
+  margin-bottom: 20px;
+}
+
+.engage-config-eyebrow {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ra-primary, #2563eb);
+}
+
+.engage-config-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: 800;
+  color: var(--ra-text, #0f172a);
+}
+
+.engage-config-lead {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--ra-text-soft, #64748b);
+}
+
+.engage-config-tabs-wrap {
+  margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.engage-config-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: min-content;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  border-radius: var(--ra-radius-md, 14px);
+  box-shadow: var(--ra-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+}
+
+.engage-config-tab {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ra-text-soft, #64748b);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.engage-config-tab:hover {
+  color: var(--ra-text, #0f172a);
+  background: #f8fafc;
+}
+
+.engage-config-tab.is-active {
+  color: var(--ra-text, #0f172a);
+  background: #f1f5f9;
+  border-color: rgba(148, 163, 184, 0.45);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+
+.engage-config-tab-panels {
+  display: block;
+}
+
+.engage-config-tab-panel {
+  display: none;
+}
+
+.engage-config-tab-panel.is-active {
+  display: block;
+}
+
+.engage-config-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.engage-config-section-head h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--ra-text, #0f172a);
+}
+
+.engage-config-section-sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ra-text-soft, #64748b);
+}
+
+.engage-config-context {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--ra-text-soft, #64748b);
+}
+
+.engage-config-btn {
+  appearance: none;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  background: #fff;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.engage-config-btn--primary {
+  background: var(--ra-primary, #2563eb);
+  border-color: var(--ra-primary, #2563eb);
+  color: #fff;
+}
+
+.engage-config-btn--primary:hover:not(:disabled) {
+  background: var(--ra-primary-dark, #1d4ed8);
+}
+
+.engage-config-btn--primary:disabled,
+.engage-config-btn--primary.is-loading {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.engage-config-feedback {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.engage-config-feedback[data-tone="ok"] {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+}
+
+.engage-config-feedback[data-tone="warn"] {
+  background: rgba(245, 158, 11, 0.12);
+  color: #92400e;
+}
+
+.engage-config-feedback[data-tone="danger"] {
+  background: rgba(239, 68, 68, 0.1);
+  color: #991b1b;
+}
+
+.engage-config-error {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.1);
+  color: #991b1b;
+}
+
+.engage-config-skeleton {
+  display: grid;
+  gap: 10px;
+}
+
+.engage-config-skeleton-row {
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e2e8f0 0%, #f1f5f9 50%, #e2e8f0 100%);
+  background-size: 200% 100%;
+  animation: engageConfigShimmer 1.2s ease infinite;
+}
+
+@keyframes engageConfigShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.engage-config-table-card {
+  background: #fff;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  border-radius: var(--ra-radius-lg, 20px);
+  box-shadow: var(--ra-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+  overflow: hidden;
+}
+
+.engage-config-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.engage-config-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.engage-config-table th {
+  text-align: left;
+  padding: 12px 14px;
+  background: #f8fafc;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ra-text-soft, #64748b);
+  white-space: nowrap;
+}
+
+.engage-config-table td {
+  padding: 14px;
+  border-top: 1px solid var(--ra-border, #e2e8f0);
+  color: var(--ra-text, #0f172a);
+  vertical-align: middle;
+}
+
+.engage-config-table tr:hover td {
+  background: #f8fafc;
+}
+
+.engage-config-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+/* ---- Engage — Dashboard de campanhas ---- */
+body[data-es-panel-active="campanhas"] .es-panel[data-es-panel="campanhas"] {
+  background: var(--ra-bg, #f0f6ff);
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+body[data-es-panel-active="campanhas"] .es-content {
+  padding-top: 0.55rem;
+}
+
+.engage-campaign-shell {
+  padding: 24px clamp(16px, 3vw, 32px) 32px;
+  background: var(--ra-bg, #f0f6ff);
+  min-height: 100%;
+}
+
+.engage-campaign-content {
+  display: grid;
+  gap: 20px;
+}
+
+.engage-campaign-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px 16px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  border-radius: var(--ra-radius-lg, 20px);
+}
+
+.engage-campaign-field {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 240px);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ra-text-soft, #64748b);
+}
+
+.engage-campaign-field select {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  color: var(--ra-text, #0f172a);
+}
+
+.engage-campaign-window-hint,
+.engage-campaign-muted,
+.engage-campaign-help {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ra-text-soft, #64748b);
+}
+
+.engage-campaign-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.engage-campaign-kpi {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  border-radius: var(--ra-radius-lg, 20px);
+}
+
+.engage-campaign-kpi span {
+  font-size: 12px;
+  color: var(--ra-text-soft, #64748b);
+}
+
+.engage-campaign-kpi strong {
+  font-size: 1.35rem;
+  color: var(--ra-text, #0f172a);
+}
+
+.engage-campaign-kpi small {
+  font-size: 11px;
+  color: var(--ra-text-soft, #64748b);
+}
+
+.engage-campaign-section {
+  display: grid;
+  gap: 12px;
+}
+
+.engage-campaign-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.engage-campaign-section-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--ra-text, #0f172a);
+}
+
+.engage-campaign-detail-head h3 {
+  margin: 0 0 4px;
+}
+
+.engage-campaign-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.engage-campaign-breakdown {
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  border-radius: var(--ra-radius-lg, 20px);
+}
+
+.engage-campaign-breakdown h4 {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+}
+
+.engage-campaign-breakdown-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.engage-campaign-breakdown-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+
+.engage-campaign-breakdown-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1e5aa8, #f7b500);
+}
+
+.engage-campaign-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.engage-campaign-chip[data-tone="ok"] {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.engage-campaign-chip[data-tone="warn"] {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.engage-campaign-chip[data-tone="danger"] {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.engage-campaign-kpi--est-finish {
+  border-color: rgba(37, 99, 235, 0.22);
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+}
+
+.engage-campaign-kpi--est-finish span {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.engage-campaign-attempts-table tr.is-active td {
+  background: #eff6ff;
+}
+
+.engage-campaign-attempt-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.engage-campaign-message-detail {
+  margin-top: 14px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  border-radius: var(--ra-radius-lg, 20px);
+  display: grid;
+  gap: 12px;
+}
+
+.engage-campaign-message-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.engage-campaign-message-head h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--ra-text, #0f172a);
+}
+
+.engage-campaign-message-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+}
+
+.engage-campaign-message-meta > div {
+  display: grid;
+  gap: 2px;
+}
+
+.engage-campaign-message-meta > div.span-2 {
+  grid-column: 1 / -1;
+}
+
+.engage-campaign-message-meta dt {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ra-text-soft, #64748b);
+}
+
+.engage-campaign-message-meta dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ra-text, #0f172a);
+  word-break: break-word;
+}
+
+.engage-campaign-lifecycle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ra-text-soft, #64748b);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.engage-campaign-message-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.engage-campaign-message-tab {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ra-text-soft, #64748b);
+  background: #f8fafc;
+}
+
+.engage-campaign-message-tab.is-active {
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.engage-campaign-message-tab.is-disabled {
+  opacity: 0.55;
+}
+
+.engage-campaign-message-bubble {
+  max-width: 520px;
+  padding: 14px 16px;
+  border-radius: 16px 16px 16px 6px;
+  background: #ecfdf5;
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  color: var(--ra-text, #0f172a);
+}
+
+.engage-campaign-message-bubble strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.engage-campaign-message-bubble p {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.engage-campaign-message-bubble small {
+  color: var(--ra-text-soft, #64748b);
+  font-size: 11px;
+}
+
+@media (max-width: 720px) {
+  .engage-campaign-message-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+.engage-campaign-chip[data-tone="neutral"] {
+  background: rgba(148, 163, 184, 0.15);
+  color: #475569;
+}
+
+.engage-campaign-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #1e5aa8;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.engage-campaign-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ra-text-soft, #64748b);
+}
+
+.engage-campaign-list.is-info {
+  color: #1e5aa8;
+}
+
+.engage-campaign-footer {
+  font-size: 12px;
+  color: var(--ra-text-soft, #64748b);
+}

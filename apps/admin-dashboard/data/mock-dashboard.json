@@ -1,63 +1,68 @@
 {
   "kpis": [
-    { "key": "leads", "label": "Leads Capturados", "value": "1.247", "delta": "+18% vs ontem", "tone": "up", "icon": "leads" },
-    { "key": "conversations", "label": "Conversas Ativas", "value": "312", "delta": "+7% vs ontem", "tone": "up", "icon": "chat" },
-    { "key": "response-rate", "label": "Taxa de Resposta", "value": "67%", "delta": "+8% vs ontem", "tone": "up", "icon": "reply" },
-    { "key": "proposals", "label": "Propostas Enviadas", "value": "89", "delta": "+11% vs ontem", "tone": "up", "icon": "proposal" },
-    { "key": "sales", "label": "Vendas Fechadas", "value": "17", "delta": "+21% vs ontem", "tone": "up", "icon": "sale" },
-    { "key": "pipeline", "label": "Valor em Pipeline", "value": "R$ 842.000", "delta": "+15% vs ontem", "tone": "up", "icon": "money" }
+    { "label": "Leads Capturados", "value": "1.247", "delta": "+18% vs ontem", "icon": "leads", "color": "amber" },
+    { "label": "Conversas Ativas", "value": "312", "delta": "+7% vs ontem", "icon": "chat", "color": "blue" },
+    { "label": "Taxa de Resposta", "value": "67%", "delta": "+8% vs ontem", "icon": "reply", "color": "green" },
+    { "label": "Propostas Enviadas", "value": "89", "delta": "+11% vs ontem", "icon": "proposal", "color": "orange" },
+    { "label": "Vendas Fechadas", "value": "17", "delta": "+21% vs ontem", "icon": "sale", "color": "purple" },
+    { "label": "Valor em Pipeline", "value": "R$ 842.000", "delta": "+15% vs ontem", "icon": "money", "color": "navy" }
   ],
   "pipeline": [
-    { "stage": "Leads Novos", "count": 320, "pct": 25 },
-    { "stage": "Primeiro Contato", "count": 215, "pct": 17 },
-    { "stage": "Qualificados", "count": 134, "pct": 11 },
-    { "stage": "Proposta", "count": 62, "pct": 5 },
-    { "stage": "Negociação", "count": 29, "pct": 2 },
-    { "stage": "Fechados", "count": 17, "pct": 1 }
+    { "stage": "Leads Novos", "count": 320, "pct": "100%" },
+    { "stage": "Primeiro Contato", "count": 215, "pct": "67%" },
+    { "stage": "Qualificados", "count": 134, "pct": "42%" },
+    { "stage": "Proposta", "count": 62, "pct": "19%" },
+    { "stage": "Negociação", "count": 29, "pct": "9%" },
+    { "stage": "Fechados", "count": 17, "pct": "5%" }
   ],
   "pipelineConversion": "5,3%",
   "whatsapp": {
-    "sent": 4280,
-    "delivered": 4101,
-    "read": 3582,
-    "replied": 2431,
+    "sent": "4.280",
+    "delivered": "95,8%",
+    "read": "83,6%",
+    "replied": "59,3%",
     "responseRate": 59,
     "responseDelta": "+8% vs ontem"
   },
   "insights": [
-    { "tone": "danger", "text": "34 leads sem resposta há mais de 7 dias" },
-    { "tone": "warn", "text": "12 propostas vencem esta semana" },
-    { "tone": "info", "text": "18 leads quentes sem follow-up" },
-    { "tone": "success", "text": "5 oportunidades de upsell" }
+    { "tone": "danger", "title": "34 leads sem resposta", "desc": "há mais de 7 dias", "link": "Ver leads" },
+    { "tone": "warn", "title": "12 propostas vencem", "desc": "esta semana", "link": "Ver propostas" },
+    { "tone": "info", "title": "18 leads quentes", "desc": "sem follow-up", "link": "Ver follow-up" },
+    { "tone": "success", "title": "5 oportunidades", "desc": "de upsell", "link": "Ver pipeline" }
   ],
   "campaigns": [
     {
       "name": "Reativação — Leads Frios",
-      "sent": 3000,
-      "responsePct": 12,
-      "appointments": 54,
-      "sales": 7
+      "status": "Em andamento",
+      "sent": 842,
+      "replied": 198,
+      "appointments": 47,
+      "sales": 12,
+      "progress": 68,
+      "budget": "R$ 2.400"
     },
     {
       "name": "Indicação de Clientes",
-      "sent": 1200,
-      "responsePct": 18,
-      "appointments": 31,
-      "sales": 4
+      "status": "Em andamento",
+      "sent": 320,
+      "replied": 89,
+      "appointments": 22,
+      "sales": 8,
+      "progress": 45,
+      "budget": "R$ 800"
     }
   ],
   "sellers": [
-    { "name": "Carlos", "initials": "CA", "proposals": 23, "sales": 6, "revenue": "R$ 128.400" },
-    { "name": "André", "initials": "AN", "proposals": 18, "sales": 5, "revenue": "R$ 96.200" },
-    { "name": "João", "initials": "JO", "proposals": 14, "sales": 3, "revenue": "R$ 54.800" },
-    { "name": "Mariana", "initials": "MA", "proposals": 12, "sales": 2, "revenue": "R$ 41.500" },
-    { "name": "Lucas", "initials": "LU", "proposals": 9, "sales": 1, "revenue": "R$ 22.100" }
+    { "name": "Ana Silva", "initials": "AS", "proposals": 24, "sales": 8, "revenue": "R$ 186.000", "medal": "gold" },
+    { "name": "Carlos Mendes", "initials": "CM", "proposals": 21, "sales": 6, "revenue": "R$ 142.500", "medal": "silver" },
+    { "name": "Juliana Costa", "initials": "JC", "proposals": 18, "sales": 5, "revenue": "R$ 118.200", "medal": "bronze" },
+    { "name": "Pedro Alves", "initials": "PA", "proposals": 15, "sales": 4, "revenue": "R$ 89.400", "medal": null },
+    { "name": "Mariana Lima", "initials": "ML", "proposals": 12, "sales": 3, "revenue": "R$ 67.800", "medal": null }
   ],
-  "finance": {
-    "pipeline": "R$ 842.000",
-    "openProposals": "R$ 510.000",
-    "closedMonth": "R$ 214.000",
-    "goal": "R$ 250.000",
-    "goalPct": 85
-  }
+  "finance": [
+    { "label": "Valor em Pipeline", "value": "R$ 842.000", "color": "#2563EB", "spark": [620, 680, 710, 750, 790, 820, 842] },
+    { "label": "Propostas Abertas", "value": "R$ 312.000", "color": "#F97316", "spark": [240, 255, 268, 280, 295, 305, 312] },
+    { "label": "Faturamento do Mês", "value": "R$ 212.500", "color": "#22C55E", "spark": [120, 145, 160, 175, 190, 205, 212] }
+  ],
+  "financeGoal": { "goal": "R$ 250.000", "pct": 85 }
 }

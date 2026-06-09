@@ -1,0 +1,218 @@
+/**
+ * Engage Solar — shell + tokens para módulos Configurações (layout = ReservaAI).
+ */
+
+/* Tokens pro-* / operator (equivalente ao :root do admin ReservaAI, cores Engage) */
+body.es-page {
+  --ra-primary: var(--es-primary);
+  --ra-primary-dark: var(--es-navy);
+  --ra-primary-soft: #eff6ff;
+  --ra-bg: var(--es-bg);
+  --ra-surface: var(--es-surface);
+  --ra-border: var(--es-border);
+  --ra-text: var(--es-text);
+  --ra-text-soft: var(--es-text-muted);
+  --ra-success: var(--es-success);
+  --ra-warning: #f59e0b;
+  --ra-danger: #ef4444;
+  --ra-radius-sm: 10px;
+  --ra-radius-md: var(--es-radius);
+  --ra-radius-lg: var(--es-radius-lg);
+  --ra-shadow-sm: var(--es-shadow);
+  --ra-shadow-md: 0 16px 36px rgba(11, 42, 91, 0.1);
+  --ra-font: var(--es-font);
+  --bg: var(--es-bg);
+  --surface: var(--es-surface);
+  --text: var(--es-text);
+  --muted: var(--es-text-muted);
+  --primary: var(--es-primary);
+  --primary-dark: var(--es-navy);
+  --border: var(--es-border);
+}
+
+/* Modo configurações: área principal = canvas full-bleed como no ReservaAI */
+body.es-mode-settings {
+  background: var(--es-bg);
+}
+
+body.es-mode-settings .es-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 0;
+  padding: 0;
+  background: var(--es-bg);
+  border-radius: 0;
+  box-shadow: none;
+  overflow: auto;
+}
+
+body.es-mode-settings .es-panel--settings:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+body.es-mode-settings .es-page-heading {
+  display: none !important;
+}
+
+body.es-mode-settings .es-panel--settings {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+body.es-mode-settings .es-panel--settings[hidden] {
+  display: none !important;
+}
+
+/* Shells internos — fundo único */
+body.es-mode-settings .config-operador-pro-shell,
+body.es-mode-settings .services-pro-shell,
+body.es-mode-settings .plano-uso-shell,
+body.es-mode-settings .tenant-kb-pro-shell,
+body.es-mode-settings .wa-api-pro-page,
+body.es-mode-settings .members-page,
+body.es-mode-settings .audit-panel-shell,
+body.es-mode-settings .operator-config-shell {
+  flex: 1;
+  width: 100%;
+  min-height: min(100%, calc(100vh - 5.5rem));
+  background: var(--ra-bg);
+  color: var(--ra-text);
+}
+
+/* Painel wrapper ReservaAI */
+body.es-mode-settings .es-panel--settings[data-es-panel] {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Quando config-pro premium está ativo, neutraliza estilos legado pesados do operator-config */
+body.es-mode-settings[data-es-panel-active="configuracoes-operador"] .operator-config-toolbar,
+body.es-mode-settings[data-es-panel-active="configuracoes-operador"] .operator-config-kpi,
+body.es-mode-settings[data-es-panel-active="configuracoes-operador"] .operator-config-card:not(.operator-config-card-branches):not(.operator-config-card-professionals) {
+  border-radius: var(--ra-radius-md);
+  border-color: var(--ra-border);
+  background: var(--ra-surface);
+  box-shadow: var(--ra-shadow-sm);
+}
+
+/* Botões globais extraídos do marketing — só dentro de settings */
+body.es-mode-settings .btn-ghost {
+  color: var(--es-text) !important;
+  background: var(--es-surface) !important;
+  border: 1px solid var(--es-border) !important;
+}
+
+/* Botões dentro de settings */
+body.es-mode-settings .btn-primary,
+body.es-mode-settings .pro-hero-action.config-pro-save-main,
+body.es-mode-settings .services-pro-save,
+body.es-mode-settings .operator-config-inline-actions .btn-primary,
+body.es-mode-settings .plano-uso-btn--primary {
+  background: linear-gradient(90deg, var(--es-navy) 0%, var(--es-primary) 55%, #1d4ed8 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 10px 22px rgba(11, 42, 91, 0.2) !important;
+}
+
+body.es-mode-settings .btn-ghost,
+body.es-mode-settings .operator-config-toolbar .btn-ghost,
+body.es-mode-settings .operator-config-card .btn-ghost,
+body.es-mode-settings .services-pro-secondary-action {
+  color: var(--es-text) !important;
+  background: var(--es-surface) !important;
+  border: 1px solid var(--es-border) !important;
+  box-shadow: none !important;
+}
+
+body.es-mode-settings .services-pro-secondary-action:hover,
+body.es-mode-settings .btn-ghost:hover {
+  color: var(--es-primary) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+  background: var(--ra-primary-soft) !important;
+}
+
+body.es-mode-settings .services-pro-add,
+body.es-mode-settings .pro-hero-action:not(.config-pro-save-main):not(.services-pro-secondary-action) {
+  background: linear-gradient(90deg, var(--es-navy), var(--es-primary)) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+/* Abas ativas */
+body.es-mode-settings .config-pro-segmented-tabs .operator-config-tab.is-active,
+body.es-mode-settings .pro-tab.is-active {
+  color: var(--es-primary) !important;
+  background: rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Profissionais / usuários — padding do painel */
+body.es-mode-settings[data-es-panel-active="profissionais"] .es-panel--settings[data-es-panel="profissionais"],
+body.es-mode-settings[data-es-panel-active="usuarios"] .es-panel--settings[data-es-panel="usuarios"] {
+  padding: 18px;
+  background: var(--ra-bg);
+}
+
+/* Clientes — mesmo padrão premium pro-* */
+body[data-es-panel-active="clientes"] .pro-hero-action,
+body[data-es-panel-active="clientes"] .pro-list-add-mini {
+  background: linear-gradient(90deg, var(--es-navy), var(--es-primary)) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+body[data-es-panel-active="clientes"] .pro-tab.is-active {
+  color: var(--es-primary) !important;
+  background: rgba(37, 99, 235, 0.1) !important;
+}
+
+body[data-es-panel-active="clientes"] .pro-list-panel,
+body[data-es-panel-active="clientes"] .pro-profile-card {
+  box-shadow: var(--ra-shadow-sm, 0 1px 3px rgba(15, 23, 42, 0.06));
+}
+
+body[data-es-panel-active="clientes"] .btn-primary,
+body[data-es-panel-active="clientes"] .clients-editor-modal .btn-primary {
+  background: linear-gradient(90deg, var(--es-navy), var(--es-primary)) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 10px;
+  font-weight: 700;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+}
+
+body[data-es-panel-active="clientes"] .btn-ghost,
+body[data-es-panel-active="clientes"] .clients-editor-modal .btn-ghost {
+  border: 1px solid var(--ra-border, #e2e8f0);
+  color: var(--ra-text, #0f172a);
+  background: var(--ra-surface, #fff);
+  border-radius: 10px;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+}
+
+body.es-mode-settings[data-es-panel-active="whatsapp-api"] .es-content {
+  background: linear-gradient(180deg, var(--es-bg) 0%, #eef2f7 100%);
+}
+
+/* Gauge plano */
+body.es-mode-settings .plano-uso-gauge-fill {
+  stroke: var(--es-primary);
+}

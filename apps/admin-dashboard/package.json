@@ -1,0 +1,10 @@
+{
+  "name": "engage-solar-admin-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node dev-server.mjs",
+    "dev:win": "start-dev.cmd",
+    "start": "node dev-server.mjs"
+  }
+}

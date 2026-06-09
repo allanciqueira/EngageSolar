@@ -1,0 +1,10 @@
+# Cole no Caddyfile do servidor (domínio VivaEngage / Engage Solar).
+# Ajuste o host e garanta depends_on + service vivaengage-admin-dashboard no compose.
+
+engage.seudominio.com.br {
+  encode gzip
+
+  reverse_proxy vivaengage-admin-dashboard:80 {
+    header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+  }
+}

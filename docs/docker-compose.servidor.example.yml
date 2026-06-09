@@ -1,0 +1,182 @@
+# Exemplo completo — stack ReservaAI no servidor + VivaEngage (Engage Solar dashboard).
+# Copie para o servidor (ex.: junto do Caddyfile.platform) e ajuste .env.prod / TAG.
+# Imagem: allanciqueira/vivaengage-admin-dashboard:latest (build_push.cmd)
+
+services:
+  gateway:
+    image: caddy:2.8-alpine
+    container_name: reservaai-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/gateway/Caddyfile.platform:/etc/caddy/Caddyfile:ro
+      - reservaai-caddy-data:/data
+      - reservaai-caddy-config:/config
+    depends_on:
+      - marketing-web
+      - admin-shell
+      - calendar-mf
+      - messaging-mf
+      - operator-mf
+      - vivaengage-admin-dashboard
+      - identity-service
+      - security-service
+      - audit-service
+      - operator-service
+      - scheduling-service
+      - messaging-service
+      - search-service
+
+  marketing-web:
+    image: allanciqueira/reservaai-marketing-web:${TAG:-latest}
+    container_name: reservaai-marketing-web
+    restart: unless-stopped
+
+  admin-shell:
+    image: allanciqueira/reservaai-admin-shell:${TAG:-latest}
+    container_name: reservaai-admin-shell
+    restart: unless-stopped
+
+  calendar-mf:
+    image: allanciqueira/reservaai-calendar-mf:${TAG:-latest}
+    container_name: reservaai-calendar-mf
+    restart: unless-stopped
+
+  messaging-mf:
+    image: allanciqueira/reservaai-messaging-mf:${TAG:-latest}
+    container_name: reservaai-messaging-mf
+    restart: unless-stopped
+
+  operator-mf:
+    image: allanciqueira/reservaai-operator-mf:${TAG:-latest}
+    container_name: reservaai-operator-mf
+    restart: unless-stopped
+
+  # Engage Solar / VivaEngage — dashboard (nginx estático)
+  vivaengage-admin-dashboard:
+    image: allanciqueira/vivaengage-admin-dashboard:${TAG:-latest}
+    container_name: vivaengage-admin-dashboard
+    restart: unless-stopped
+    # Opcional: porta no host para teste sem Caddy (remova quando o domínio estiver no Caddyfile)
+    # ports:
+    #   - "8088:80"
+
+  identity-service:
+    image: allanciqueira/reservaai-identity-service:${TAG:-latest}
+    container_name: reservaai-identity-service
+    restart: unless-stopped
+    env_file:
+      - ./.env.prod
+    environment:
+      PORT: 8091
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-identity_db}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      APP_FRONTEND_BASE_URL: ${APP_FRONTEND_BASE_URL}
+      APP_EXTERNAL_AUTH_BASE_URL: ${APP_EXTERNAL_AUTH_BASE_URL}
+      APP_EXTERNAL_AUTH_LOGIN_PATH: ${APP_EXTERNAL_AUTH_LOGIN_PATH:-/auth/login}
+      APP_EXTERNAL_AUTH_USERNAME: ${APP_EXTERNAL_AUTH_USERNAME}
+      APP_EXTERNAL_AUTH_PASSWORD: ${APP_EXTERNAL_AUTH_PASSWORD}
+      APP_EXTERNAL_AUTH_MOCK_ENABLED: ${APP_EXTERNAL_AUTH_MOCK_ENABLED:-false}
+      APP_AUTH_DEFAULT_USER: ${APP_AUTH_DEFAULT_USER}
+      APP_AUTH_DEFAULT_PASSWORD: ${APP_AUTH_DEFAULT_PASSWORD}
+      APP_AUTH_DEFAULT_DISPLAY_NAME: ${APP_AUTH_DEFAULT_DISPLAY_NAME:-Administrador ReservaAI}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}
+      APPLE_CLIENT_SECRET: ${APPLE_CLIENT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  operator-service:
+    image: allanciqueira/reservaai-operator-service:${TAG:-latest}
+    container_name: reservaai-operator-service
+    restart: unless-stopped
+    environment:
+      PORT: 8092
+      PLATFORM_EXTERNAL_BASE_URL: ${PLATFORM_EXTERNAL_BASE_URL:-https://api.neuraflow.ia.br}
+      # Rotas /engage/* (campanhas, meta). No Engage Solar use o api-engage interno quando existir no compose.
+      PLATFORM_ENGAGE_BASE_URL: ${PLATFORM_ENGAGE_BASE_URL:-}
+      # Fallback: elevação com conta de serviço NeuraFlow quando rotas tenant ainda exigem platform admin.
+      PLATFORM_SERVICE_AUTH_USERNAME: ${PLATFORM_SERVICE_AUTH_USERNAME:-}
+      PLATFORM_SERVICE_AUTH_PASSWORD: ${PLATFORM_SERVICE_AUTH_PASSWORD:-}
+
+  security-service:
+    image: allanciqueira/reservaai-security-service:${TAG:-latest}
+    container_name: reservaai-security-service
+    restart: unless-stopped
+    environment:
+      PORT: 8095
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-identity_db}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  audit-service:
+    image: allanciqueira/reservaai-audit-service:${TAG:-latest}
+    container_name: reservaai-audit-service
+    restart: unless-stopped
+    environment:
+      PORT: 8096
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-identity_db}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  scheduling-service:
+    image: allanciqueira/reservaai-scheduling-service:${TAG:-latest}
+    container_name: reservaai-scheduling-service
+    restart: unless-stopped
+    environment:
+      PORT: 8093
+      PLATFORM_EXTERNAL_BASE_URL: ${PLATFORM_EXTERNAL_BASE_URL:-https://api.neuraflow.ia.br}
+
+  messaging-service:
+    image: allanciqueira/reservaai-messaging-service:${TAG:-latest}
+    container_name: reservaai-messaging-service
+    restart: unless-stopped
+    environment:
+      PORT: 8094
+      PLATFORM_EXTERNAL_BASE_URL: ${PLATFORM_EXTERNAL_BASE_URL:-https://api.neuraflow.ia.br}
+
+  search-service:
+    image: allanciqueira/reservaai-search-service:${TAG:-latest}
+    container_name: reservaai-search-service
+    restart: unless-stopped
+    environment:
+      PORT: 8097
+
+  postgres:
+    image: postgres:16
+    container_name: reservaai-platform-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-identity_db}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - reservaai-platform-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME:-identity_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  reservaai-platform-postgres-data:
+  reservaai-caddy-data:
+  reservaai-caddy-config:

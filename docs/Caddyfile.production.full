@@ -1,0 +1,160 @@
+{
+  email {$CADDY_EMAIL:admin@reservaai.ia.br}
+}
+
+(platform_routes) {
+  @adminPath path /admin
+  redir @adminPath /admin/ 302
+
+  handle_path /admin/* {
+    @adminRoot path /
+    rewrite @adminRoot /admin.html
+
+    # URLs limpas no admin: /admin/login -> /login.html
+    @adminPretty path_regexp adminPretty ^/([^./]+)$
+    rewrite @adminPretty /{re.adminPretty.1}.html
+
+    # no-cache + max-age=0 + must-revalidate: browser revalida com o servidor (útil após deploy).
+    reverse_proxy admin-shell:80 {
+      header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+    }
+  }
+
+  handle_path /mf/calendar/* {
+    reverse_proxy calendar-mf:80 {
+      header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+    }
+  }
+
+  handle_path /mf/messaging/* {
+    reverse_proxy messaging-mf:80 {
+      header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+    }
+  }
+
+  handle_path /mf/operator/* {
+    reverse_proxy operator-mf:80 {
+      header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+    }
+  }
+
+  handle_path /api/identity/* {
+    reverse_proxy identity-service:8091
+  }
+
+  handle /oauth2/* {
+    reverse_proxy identity-service:8091
+  }
+
+  handle /login/oauth2/* {
+    reverse_proxy identity-service:8091
+  }
+
+  handle /api/operator/* {
+    reverse_proxy operator-service:8092
+  }
+
+  handle /api/security/* {
+    reverse_proxy security-service:8095
+  }
+
+  handle /api/audit/* {
+    reverse_proxy audit-service:8096
+  }
+
+  handle /api/scheduling/* {
+    reverse_proxy scheduling-service:8093
+  }
+
+  handle /api/messaging/* {
+    reverse_proxy messaging-service:8094
+  }
+
+  handle_path /api/search/* {
+    reverse_proxy search-service:8097
+  }
+
+  handle {
+    @marketingRoot path /
+    rewrite @marketingRoot /index.html
+
+    # URLs limpas no marketing: /contato -> /contato.html
+    @marketingPretty path_regexp marketingPretty ^/([^./]+)$
+    rewrite @marketingPretty /{re.marketingPretty.1}.html
+
+    reverse_proxy marketing-web:80 {
+      header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+    }
+  }
+}
+
+http://localhost {
+  import platform_routes
+}
+
+http://127.0.0.1 {
+  import platform_routes
+}
+
+{$APP_DOMAIN:reservaai.ia.br} {
+  import platform_routes
+}
+
+# =============================================================================
+# Engage Solar — https://www.engagesolar.com.br
+# Um bloco só: certificado Let's Encrypt para www + apex.
+# Requer no compose: vivaengage-admin-dashboard + serviços API na mesma rede.
+# =============================================================================
+www.engagesolar.com.br, engagesolar.com.br {
+  @apex host engagesolar.com.br
+  redir @apex https://www.engagesolar.com.br{uri} permanent
+
+  # --- Login / identidade ---
+  handle_path /api/identity/* {
+    reverse_proxy identity-service:8091
+  }
+
+  handle /oauth2/* {
+    reverse_proxy identity-service:8091
+  }
+
+  handle /login/oauth2/* {
+    reverse_proxy identity-service:8091
+  }
+
+  # --- WhatsApp / Conversas ---
+  handle_path /mf/messaging/* {
+    reverse_proxy messaging-mf:80 {
+      header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+    }
+  }
+
+  handle /api/messaging/* {
+    reverse_proxy messaging-service:8094
+  }
+
+  # --- Configurações (menu Configurações / ReservaAI) ---
+  handle /api/operator/* {
+    reverse_proxy operator-service:8092
+  }
+
+  handle /api/audit/* {
+    reverse_proxy audit-service:8096
+  }
+
+  # --- Engage Config (Meta connections, campanhas, etc.) ---
+  # Ajuste upstream quando api-engage estiver no compose (host:porta NeuraFlow).
+  # Comentar este bloco se o serviço ainda não existir.
+  handle /engage/* {
+    reverse_proxy api-engage:3000
+  }
+
+  encode gzip
+
+  # --- Front Engage Solar (login, dashboard, Engage Config) — catch-all por último ---
+  handle {
+    reverse_proxy vivaengage-admin-dashboard:80 {
+      header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+    }
+  }
+}

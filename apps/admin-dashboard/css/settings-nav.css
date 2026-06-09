@@ -1,0 +1,24 @@
+
+.es-nav-group { display: flex; flex-direction: column; gap: 0.15rem; }
+.es-nav-group-trigger .es-nav-chev {
+  margin-left: auto;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+.es-nav-group[data-open="true"] .es-nav-chev { transform: rotate(180deg); }
+.es-nav-sublist {
+  display: none;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.15rem 0 0.35rem 0.65rem;
+  margin-left: 0.35rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+.es-nav-group[data-open="true"] .es-nav-sublist { display: flex; }
+.es-nav-subitem { padding-left: 0.5rem !important; font-size: 0.78rem !important; }
+.es-nav-subitem .es-nav-icon { display: none; }
+.es-nav-subitem-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.35); flex-shrink: 0;
+}
+.es-nav-subitem.is-active .es-nav-subitem-dot { background: var(--es-solar); }

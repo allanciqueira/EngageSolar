@@ -1,0 +1,49 @@
+# Bloco Engage Solar — cole no FINAL do Caddyfile de produção (fora de platform_routes).
+# Arquivo completo (ReservaAI + Engage): docs/Caddyfile.production.full
+
+www.engagesolar.com.br, engagesolar.com.br {
+  @apex host engagesolar.com.br
+  redir @apex https://www.engagesolar.com.br{uri} permanent
+
+  handle_path /api/identity/* {
+    reverse_proxy identity-service:8091
+  }
+
+  handle /oauth2/* {
+    reverse_proxy identity-service:8091
+  }
+
+  handle /login/oauth2/* {
+    reverse_proxy identity-service:8091
+  }
+
+  handle_path /mf/messaging/* {
+    reverse_proxy messaging-mf:80 {
+      header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+    }
+  }
+
+  handle /api/messaging/* {
+    reverse_proxy messaging-service:8094
+  }
+
+  handle /api/operator/* {
+    reverse_proxy operator-service:8092
+  }
+
+  handle /api/audit/* {
+    reverse_proxy audit-service:8096
+  }
+
+  handle /engage/* {
+    reverse_proxy api-engage:3000
+  }
+
+  encode gzip
+
+  handle {
+    reverse_proxy vivaengage-admin-dashboard:80 {
+      header_down Cache-Control "no-cache, max-age=0, must-revalidate"
+    }
+  }
+}

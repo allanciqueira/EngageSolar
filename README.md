@@ -18,12 +18,70 @@ Dashboard estático com dados mockados:
 
 ## Rodar localmente
 
-```bash
-cd apps/admin-dashboard
-npx --yes serve -l 5173
+No PowerShell, a partir da raiz do repositório **EngageSolar**:
+
+**Pré-requisito:** stack ReservaAI no gateway local (**porta 8080**), ex. `docker compose` em `C:\ReservaAI`.
+
+```powershell
+cd C:\EngageSolar\apps\admin-dashboard
+npm run dev
+# ou no Windows, se a porta 5173 estiver ocupada pelo serve:
+.\start-dev.cmd
 ```
 
-Abra [http://localhost:5173](http://localhost:5173).
+Isso sobe UI em **5173** e faz **proxy** de `/api/*`, `/oauth2/*` e `/login/oauth2/*` para `http://localhost:8080` (mesmo contrato do ReservaAI).
+
+Abra [http://localhost:5173/login.html](http://localhost:5173/login.html) — tenant fixo **Dmetc**.
+
+> Não use `npx serve` sozinho: ele não encaminha API e as chamadas ficam em `localhost:5173/api/identity/...` sem backend.
+
+### Login (tenant Dmetc)
+
+- Tenant: `096029c3-f6db-43af-a55a-fc7df608732f` — empresa **Dmetc** (`js/config.js`)
+- API: `/api/identity` (proxy no Caddy do domínio Engage Solar)
+- Após login → dashboard (`index.html`); botão **Sair** na sidebar
+
+> O dashboard **não** fica no monorepo ReservaAI — apenas em `C:\EngageSolar`.
+
+## Docker (servidor)
+
+Build e execução direto na pasta do dashboard:
+
+```powershell
+cd C:\EngageSolar\apps\admin-dashboard
+docker build -t engage-solar/admin-dashboard:latest .
+docker run -d --name engage-solar-dashboard -p 8080:80 --restart unless-stopped engage-solar/admin-dashboard:latest
+```
+
+Ou, na raiz do repositório, com Compose:
+
+```powershell
+cd C:\EngageSolar
+docker compose up -d --build
+```
+
+- **URL local:** [http://localhost:8080](http://localhost:8080)
+- **Health check:** `http://localhost:8080/health`
+- **Imagem:** `engage-solar/admin-dashboard:latest`
+
+### Publicar no Docker Hub (mesmo fluxo do ReservaAI)
+
+Na raiz `C:\EngageSolar`:
+
+```bat
+build_push.cmd
+```
+
+Isso gera e envia: **`allanciqueira/vivaengage-admin-dashboard:latest`**
+
+### No servidor (após o push)
+
+```bash
+docker pull allanciqueira/vivaengage-admin-dashboard:latest
+docker run -d --name vivaengage-dashboard -p 80:80 --restart unless-stopped allanciqueira/vivaengage-admin-dashboard:latest
+```
+
+Health: `http://SEU_HOST/health`
 
 ## Estrutura
 

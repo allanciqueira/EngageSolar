@@ -1,729 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0B2A5B" />
-    <meta name="description" content="Engage Solar — CRM, WhatsApp e automação para energia solar" />
-    <title>Engage Solar — Dashboard</title>
-    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="manifest" href="manifest.json" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/theme.css" />
-    <link rel="stylesheet" href="css/layout.css" />
-    <link rel="stylesheet" href="css/dashboard.css" />
-    <link rel="stylesheet" href="css/whatsapp.css" />
-    <link rel="stylesheet" href="css/engage-config.css" />
-    <link rel="stylesheet" href="css/settings-nav.css" />
-    <link rel="stylesheet" href="css/settings-reserva.css" />
-    <link rel="stylesheet" href="css/sales-consultants.css" />
-    <link rel="stylesheet" href="css/settings-engage-theme.css" />
-    <link rel="stylesheet" href="css/clients-reserva.css" />
-    <link rel="stylesheet" href="css/company-geral-reserva.css" />
-    <link rel="stylesheet" href="css/engage-campaigns-reserva.css" />
-    <script src="js/config.js"></script>
-    <script src="js/dev-api-check.js"></script>
-    <script>
-      window.RESERVAAI_API_BASE_URL = window.RESERVAAI_API_BASE_URL || '/api/identity';
-      window.RESERVAAI_MESSAGING_API_BASE_URL = '/api/messaging';
-      window.RESERVAAI_EXTERNAL_API_BASE_URL = '/api/messaging';
-    </script>
-    <script src="js/auth-service.js"></script>
-    <script src="js/user-messages.js"></script>
-    <script src="js/reserva-permissions.js"></script>
-    <script src="js/api-client.js"></script>
-  </head>
-  <body class="es-page" data-es-panel-active="dashboard">
-    <div class="es-app" data-sidebar="expanded" data-mobile-nav="closed">
-      <aside class="es-sidebar" id="esSidebar" aria-label="Menu principal">
-        <div class="es-brand">
-          <img class="es-brand-mark" src="assets/logo.svg" width="40" height="40" alt="" />
-          <div class="es-brand-text">
-            <strong>Engage</strong>
-            <span class="es-brand-solar">SOLAR</span>
-          </div>
-        </div>
-
-        <div class="es-selectors">
-          <button type="button" class="es-selector" aria-label="Empresa">
-            <span class="es-selector-dot" aria-hidden="true"></span>
-            <span class="es-selector-label">Engage Solar</span>
-            <svg class="es-selector-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <button type="button" class="es-selector es-selector--lang" aria-label="Idioma">
-            <span class="es-selector-flag" aria-hidden="true">🇧🇷</span>
-            <span class="es-selector-label">PT</span>
-            <svg class="es-selector-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-        </div>
-
-        <nav class="es-nav" id="esNav" aria-label="Navegação"></nav>
-
-        <div class="es-quick">
-          <span class="es-quick-title">+ AÇÕES RÁPIDAS</span>
-          <button type="button" class="es-quick-btn"><span>Novo Lead</span></button>
-          <button type="button" class="es-quick-btn"><span>Nova Campanha</span></button>
-          <button type="button" class="es-quick-btn"><span>Nova Proposta</span></button>
-        </div>
-
-        <div class="es-user">
-          <span class="es-user-avatar" id="esUserAvatar" aria-hidden="true">RC</span>
-          <div class="es-user-meta">
-            <strong id="esUserName">Administrador</strong>
-            <span id="esUserRole">Empresa</span>
-          </div>
-          <button type="button" class="es-logout-btn" id="esLogoutBtn" title="Sair">Sair</button>
-        </div>
-      </aside>
-
-      <div class="es-main">
-        <div class="es-topbar-mobile">
-          <button type="button" class="es-topbar-toggle" id="esMobileToggle" aria-label="Abrir menu">☰</button>
-          <button type="button" class="es-topbar-toggle" id="esSidebarToggle" aria-label="Recolher menu">◀</button>
-        </div>
-
-        <header class="es-header" aria-label="Barra superior">
-          <div class="es-header-inner es-header-inner--toolbar">
-            <div class="es-header-toolbar">
-              <label class="es-header-search">
-                <svg class="es-header-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
-                <input type="search" id="esHeaderSearch" placeholder="Buscar..." autocomplete="off" />
-              </label>
-              <div class="es-header-actions">
-                <button type="button" class="es-icon-btn" id="esNotifyBtn" aria-label="Notificações" aria-expanded="false" aria-controls="esNotifyMenu">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                  <span class="es-notify-badge" id="esNotifyBadge" hidden>0</span>
-                </button>
-                <button type="button" class="es-icon-btn" aria-label="Ajuda">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 1 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                </button>
-                <button type="button" class="es-icon-btn es-icon-btn--sun" id="esThemeBtn" aria-label="Tema">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-                </button>
-                <div class="es-profile-wrap">
-                  <button type="button" class="es-profile-chip" id="esProfileMenuBtn" aria-label="Menu do perfil" aria-expanded="false" aria-controls="esProfileMenu">
-                    <span class="es-profile-avatar" id="esProfileAvatarWrap" aria-hidden="true">
-                      <img id="esProfileAvatarImg" class="es-profile-avatar-img" alt="" width="32" height="32" decoding="async" hidden />
-                      <span id="esProfileAvatarInitials" class="es-profile-avatar-initials">ES</span>
-                    </span>
-                    <span class="es-profile-text">
-                      <strong id="esProfileDisplayName">Engage Solar</strong>
-                      <span id="esProfileRole">Administrador</span>
-                    </span>
-                    <svg class="es-profile-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-                  </button>
-                  <div class="es-profile-menu" id="esProfileMenu" hidden>
-                    <p class="es-profile-menu-meta" id="esProfileMenuMeta"></p>
-                    <button type="button" class="es-profile-menu-item" data-es-profile-action="logout">Sair</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <div class="es-content">
-          <div class="es-page-heading" id="esPageHeading">
-            <h1 id="esHeroTitle">Dashboard</h1>
-            <p id="esHeroSubtitle">Visão geral do seu negócio solar</p>
-          </div>
-          <section class="es-panel" data-es-panel="dashboard" id="esPanelDashboard">
-            <div class="es-date-bar">
-              <button type="button" class="es-date-btn" id="esDateBtn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Hoje, 01 de junho
-              </button>
-            </div>
-
-            <div class="es-kpi-grid" id="esKpiGrid" aria-label="Resumo comercial"></div>
-
-            <div class="es-dashboard-grid">
-              <article class="es-card es-card--pipeline">
-                <h2>Pipeline de Vendas</h2>
-                <div id="esPipeline"></div>
-              </article>
-
-              <article class="es-card es-card--whatsapp">
-                <h2>💬 WhatsApp — Resumo do Dia</h2>
-                <div id="esWhatsapp"></div>
-              </article>
-
-              <article class="es-card es-card--insights">
-                <h2>Insights Inteligentes</h2>
-                <div class="es-insights" id="esInsights"></div>
-              </article>
-
-              <article class="es-card es-card--campaigns">
-                <h2>Campanhas Ativas</h2>
-                <div id="esCampaigns"></div>
-              </article>
-
-              <article class="es-card es-card--sellers">
-                <h2>Ranking de Consultores</h2>
-                <div id="esSellers"></div>
-              </article>
-
-              <article class="es-card es-card--finance">
-                <h2>Resumo Financeiro</h2>
-                <div id="esFinance"></div>
-              </article>
-            </div>
-          </section>
-
-          <section class="es-panel" data-es-panel="leads" hidden>
-            <div class="es-placeholder"><strong>Leads</strong><br />Módulo previsto para Fase 2.</div>
-          </section>
-          <section class="es-panel es-panel--conversas" data-es-panel="conversas" hidden>
-            <div class="whats-pro-card">
-<div class="whats-pro-shell" id="botInboxRoot">
-              <aside class="whats-pro-sidebar">
-                <header class="whats-pro-sidebar-head">
-                  <div class="whats-pro-sidebar-head-row">
-                    <select class="whats-pro-tenant" id="botInboxTenant" aria-label="Empresa"></select>
-                    <span class="whats-pro-live" id="botInboxLiveBadge" data-tone="neutral">
-                      <span class="whats-pro-live-dot" aria-hidden="true"></span>
-                      <span>Conexão ativa</span>
-                    </span>
-              </div>
-                  <div class="whats-pro-sidebar-actions">
-                    <button class="whats-pro-icon-btn" id="botInboxToggleOn" type="button" title="Ativar IA" aria-label="Ativar IA">
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4M5 7l2.5 2.5M2 12h4M5 17l2.5-2.5M22 12h-4M19 17l-2.5-2.5M19 7l-2.5 2.5M12 18v4"/><circle cx="12" cy="12" r="4"/></svg>
-                    </button>
-                    <button class="whats-pro-icon-btn" id="botInboxToggleOff" type="button" title="Pausar IA" aria-label="Pausar IA">
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
-                    </button>
-                    <button class="whats-pro-icon-btn whats-pro-icon-btn-primary" type="button" title="Nova conversa" aria-label="Nova conversa">
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
-                    </button>
-            </div>
-                </header>
-
-                <p class="whats-pro-toggle-hint" id="botInboxToggleHint">Carregando configurações da IA...</p>
-
-                <div class="whats-pro-search-row">
-                  <span class="whats-pro-search-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                  </span>
-                  <input class="whats-pro-search" id="botInboxSearch" type="search" placeholder="Pesquisar conversa" autocomplete="off" />
-                  <button class="whats-pro-icon-btn whats-pro-search-filter" type="button" aria-label="Filtros">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
-                  </button>
-                </div>
-
-                <nav class="whats-pro-filters" id="botInboxFilters" role="tablist" aria-label="Filtrar conversas">
-                  <button type="button" class="whats-pro-filter is-active" data-conv-filter="all" role="tab" aria-selected="true">Todas <span class="whats-pro-filter-count" data-conv-filter-count="all">0</span></button>
-                  <button type="button" class="whats-pro-filter" data-conv-filter="unread" role="tab" aria-selected="false">Não lidas <span class="whats-pro-filter-count" data-conv-filter-count="unread">0</span></button>
-                  <button type="button" class="whats-pro-filter" data-conv-filter="ai" role="tab" aria-selected="false">IA</button>
-                  <button type="button" class="whats-pro-filter" data-conv-filter="groups" role="tab" aria-selected="false">Grupos</button>
-                  <button type="button" class="whats-pro-filter" data-conv-filter="closed" role="tab" aria-selected="false">Fechadas <span class="whats-pro-filter-count" data-conv-filter-count="closed">0</span></button>
-                </nav>
-
-                <div class="whats-pro-sync" id="botInboxSync" data-tone="neutral">Conectando a inbox…</div>
-
-                <div class="whats-pro-chat-list" id="botInboxChatList"></div>
-              </aside>
-
-              <section class="whats-pro-thread">
-                <div class="whats-pro-thread-empty" id="botInboxEmpty" hidden>
-                  <span class="whats-pro-thread-empty-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  </span>
-                  <strong>Selecione uma conversa</strong>
-                  <p>Escolha um contato à esquerda para abrir o histórico, enviar mensagens e ações da IA.</p>
-                </div>
-
-                <div class="whats-pro-thread-content" id="botInboxThread">
-                  <header class="whats-pro-thread-head">
-                    <button class="whats-pro-icon-btn whats-pro-thread-back" type="button" data-whats-back aria-label="Voltar">
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                    </button>
-                    <div class="whats-pro-thread-id">
-                      <span class="whats-pro-thread-avatar" id="botInboxAvatar" aria-hidden="true">AI</span>
-                      <span class="whats-pro-thread-id-copy">
-                      <strong id="botInboxHeaderName">Contato</strong>
-                        <span class="whats-pro-thread-meta" id="botInboxHeaderMeta">Carregando dados…</span>
-                      </span>
-                    </div>
-                    <div class="whats-pro-thread-tags">
-                      <span class="whats-pro-thread-window" id="botInboxThreadWindow" data-tone="open" hidden>
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-                        <span data-window-label>Janela aberta</span>
-                      </span>
-                      <span class="whats-pro-thread-status" id="botInboxThreadStatus" data-tone="neutral">
-                        <span class="whats-pro-live-dot" aria-hidden="true"></span>
-                        <span>IA ativa</span>
-                      </span>
-                    </div>
-                    <div class="whats-pro-thread-actions">
-                      <button class="whats-pro-icon-btn" type="button" title="Pesquisar nesta conversa" aria-label="Pesquisar nesta conversa">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                      </button>
-                      <button class="whats-pro-icon-btn" type="button" title="Ligar" aria-label="Ligar">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                      </button>
-                      <button class="whats-pro-icon-btn" type="button" title="Mensagem rápida" aria-label="Mensagem rápida">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                      </button>
-                      <button class="whats-pro-icon-btn" type="button" title="Mais opções" aria-label="Mais opções">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                      </button>
-                    </div>
-                  </header>
-
-                  <div class="whats-pro-debug" id="botInboxDebug" hidden></div>
-
-                  <div class="whats-pro-messages" id="botInboxMessages"></div>
-
-                  <div class="whats-pro-thread-error" id="botInboxError" hidden></div>
-
-                  <div class="whats-pro-window-warning" id="botInboxWindowWarning" data-tone="closed" hidden>
-                    <span class="whats-pro-window-warning-icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    </span>
-                    <div class="whats-pro-window-warning-copy">
-                      <strong id="botInboxWindowWarningTitle">Janela fechada</strong>
-                      <p id="botInboxWindowWarningHint">Só é possível enviar um template aprovado pela Meta (HSM).</p>
-                    </div>
-                    <button type="button" class="whats-pro-window-template-btn" id="botInboxWindowTemplateBtn" data-window-template>Enviar template</button>
-                  </div>
-
-                  <div class="whats-pro-attach-preview" id="botInboxAttachPreview" hidden>
-                    <div class="whats-pro-attach-preview-main" id="botInboxAttachPreviewMain"></div>
-                    <label class="whats-pro-attach-caption">
-                      <span>Legenda (opcional)</span>
-                      <input type="text" id="botInboxAttachCaption" maxlength="1024" placeholder="Adicione uma legenda…" autocomplete="off" />
-                    </label>
-                    <div class="whats-pro-attach-preview-actions">
-                      <button type="button" class="whats-pro-attach-btn is-ghost" id="botInboxAttachCancel">Cancelar</button>
-                      <button type="button" class="whats-pro-attach-btn is-primary" id="botInboxAttachSend">Enviar arquivo</button>
-                    </div>
-                  </div>
-
-                  <div class="whats-pro-audio-preview" id="botInboxAudioPreview" hidden>
-                    <div class="whats-pro-audio-preview-main">
-                      <span class="whats-pro-audio-preview-label" id="botInboxAudioPreviewLabel">Gravando…</span>
-                      <audio id="botInboxAudioPreviewPlayer" controls hidden></audio>
-                    </div>
-                    <div class="whats-pro-attach-preview-actions">
-                      <button type="button" class="whats-pro-attach-btn is-ghost" id="botInboxAudioDiscard">Descartar</button>
-                      <button type="button" class="whats-pro-attach-btn is-primary" id="botInboxAudioSend" hidden>Enviar áudio</button>
-                    </div>
-                  </div>
-
-                  <div class="whats-pro-composer">
-                    <button class="whats-pro-icon-btn whats-pro-composer-icon" type="button" data-composer-emoji id="botInboxEmojiBtn" aria-label="Emoji" aria-expanded="false" aria-controls="botInboxEmojiPanel">
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-                    </button>
-                    <button class="whats-pro-icon-btn whats-pro-composer-icon" type="button" data-composer-attach id="botInboxAttachBtn" aria-label="Anexar arquivo">
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                    </button>
-                    <button class="whats-pro-icon-btn whats-pro-composer-icon" type="button" data-composer-contact id="botInboxContactBtn" aria-label="Enviar contato">
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    </button>
-                    <input type="file" id="botInboxFileInput" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp,video/mp4" />
-                    <div class="whats-pro-emoji-panel" id="botInboxEmojiPanel" role="menu" hidden></div>
-                    <input class="whats-pro-composer-input" id="botInboxComposerInput" type="text" placeholder="Digite uma mensagem para o cliente…" autocomplete="off" />
-                    <button class="whats-pro-icon-btn whats-pro-composer-icon" type="button" data-composer-mic id="botInboxMicBtn" aria-label="Mensagem de voz">
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                    </button>
-                    <button class="whats-pro-composer-send" id="botInboxSend" type="button" aria-label="Enviar">
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                      <span>Enviar</span>
-                    </button>
-                  </div>
-
-                  <div class="whats-pro-contact-modal-backdrop" id="botInboxContactModal" hidden>
-                    <section class="whats-pro-contact-modal" role="dialog" aria-modal="true" aria-labelledby="botInboxContactModalTitle">
-                      <header class="whats-pro-contact-modal-head">
-                        <strong id="botInboxContactModalTitle">Enviar contato</strong>
-                        <button type="button" class="whats-pro-icon-btn" id="botInboxContactClose" aria-label="Fechar">×</button>
-                      </header>
-                      <form id="botInboxContactForm" class="whats-pro-contact-form">
-                        <label>
-                          <span>Nome</span>
-                          <input type="text" id="botInboxContactName" required maxlength="200" placeholder="Nome completo" />
-                        </label>
-                        <label>
-                          <span>Telefone (WhatsApp)</span>
-                          <input type="tel" id="botInboxContactPhone" required maxlength="32" placeholder="+55 11 99999-8888" />
-                        </label>
-                        <label>
-                          <span>Tipo</span>
-                          <select id="botInboxContactPhoneType">
-                            <option value="CELL">Celular</option>
-                            <option value="MAIN">Principal</option>
-                            <option value="HOME">Residencial</option>
-                            <option value="WORK">Trabalho</option>
-                          </select>
-                        </label>
-                        <div class="whats-pro-attach-preview-actions">
-                          <button type="button" class="whats-pro-attach-btn is-ghost" id="botInboxContactCancel">Cancelar</button>
-                          <button type="button" class="whats-pro-attach-btn is-primary" id="botInboxContactSend">Enviar contato</button>
-                        </div>
-                      </form>
-                    </section>
-                  </div>
-                </div>
-              </section>
-
-              <aside class="whats-pro-crm" id="botInboxCrmPanel" hidden>
-                <header class="whats-pro-crm-head">
-                  <span class="whats-pro-crm-avatar" id="botInboxCrmAvatar" aria-hidden="true">AI</span>
-                  <strong id="botInboxCrmName">Contato</strong>
-                  <span id="botInboxCrmPhone">—</span>
-                </header>
-                <section class="whats-pro-crm-section">
-                  <h4>Insights</h4>
-                  <div class="whats-pro-crm-kpis">
-                    <article>
-                      <span>Ticket médio</span>
-                      <strong id="botInboxCrmAvgTicket">—</strong>
-                    </article>
-                    <article>
-                      <span>Último atendimento</span>
-                      <strong id="botInboxCrmLastVisit">—</strong>
-                    </article>
-                    <article>
-                      <span>Mensagens</span>
-                      <strong id="botInboxCrmMessageCount">0</strong>
-                    </article>
-                    <article>
-                      <span>Janela WhatsApp</span>
-                      <strong id="botInboxCrmWindowState">—</strong>
-                    </article>
-                  </div>
-                </section>
-                <section class="whats-pro-crm-section">
-                  <h4>Tags</h4>
-                  <div class="whats-pro-crm-tags" id="botInboxCrmTags">
-                    <span class="whats-pro-crm-tag whats-pro-crm-tag-green">VIP</span>
-                    <span class="whats-pro-crm-tag whats-pro-crm-tag-blue">Recorrente</span>
-                  </div>
-                </section>
-                <section class="whats-pro-crm-section">
-                  <h4>Notas internas</h4>
-                  <p id="botInboxCrmNotes" class="whats-pro-crm-notes">Nenhuma nota cadastrada para este contato.</p>
-                </section>
-                <section class="whats-pro-crm-section">
-                  <h4>Ações rápidas</h4>
-                  <div class="whats-pro-crm-actions">
-                    <button type="button" class="whats-pro-crm-action" data-crm-action="open-customer">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                      Abrir ficha do cliente
-                    </button>
-                  </div>
-                </section>
-              </aside>
-            </div>
-            </div>
-          </section>
-          <section class="es-panel es-panel--campanhas" data-es-panel="campanhas" hidden>
-            <div class="engage-campaign-shell" id="adminEngageCampaignsRoot">
-              <header class="engage-config-head">
-                <div class="engage-config-head-copy">
-                  <p class="engage-config-eyebrow">Engage</p>
-                  <h2 class="engage-config-title">Dashboard de campanhas</h2>
-                  <p class="engage-config-lead">Volume de mensagens e estado operacional das campanhas (ledger Engage).</p>
-                </div>
-              </header>
-              <div id="adminEngageCampaignsContent" class="engage-campaign-content" aria-live="polite"></div>
-            </div>
-          </section>
-          <section class="es-panel" data-es-panel="automacao" hidden>
-            <div class="es-placeholder"><strong>Automação</strong><br />Fluxos e bots — Fase 3.</div>
-          </section>
-          <section class="es-panel" data-es-panel="followup" hidden>
-            <div class="es-placeholder"><strong>Follow-up</strong><br />Cadências automáticas — Fase 2.</div>
-          </section>
-          <section class="es-panel" data-es-panel="pipeline" hidden>
-            <div class="es-placeholder"><strong>Pipeline</strong><br />Kanban comercial — Fase 2.</div>
-          </section>
-          <section class="es-panel" data-es-panel="clientes" hidden>
-            <div class="clients-pro-shell" id="adminClientsRoot">
-              <header class="clients-pro-toolbar">
-                <div class="clients-pro-toolbar-main">
-                  <label class="clients-pro-tenant">
-                    <span>Empresa</span>
-                    <select id="adminClientsTenant" aria-label="Selecionar empresa de clientes"></select>
-                  </label>
-                  <label class="clients-pro-date-field">
-                    <span>Filtrar por</span>
-                    <select id="adminClientsDateField" aria-label="Selecionar campo de data">
-                      <option value="updatedAt">Atualizado</option>
-                      <option value="createdAt">Criado</option>
-                      <option value="lastSeenAt">Última conversa</option>
-                    </select>
-                  </label>
-                  <label class="clients-pro-date">
-                    <span>De</span>
-                    <input id="adminClientsDateFrom" type="date" />
-                  </label>
-                  <label class="clients-pro-date">
-                    <span>Até</span>
-                    <input id="adminClientsDateTo" type="date" />
-                  </label>
-                  <button class="clients-pro-clear" id="adminClientsClearDates" type="button">Limpar datas</button>
-                </div>
-              </header>
-
-              <div class="clients-feedback" id="adminClientsFeedback" hidden></div>
-
-              <div class="clients-pro-main">
-                <div class="clients-pro-shell-tablist" role="tablist" aria-label="Clientes ou grupos">
-                  <button type="button" class="clients-pro-shell-tab is-active" role="tab" id="adminClientsTabLista" data-clients-shell-view="lista" aria-selected="true">Clientes</button>
-                  <button type="button" class="clients-pro-shell-tab" role="tab" id="adminClientsTabGrupos" data-clients-shell-view="grupos" aria-selected="false">Grupos</button>
-                </div>
-
-                <div id="adminClientsClientsView" class="clients-pro-clients-view">
-                  <div class="pro-page clients-pro-page">
-                    <aside class="pro-list-panel clients-pro-list-panel">
-                      <div class="pro-list-search-row">
-                        <label class="pro-list-search">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                          <input id="adminClientsSearch" type="search" placeholder="Nome, telefone, email, documento..." autocomplete="off" />
-                        </label>
-                        <button class="pro-list-add-mini" id="adminClientsCreateButton" type="button" aria-label="Novo cliente">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        </button>
-                      </div>
-                      <div class="pro-list clients-pro-list" id="adminClientsList"></div>
-                    </aside>
-
-                    <section class="pro-detail-panel clients-pro-detail-panel" id="adminClientsDashboardPanel">
-                      <article class="pro-profile-card clients-pro-card">
-                        <header class="pro-hero clients-pro-hero">
-                          <div class="pro-hero-id">
-                            <div class="pro-hero-avatar-wrap">
-                              <span class="pro-hero-avatar" id="adminClientsDashboardAvatar">?</span>
-                            </div>
-                            <div class="pro-hero-headlines">
-                              <div class="pro-hero-title-row">
-                                <h2 class="pro-hero-title" id="adminClientsDashboardName">Selecione um cliente</h2>
-                              </div>
-                              <div class="pro-hero-contacts" id="adminClientsDashboardMeta">Clique em um cliente na lista para ver os dados.</div>
-                            </div>
-                          </div>
-                          <div class="clients-pro-hero-actions">
-                            <button class="pro-hero-action" id="adminClientsEditButton" type="button" disabled>
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                              <span>Editar</span>
-                            </button>
-                            <button class="clients-pro-secondary-action is-danger" id="adminClientsDeleteButton" type="button" disabled>Deletar</button>
-                          </div>
-                        </header>
-
-                        <div class="clients-pro-kpi-strip" id="adminClientsDashboardKpis"></div>
-
-                        <div class="pro-tabs clients-pro-tabs" id="adminClientsDashboardTabs">
-                          <button type="button" class="pro-tab is-active" data-customer-tab="appointments">Agendamentos</button>
-                          <button type="button" class="pro-tab" data-customer-tab="payments">Pagamentos</button>
-                          <button type="button" class="pro-tab" data-customer-tab="about">Sobre o cliente</button>
-                        </div>
-
-                        <div class="clients-pro-content" id="adminClientsDashboardContent"></div>
-                      </article>
-                    </section>
-                  </div>
-                </div>
-
-                <div id="adminClientsGroupsView" class="clients-pro-groups-layout" hidden>
-                  <div class="clients-pro-groups-head">
-                    <strong class="clients-pro-groups-head-title">Grupos inteligentes</strong>
-                  </div>
-                  <div class="clients-pro-groups-list" id="adminClientsGroupsList"></div>
-                </div>
-              </div>
-            </div>
-          </section>
-          <div class="clients-editor-backdrop" id="adminClientsEditorBackdrop" hidden>
-            <section class="clients-editor-modal" role="dialog" aria-modal="true" aria-labelledby="adminClientsEditorTitle">
-              <header class="clients-editor-head">
-                <strong id="adminClientsEditorTitle">Cliente</strong>
-                <button class="btn btn-ghost" id="adminClientsEditorClose" type="button">Fechar</button>
-              </header>
-              <form class="clients-editor-form" id="adminClientsEditorForm">
-                <label class="clients-editor-field">
-                  <span>Nome completo *</span>
-                  <input id="adminClientsEditorFullName" type="text" required />
-                </label>
-                <label class="clients-editor-field">
-                  <span>Nome preferido</span>
-                  <input id="adminClientsEditorPreferredName" type="text" />
-                </label>
-                <label class="clients-editor-field">
-                  <span>Telefone</span>
-                  <input id="adminClientsEditorPhone" type="text" />
-                </label>
-                <label class="clients-editor-field">
-                  <span>Email</span>
-                  <input id="adminClientsEditorEmail" type="email" />
-                </label>
-                <label class="clients-editor-field">
-                  <span>Documento</span>
-                  <input id="adminClientsEditorDocument" type="text" />
-                </label>
-                <label class="clients-editor-field">
-                  <span>Nascimento</span>
-                  <input id="adminClientsEditorBirthDate" type="date" />
-                </label>
-                <label class="clients-editor-field">
-                  <span>Gênero</span>
-                  <input id="adminClientsEditorGender" type="text" />
-                </label>
-                <label class="clients-editor-field">
-                  <span>Origem</span>
-                  <input id="adminClientsEditorSource" type="text" />
-                </label>
-                <label class="clients-editor-field clients-editor-field-span-2">
-                  <span>Observações</span>
-                  <textarea id="adminClientsEditorNotes" rows="3"></textarea>
-                </label>
-                <label class="clients-editor-field clients-editor-field-span-2">
-                  <span>Avatar (imagem)</span>
-                  <input id="adminClientsEditorAvatar" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" />
-                </label>
-                <div class="clients-editor-actions clients-editor-field-span-2">
-                  <button class="btn btn-ghost" id="adminClientsEditorCancel" type="button">Cancelar</button>
-                  <button class="btn btn-primary" id="adminClientsEditorSubmit" type="submit">Salvar cliente</button>
-                </div>
-              </form>
-            </section>
-          </div>
-
-          <section class="es-panel" data-es-panel="propostas" hidden>
-            <div class="es-placeholder"><strong>Propostas</strong><br />Orçamentos e PDF — Fase 2.</div>
-          </section>
-          <section class="es-panel" data-es-panel="relatorios" hidden>
-            <div class="es-placeholder"><strong>Relatórios</strong><br />Analytics comercial — Fase 2.</div>
-          </section>
-
-          <section class="es-panel es-panel--engage-config" data-es-panel="engage-config" hidden>
-            <div class="ec-shell" id="engageConfigRoot">
-              <nav class="ec-subnav" id="engageConfigSubnav" role="tablist" aria-label="Engage Config">
-                <button type="button" class="ec-subnav-tab is-active" role="tab" data-ec-tab="meta-connections" aria-selected="true">Meta connections</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="sender-profiles" aria-selected="false" tabindex="-1">Sender profiles</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="queues" aria-selected="false" tabindex="-1">Queues</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="controls" aria-selected="false" tabindex="-1">Controls</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="contact-hub" aria-selected="false" tabindex="-1">Contact hub</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="crm-sync-health" aria-selected="false" tabindex="-1">CRM Sync Health</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="lead-recovery-intelligence" aria-selected="false" tabindex="-1">Lead Recovery Intelligence</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="campaign-builder" aria-selected="false" tabindex="-1">Campaign builder</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="timelines" aria-selected="false" tabindex="-1">Timelines</button>
-              </nav>
-
-              <div class="ec-body">
-                <section class="ec-tab-panel" data-ec-panel="sender-profiles" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Sender profiles</h2>
-                    <p>Perfis de envio e identidade nas conversas.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-
-                <section class="ec-tab-panel is-active" data-ec-panel="meta-connections" role="tabpanel" id="engageMetaConnectionsPanel">
-                  <div class="ec-mc-shell" id="engageMetaConnectionsRoot">
-                    <header class="ec-mc-head">
-                      <div class="ec-mc-head-copy">
-                        <h2>Meta connections</h2>
-                        <p class="ec-mc-lead" id="engageMetaConnectionsLead">
-                          Estado do número WhatsApp (cache NeuraFlow).
-                        </p>
-                        <p class="ec-mc-sync-line" id="engageMetaConnectionsSyncLine" hidden></p>
-                        <p class="ec-mc-token-line" id="engageMetaConnectionsTokenLine" hidden></p>
-                      </div>
-                      <div class="ec-mc-head-actions">
-                        <button type="button" class="ec-mc-btn ec-mc-btn--primary" id="engageMetaConnectionsSyncBtn" hidden>
-                          Sync Now
-                        </button>
-                      </div>
-                    </header>
-                    <div class="ec-mc-feedback" id="engageMetaConnectionsFeedback" role="status" hidden></div>
-                    <div class="ec-mc-loading" id="engageMetaConnectionsLoading" hidden>Carregando…</div>
-                    <div class="ec-mc-empty" id="engageMetaConnectionsEmpty" hidden>
-                      <strong>Nenhum número WhatsApp associado</strong>
-                      <p>Conclua o onboarding WhatsApp ou peça à NeuraFlow para provisionar o canal.</p>
-                    </div>
-                    <div class="ec-mc-table-wrap" id="engageMetaConnectionsTableWrap" hidden>
-                      <table class="ec-mc-table" aria-label="Meta connections">
-                        <thead>
-                          <tr>
-                            <th scope="col">Número</th>
-                            <th scope="col">Nome verificado</th>
-                            <th scope="col">WABA</th>
-                            <th scope="col">Phone ID</th>
-                            <th scope="col">Conexão</th>
-                            <th scope="col">Qualidade</th>
-                            <th scope="col">Limite (tier)</th>
-                            <th scope="col">Último sync</th>
-                          </tr>
-                        </thead>
-                        <tbody id="engageMetaConnectionsTableBody"></tbody>
-                      </table>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="ec-tab-panel" data-ec-panel="queues" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Queues</h2>
-                    <p>Filas de atendimento e roteamento.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-
-                <section class="ec-tab-panel" data-ec-panel="controls" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Controls</h2>
-                    <p>Controles operacionais e limites da plataforma.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-
-                <section class="ec-tab-panel" data-ec-panel="contact-hub" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Contact hub</h2>
-                    <p>Central de contatos e sincronização.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-
-                <section class="ec-tab-panel" data-ec-panel="crm-sync-health" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>CRM Sync Health</h2>
-                    <p>Saúde da sincronização com o CRM.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-
-                <section class="ec-tab-panel" data-ec-panel="lead-recovery-intelligence" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Lead Recovery Intelligence</h2>
-                    <p>Recuperação inteligente de leads inativos.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-
-                <section class="ec-tab-panel" data-ec-panel="campaign-builder" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Campaign builder</h2>
-                    <p>Montagem e publicação de campanhas.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-
-                <section class="ec-tab-panel" data-ec-panel="timelines" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Timelines</h2>
-                    <p>Linhas do tempo e jornadas do lead.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-              </div>
-            </div>
-          </section>
-
           <section class="es-panel es-panel--settings" data-es-panel="plano-uso" hidden>
             <div class="plano-uso-shell" id="adminPlanoUsoRoot">
               <header class="plano-uso-topbar">
@@ -1111,197 +385,43 @@
           </div>
 
           <section class="es-panel es-panel--settings" data-es-panel="profissionais" hidden>
-            <div class="sales-consultants-shell" id="salesConsultantsRoot">
-              <header class="sales-consultants-toolbar">
-                <div class="sales-consultants-toolbar-main">
-                  <label class="sales-consultants-tenant">
-                    <span>Empresa</span>
-                    <select id="salesConsultantsTenant" aria-label="Selecionar empresa"></select>
-                  </label>
-                  <span class="admin-inline-status" id="salesConsultantsStatus">Carregando módulo...</span>
-                </div>
-                <div class="sales-consultants-toolbar-actions">
-                  <button class="users-pro-refresh" id="salesConsultantsRefresh" type="button">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path></svg>
-                    <span>Atualizar</span>
-                  </button>
-                </div>
-              </header>
-
-              <p class="tenant-kb-readonly-note" id="salesConsultantsReadonlyNote" hidden>Apenas administradores podem criar, editar ou remover vendedores.</p>
-
-              <div class="pro-page sales-consultants-page">
-                <aside class="pro-list-panel">
-                  <div class="pro-list-search-row">
-                    <label class="pro-list-search">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                      <input id="salesConsultantsSearch" type="search" placeholder="Nome, e-mail, cargo, código..." autocomplete="off" />
-                    </label>
-                    <button class="pro-list-add-mini" id="salesConsultantsAdd" type="button" aria-label="Novo vendedor">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </button>
-                  </div>
-
-                  <div class="sales-consultants-filters">
-                    <label>
-                      <span>Status</span>
-                      <select id="salesConsultantsFilterActive">
-                        <option value="true" selected>Ativos</option>
-                        <option value="">Todos</option>
-                        <option value="false">Inativos</option>
-                      </select>
-                    </label>
-                    <label>
-                      <span>Tipo</span>
-                      <select id="salesConsultantsFilterKind"></select>
-                    </label>
-                    <label>
-                      <span>Vínculo</span>
-                      <select id="salesConsultantsFilterEmployment"></select>
-                    </label>
-                  </div>
-
-                  <div class="pro-list" id="salesConsultantsList"></div>
-                </aside>
-
-                <section class="pro-detail-panel" id="salesConsultantsDetailPanel">
-                  <div class="pro-empty" id="salesConsultantsDetailEmpty">
-                    <strong>Selecione um vendedor</strong>
-                    <p>Escolha um membro da equipa comercial à esquerda para ver detalhes, metas e comissões.</p>
-                  </div>
-                  <article class="pro-profile-card" id="salesConsultantsDetailCard" hidden>
-                    <header class="pro-hero">
-                      <div class="pro-hero-id">
-                        <div class="pro-hero-avatar-wrap">
-                          <span class="pro-hero-avatar" id="salesConsultantsDetailAvatar">?</span>
-                        </div>
-                        <div class="pro-hero-headlines">
-                          <div class="pro-hero-title-row">
-                            <h2 class="pro-hero-title" id="salesConsultantsDetailName">Selecione um vendedor</h2>
-                          </div>
-                          <div class="pro-hero-badges" id="salesConsultantsDetailBadges"></div>
-                          <div class="pro-hero-contacts" id="salesConsultantsDetailContacts"></div>
-                        </div>
-                      </div>
-                      <div class="users-pro-hero-actions">
-                        <button class="pro-hero-action" id="salesConsultantsDetailEdit" type="button">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                          <span>Editar</span>
-                        </button>
-                        <button class="users-pro-secondary-action" id="salesConsultantsDetailToggle" type="button">Inativar</button>
-                        <button class="users-pro-secondary-action" id="salesConsultantsDetailDelete" type="button">Remover</button>
-                      </div>
-                    </header>
-                    <div class="users-pro-detail-body">
-                      <div class="sales-consultants-kpis" id="salesConsultantsDetailKpis"></div>
-                      <div class="sales-consultants-facts" id="salesConsultantsDetailFacts"></div>
-                    </div>
-                  </article>
-                </section>
+            <div class="admin-panel-head">
+              <div>
+                <p class="badge">Equipe da operação</p>
+                <h2>Profissionais</h2>
               </div>
+              <span class="admin-inline-status" id="operatorConfigProfessionalsStatus">Preparando profissionais...</span>
             </div>
 
-            <div class="members-modal-backdrop" id="salesConsultantsModal" hidden>
-              <section class="members-modal members-modal-wide" role="dialog" aria-modal="true" aria-labelledby="salesConsultantsModalTitle">
-                <header class="members-modal-head">
+            <div class="operator-config-shell operator-config-professionals-module">
+              <div class="operator-config-toolbar">
+                <div class="operator-config-summary">
+                  <p class="badge">Equipe</p>
+                  <strong>Profissionais e agenda individual</strong>
+                  <span>Consulte, crie e edite profissionais, vínculo de usuário, unidade, serviços e horários.</span>
+                </div>
+                <div class="operator-config-actions">
+                  <label class="operator-config-field">
+                    <span>Empresa</span>
+                    <select id="operatorConfigProfessionalsTenant" aria-label="Selecionar empresa dos profissionais"></select>
+                  </label>
+                  <div class="operator-config-toolbar-buttons">
+                    <button class="btn btn-ghost" id="operatorConfigProfessionalsRefresh" type="button">Atualizar dados</button>
+                  </div>
+                </div>
+              </div>
+
+              <section class="operator-config-card operator-config-card-span-2 operator-config-card-professionals operator-config-professionals-card">
+                <header class="operator-config-card-head">
                   <div>
-                    <span>Equipa comercial</span>
-                    <strong id="salesConsultantsModalTitle">Novo vendedor</strong>
+                    <span>Profissionais</span>
+                    <strong>Equipe e agenda individual</strong>
                   </div>
-                  <button class="members-modal-close" id="salesConsultantsModalClose" type="button" aria-label="Fechar">×</button>
+                  <div class="operator-config-card-actions">
+                    <button class="btn btn-ghost" id="operatorConfigAddProfessional" type="button">Novo profissional</button>
+                  </div>
                 </header>
-
-                <div class="sales-consultants-modal-tabs" id="salesConsultantsModalTabs" role="tablist">
-                  <button type="button" class="is-active" data-sc-tab="identificacao">Identificação</button>
-                  <button type="button" data-sc-tab="contacto">Contacto</button>
-                  <button type="button" data-sc-tab="vinculo">Vínculo</button>
-                  <button type="button" data-sc-tab="registro">Registo interno</button>
-                  <button type="button" data-sc-tab="comercial">Comercial</button>
-                  <button type="button" data-sc-tab="acesso">Acesso</button>
-                  <button type="button" data-sc-tab="observacoes">Observações</button>
-                </div>
-
-                <div class="members-modal-form">
-                  <div class="sales-consultants-tab-panel is-active" data-sc-tab-panel="identificacao">
-                    <div class="sales-consultants-form-grid">
-                      <label><span>Nome *</span><input id="scFormName" type="text" maxlength="200" required /></label>
-                      <label><span>Nome de exibição</span><input id="scFormDisplayName" type="text" maxlength="200" placeholder="Ex.: Maria — Consultora Solar" /></label>
-                      <label><span>CPF</span><input id="scFormCpf" type="text" inputmode="numeric" maxlength="14" /></label>
-                      <label><span>RG</span><input id="scFormRg" type="text" maxlength="30" /></label>
-                      <label><span>Cor (UI)</span><input id="scFormColor" type="color" value="#2563eb" /></label>
-                      <div class="sales-consultants-avatar-field span-2">
-                        <span>Foto (JPEG, máx. 2 MB)</span>
-                        <div class="sales-consultants-avatar-preview" id="scFormAvatarPreviewWrap" hidden>
-                          <img id="scFormAvatarPreview" alt="Pré-visualização do avatar" />
-                        </div>
-                        <input id="scFormAvatarFile" type="file" accept="image/jpeg" />
-                      </div>
-                      <label class="span-2"><span><input id="scFormIsActive" type="checkbox" checked /> Ativo</span></label>
-                    </div>
-                  </div>
-
-                  <div class="sales-consultants-tab-panel" data-sc-tab-panel="contacto">
-                    <div class="sales-consultants-form-grid">
-                      <label><span>E-mail</span><input id="scFormEmail" type="email" /></label>
-                      <label><span>Telefone</span><input id="scFormPhone" type="tel" /></label>
-                      <label class="span-2"><span>WhatsApp</span><input id="scFormWhatsapp" type="tel" placeholder="5511999998888" /></label>
-                    </div>
-                  </div>
-
-                  <div class="sales-consultants-tab-panel" data-sc-tab-panel="vinculo">
-                    <div class="sales-consultants-form-grid">
-                      <label><span>Tipo</span><select id="scFormKind"></select></label>
-                      <label><span>Vínculo empregatício</span><select id="scFormEmployment"></select></label>
-                      <label><span>Forma de trabalho</span><select id="scFormWorkMode"></select></label>
-                      <label class="span-2"><span><input id="scFormIsEmployee" type="checkbox" checked /> Funcionário (não parceiro externo)</span></label>
-                    </div>
-                  </div>
-
-                  <div class="sales-consultants-tab-panel" data-sc-tab-panel="registro">
-                    <div class="sales-consultants-form-grid">
-                      <label><span>Matrícula</span><input id="scFormRegistration" type="text" /></label>
-                      <label><span>Código interno</span><input id="scFormInternalCode" type="text" placeholder="VND-042" /></label>
-                      <label><span>Departamento</span><input id="scFormDepartment" type="text" value="Comercial" /></label>
-                      <label><span>Cargo</span><input id="scFormPosition" type="text" /></label>
-                      <label><span>Data de admissão</span><input id="scFormHireDate" type="date" /></label>
-                      <label><span>Data de desligamento</span><input id="scFormTerminationDate" type="date" /></label>
-                    </div>
-                  </div>
-
-                  <div class="sales-consultants-tab-panel" data-sc-tab-panel="comercial">
-                    <div class="sales-consultants-form-grid">
-                      <label class="span-2"><span>Território</span><input id="scFormTerritory" type="text" placeholder="Grande SP — Zona Sul" /></label>
-                      <label><span>Comissão produto (%)</span><input id="scFormProductCommission" type="number" min="0" max="100" step="0.01" /></label>
-                      <label><span>Comissão serviço (%)</span><input id="scFormServiceCommission" type="number" min="0" max="100" step="0.01" /></label>
-                      <label><span>Meta mensal (R$)</span><input id="scFormMonthlyGoal" type="number" min="0" step="1" /></label>
-                      <label class="span-2"><span>Filiais</span><select id="scFormBranchIds" multiple size="4"></select></label>
-                      <label class="span-2"><span>Notas de comissão</span><textarea id="scFormCommissionNotes" rows="3"></textarea></label>
-                    </div>
-                  </div>
-
-                  <div class="sales-consultants-tab-panel" data-sc-tab-panel="acesso">
-                    <div class="sales-consultants-form-grid">
-                      <label class="span-2">
-                        <span>Utilizador ligado</span>
-                        <select id="scFormUserId"></select>
-                      </label>
-                      <div class="span-2">
-                        <button class="btn btn-ghost" id="salesConsultantsOpenUsers" type="button">Abrir cadastro de utilizadores</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="sales-consultants-tab-panel" data-sc-tab-panel="observacoes">
-                    <div class="sales-consultants-form-grid">
-                      <label class="span-2"><span>Observações gerais</span><textarea id="scFormNotes" rows="5"></textarea></label>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="members-modal-actions">
-                  <button class="btn btn-ghost" id="salesConsultantsModalCancel" type="button">Cancelar</button>
-                  <button class="btn btn-primary" id="salesConsultantsModalSave" type="button">Salvar vendedor</button>
-                </div>
+                <div class="operator-config-list" id="operatorConfigProfessionals"></div>
               </section>
             </div>
           </section>
@@ -1335,197 +455,17 @@
               <div class="config-pro-kpi-strip operator-config-kpis" id="operatorConfigKpis"></div>
 
               <div class="config-pro-segmented-tabs operator-config-tabs" id="operatorConfigTabs" role="tablist" aria-label="Seções das configurações do operador">
-                <button type="button" class="operator-config-tab config-pro-tab is-active" role="tab" aria-selected="true" data-operator-tab="geral">Geral</button>
-                <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="gerais">Configurações gerais</button>
+                <button type="button" class="operator-config-tab config-pro-tab is-active" role="tab" aria-selected="true" data-operator-tab="gerais">Configurações gerais</button>
+                <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="agenda">Agenda</button>
+                <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="feriados">Feriados e datas especiais</button>
+                <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="filiais">Filiais</button>
+                <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="pagamentos">Pagamentos</button>
+                <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="pos">POS</button>
                 <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="crm">CRM</button>
               </div>
 
               <div class="operator-config-grid">
-                <section class="operator-config-card operator-config-card-span-2 company-geral-pro" data-operator-tab-target="geral" id="tenantCompanyRoot">
-                  <header class="operator-config-card-head">
-                    <div>
-                      <span>Dados da empresa</span>
-                      <strong>Cadastro e contactos operacionais</strong>
-                    </div>
-                  </header>
-                  <p class="company-geral-pro-lead">Altere contactos, morada e logótipo. Alguns dados são geridos pela plataforma.</p>
-                  <p class="company-geral-pro-inline-status admin-inline-status" id="tenantCompanyStatus" hidden></p>
-                  <p class="company-geral-pro-readonly-note" id="tenantCompanyReadonlyNote" hidden>Apenas administradores ou gestores da empresa podem editar estes dados.</p>
-
-                  <div class="company-geral-pro-layout">
-                    <div class="company-geral-pro-main">
-                      <article class="company-geral-pro-surface company-geral-pro-platform">
-                        <header class="company-geral-pro-surface-head">
-                          <span class="company-geral-pro-surface-icon company-geral-pro-surface-icon--lock" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                          </span>
-                          <div>
-                            <h3 class="company-geral-pro-surface-title">Dados da plataforma</h3>
-                            <p class="company-geral-pro-surface-sub">Contacte o suporte NeuraFlow para alterar estes campos.</p>
-                          </div>
-                        </header>
-                        <div class="company-geral-pro-form-grid company-geral-pro-form-grid--readonly">
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Nome de exibição / marca</span>
-                            <input id="tenantCompanyPlatformName" type="text" readonly tabindex="-1" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Segmento</span>
-                            <input id="tenantCompanySegment" type="text" readonly tabindex="-1" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Negócio</span>
-                            <input id="tenantCompanyNegocio" type="text" readonly tabindex="-1" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">CNPJ</span>
-                            <input id="tenantCompanyCnpj" type="text" readonly tabindex="-1" />
-                          </label>
-                          <label class="company-geral-field company-geral-field--span-2">
-                            <span class="company-geral-field-label">Número WhatsApp API oficial</span>
-                            <input id="tenantCompanyWhatsappApi" type="text" readonly tabindex="-1" />
-                          </label>
-                        </div>
-                      </article>
-
-                      <article class="company-geral-pro-surface company-geral-pro-editable">
-                        <header class="company-geral-pro-surface-head">
-                          <span class="company-geral-pro-surface-icon company-geral-pro-surface-icon--edit" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                          </span>
-                          <div>
-                            <h3 class="company-geral-pro-surface-title">Informações editáveis</h3>
-                            <p class="company-geral-pro-surface-sub">Contactos, responsáveis e morada comercial.</p>
-                          </div>
-                        </header>
-                        <div class="company-geral-pro-form-grid">
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Razão social</span>
-                            <input id="tenantCompanyLegalName" type="text" maxlength="280" placeholder="Studio Exemplo LTDA" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Nome fantasia (opcional)</span>
-                            <input id="tenantCompanyTradeName" type="text" maxlength="280" placeholder="Studio Exemplo" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Nome do responsável</span>
-                            <input id="tenantCompanyResponsibleName" type="text" maxlength="200" placeholder="Ana Silva" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Responsável financeiro</span>
-                            <input id="tenantCompanyFinancialResponsibleName" type="text" maxlength="200" placeholder="Carlos Financeiro" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Telefone comercial</span>
-                            <input id="tenantCompanyPhone" type="tel" maxlength="32" placeholder="(11) 99999-9999" autocomplete="tel" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">E-mail da empresa</span>
-                            <input id="tenantCompanyBusinessEmail" type="email" maxlength="128" placeholder="contato@studio.com" autocomplete="email" />
-                          </label>
-                          <label class="company-geral-field company-geral-field--span-2">
-                            <span class="company-geral-field-label">Logradouro e número</span>
-                            <input id="tenantCompanyAddressLine1" type="text" maxlength="255" placeholder="Rua A, 100" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Complemento (opcional)</span>
-                            <input id="tenantCompanyAddressLine2" type="text" maxlength="255" placeholder="Sala 2" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Bairro (opcional)</span>
-                            <input id="tenantCompanyAddressNeighborhood" type="text" maxlength="120" placeholder="Centro" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">Cidade</span>
-                            <input id="tenantCompanyAddressCity" type="text" maxlength="120" placeholder="São Paulo" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">UF</span>
-                            <input id="tenantCompanyAddressState" type="text" maxlength="2" placeholder="SP" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">CEP</span>
-                            <input id="tenantCompanyAddressPostalCode" type="text" inputmode="numeric" maxlength="9" placeholder="01310-100" />
-                          </label>
-                          <label class="company-geral-field">
-                            <span class="company-geral-field-label">País (ISO-2)</span>
-                            <input id="tenantCompanyAddressCountry" type="text" maxlength="2" placeholder="BR" />
-                          </label>
-                        </div>
-                      </article>
-
-                      <article class="company-geral-pro-surface company-geral-pro-logo-block">
-                        <header class="company-geral-pro-surface-head">
-                          <span class="company-geral-pro-surface-icon company-geral-pro-surface-icon--logo" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
-                          </span>
-                          <div>
-                            <h3 class="company-geral-pro-surface-title">Logótipo da empresa</h3>
-                            <p class="company-geral-pro-surface-sub">PNG, JPEG, WebP ou GIF — até 1 MiB.</p>
-                          </div>
-                        </header>
-                        <div class="company-geral-pro-logo-row">
-                          <div class="company-geral-pro-dropzone" id="tenantCompanyLogoDropzone" role="button" tabindex="0">
-                            <input type="file" id="tenantCompanyLogoInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
-                            <span class="company-geral-pro-dropzone-icon" aria-hidden="true">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0 4 4m-4-4-4 4"/><path d="M4 20h16"/></svg>
-                            </span>
-                            <strong>Arraste o logótipo aqui</strong>
-                            <span>ou clique para escolher</span>
-                          </div>
-                          <div class="company-geral-pro-logo-preview-col">
-                            <span class="company-geral-pro-preview-label">Pré-visualização</span>
-                            <div class="company-geral-pro-logo-ring">
-                              <img id="tenantCompanyLogoPreview" alt="" hidden />
-                              <span id="tenantCompanyLogoPlaceholder" class="company-geral-pro-logo-placeholder">Sem logótipo</span>
-                            </div>
-                            <button type="button" class="company-geral-pro-logo-remove" id="tenantCompanyLogoRemove" hidden>Remover logótipo</button>
-                          </div>
-                        </div>
-                      </article>
-
-                      <div class="company-geral-pro-save-row">
-                        <button type="button" class="company-geral-pro-save-btn" id="tenantCompanySave">
-                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                          Guardar dados da empresa
-                        </button>
-                        <p class="company-geral-pro-save-hint">As alterações podem levar alguns instantes para refletir em toda a plataforma.</p>
-                      </div>
-                    </div>
-
-                    <aside class="company-geral-pro-aside">
-                      <article class="company-geral-pro-tip-card">
-                        <span class="company-geral-pro-tip-icon company-geral-pro-tip-icon--info" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg>
-                        </span>
-                        <div>
-                          <strong>Dados bloqueados</strong>
-                          <p>Nome de marca, segmento, CNPJ e WhatsApp API são geridos pela plataforma NeuraFlow.</p>
-                        </div>
-                      </article>
-                      <article class="company-geral-pro-tip-card">
-                        <span class="company-geral-pro-tip-icon company-geral-pro-tip-icon--check" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m22 4-10 10-3-3"/></svg>
-                        </span>
-                        <div>
-                          <strong>Validação</strong>
-                          <p>CEP com 8 dígitos, UF com 2 letras e e-mail comercial válido.</p>
-                        </div>
-                      </article>
-                      <article class="company-geral-pro-tip-card">
-                        <span class="company-geral-pro-tip-icon company-geral-pro-tip-icon--help" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11h2a7 7 0 0 1 13 0h2"/><path d="M7 11v4a2 2 0 0 0 2 2h1v3"/><circle cx="12" cy="5" r="1"/></svg>
-                        </span>
-                        <div>
-                          <strong>Precisa de ajuda?</strong>
-                          <p>Fale com o suporte Engage Solar / NeuraFlow para alterar dados bloqueados.</p>
-                        </div>
-                      </article>
-                    </aside>
-                  </div>
-                </section>
-
-                <section class="operator-config-card" data-operator-tab-target="gerais" hidden>
+                <section class="operator-config-card" data-operator-tab-target="gerais">
                   <header class="operator-config-card-head">
                     <div>
                       <span>Configuração principal</span>
@@ -1633,6 +573,551 @@
                       <span>Telefone fallback da agenda</span>
                       <input id="operatorConfigFallbackPhone" type="tel" placeholder="5511999999999" />
                     </label>
+                  </div>
+                </section>
+
+                <section class="operator-config-card" data-operator-tab-target="agenda">
+                  <header class="operator-config-card-head">
+                    <div>
+                      <span>Horários de atendimento</span>
+                      <strong>Janela operacional padrão</strong>
+                    </div>
+                  </header>
+                  <div class="operator-config-days" id="operatorConfigWorkingDays">
+                    <label><input type="checkbox" value="0" />Dom</label>
+                    <label><input type="checkbox" value="1" />Seg</label>
+                    <label><input type="checkbox" value="2" />Ter</label>
+                    <label><input type="checkbox" value="3" />Qua</label>
+                    <label><input type="checkbox" value="4" />Qui</label>
+                    <label><input type="checkbox" value="5" />Sex</label>
+                    <label><input type="checkbox" value="6" />Sáb</label>
+                  </div>
+                  <div class="operator-config-form-grid operator-config-form-grid-compact">
+                    <label class="operator-config-field">
+                      <span>Início</span>
+                      <input id="operatorConfigStartTime" type="time" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Fim</span>
+                      <input id="operatorConfigEndTime" type="time" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Duração padrão</span>
+                      <input id="operatorConfigDurationDefault" type="number" min="10" step="5" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Intervalo entre slots</span>
+                      <input id="operatorConfigSlotInterval" type="number" min="5" step="5" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Antecedência mínima para agendar (min)</span>
+                      <input id="operatorConfigMinimumBookingLeadMinutes" type="number" min="0" max="240" step="5" />
+                      <small class="operator-config-hint">Para o mesmo dia: tempo mínimo entre agora e o primeiro horário oferecido. 0 = não sugerir horários já passados.</small>
+                    </label>
+                  </div>
+                </section>
+
+                <section class="operator-config-card operator-config-card-span-2 operator-special-dates-section" data-operator-tab-target="feriados" id="operatorSpecialDatesRoot">
+                  <header class="operator-config-card-head">
+                    <div>
+                      <span>Calendário operacional</span>
+                      <strong>Feriados e datas especiais</strong>
+                    </div>
+                  </header>
+                  <p class="operator-special-dates-lead">Regras por data (fechado ou horário especial) que sobrescrevem a agenda padrão. Prioridade: unidade → empresa.</p>
+                  <p class="operator-special-dates-readonly-note" id="operatorSpecialDatesReadonlyNote" hidden>Apenas administradores podem gerir estas regras.</p>
+
+                  <div class="operator-special-dates-form-card" id="operatorSpecialDatesFormCard">
+                    <div class="operator-special-dates-form-grid">
+                      <label class="operator-config-field">
+                        <span>Unidade (opcional)</span>
+                        <select id="operatorSpecialDatesUnit">
+                          <option value="">Empresa inteira (todas as unidades)</option>
+                        </select>
+                      </label>
+                      <label class="operator-config-field">
+                        <span>Data</span>
+                        <input id="operatorSpecialDatesDate" type="date" />
+                      </label>
+                      <label class="operator-config-field">
+                        <span>Tipo</span>
+                        <select id="operatorSpecialDatesKind">
+                          <option value="closed">Fechado</option>
+                          <option value="window">Horário especial</option>
+                        </select>
+                      </label>
+                      <label class="operator-config-field">
+                        <span>Motivo (opcional)</span>
+                        <input id="operatorSpecialDatesReason" type="text" maxlength="180" placeholder="Ex.: Natal, Manutenção, Treinamento interno" />
+                      </label>
+                      <div class="operator-special-dates-window-fields" id="operatorSpecialDatesWindowFields" hidden>
+                        <label class="operator-config-field">
+                          <span>Hora início</span>
+                          <input id="operatorSpecialDatesStart" type="time" value="08:00" />
+                        </label>
+                        <label class="operator-config-field">
+                          <span>Hora fim</span>
+                          <input id="operatorSpecialDatesEnd" type="time" value="18:00" />
+                        </label>
+                      </div>
+                      <label class="operator-config-field operator-config-field-inline operator-special-dates-recurring">
+                        <span>Recorrente (todo ano)</span>
+                        <input id="operatorSpecialDatesRecurring" type="checkbox" />
+                      </label>
+                    </div>
+                    <div class="operator-config-inline-actions operator-special-dates-form-actions">
+                      <button type="button" class="pro-btn-primary" id="operatorSpecialDatesSubmit">Adicionar</button>
+                      <button type="button" class="pro-btn-ghost" id="operatorSpecialDatesCancelEdit" hidden>Cancelar edição</button>
+                    </div>
+                  </div>
+
+                  <div class="operator-special-dates-toolbar">
+                    <label class="operator-config-field operator-special-dates-filter">
+                      <span>Ano</span>
+                      <select id="operatorSpecialDatesYearFilter">
+                        <option value="">Todos os anos</option>
+                      </select>
+                    </label>
+                    <label class="operator-config-field operator-special-dates-filter operator-special-dates-search">
+                      <span>Buscar</span>
+                      <input id="operatorSpecialDatesSearch" type="search" placeholder="Data, unidade, motivo…" />
+                    </label>
+                  </div>
+
+                  <div class="operator-special-dates-list" id="operatorSpecialDatesList" aria-live="polite">
+                    <p class="operator-special-dates-empty">Nenhuma data especial cadastrada ainda.</p>
+                  </div>
+                </section>
+
+                <section class="operator-config-card operator-config-card-span-2 operator-config-card-branches" data-operator-tab-target="filiais">
+                  <header class="operator-config-card-head">
+                    <div>
+                      <span>Unidades</span>
+                      <strong>Configuração da loja e filiais</strong>
+                    </div>
+                    <div class="operator-config-card-actions">
+                      <button class="btn btn-ghost" id="operatorConfigAddBranch" type="button">Nova unidade</button>
+                    </div>
+                  </header>
+                  <p class="operator-config-card-note" id="operatorConfigBranchNote">Controle aqui a unidade principal e as filiais da operação.</p>
+                  <div class="operator-config-list" id="operatorConfigBranches"></div>
+                </section>
+
+                <section class="operator-config-card operator-config-card-span-2" data-operator-tab-target="pagamentos">
+                  <header class="operator-config-card-head">
+                    <div>
+                      <span>Pagamentos</span>
+                      <strong>Configuração de Pix manual e gateway</strong>
+                    </div>
+                  </header>
+                  <div class="operator-config-form-grid">
+                    <label class="operator-config-field operator-config-field-inline">
+                      <span>Ativar fluxo Pix manual (sem Mercado Pago)</span>
+                      <input id="operatorConfigManualPixFlowEnabled" type="checkbox" />
+                      <small class="operator-config-hint">Mutuamente exclusivo com módulo de pagamentos e opções de cobrança automática.</small>
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Chave Pix</span>
+                      <input id="operatorConfigManualPixKey" type="text" placeholder="chave pix (e-mail, telefone, EVP...)" />
+                      <small class="operator-config-hint">Obrigatória quando o Pix manual estiver ativo.</small>
+                    </label>
+
+                    <label class="operator-config-field operator-config-field-inline">
+                      <span>Ativar módulo de pagamentos</span>
+                      <input id="operatorConfigPaymentsEnabled" type="checkbox" />
+                    </label>
+                    <label class="operator-config-field operator-config-field-inline">
+                      <span>Exigir pagamento antes de confirmar agendamento</span>
+                      <input id="operatorConfigPaymentsRequirePayment" type="checkbox" />
+                    </label>
+                    <label class="operator-config-field operator-config-field-inline">
+                      <span>Pagamentos de agenda</span>
+                      <input id="operatorConfigPaymentsScheduleEnabled" type="checkbox" />
+                    </label>
+                    <label class="operator-config-field operator-config-field-inline operator-config-field-span-2">
+                      <span title="Expõe payment-plan/legs no checkout para dividir o pagamento em parcelas ou etapas.">Ativar divisão de pagamento no checkout (Split) (?)</span>
+                      <input id="operatorConfigPaymentsEnableSplit" type="checkbox" />
+                      <small class="operator-config-hint">Quando ativo, o backend expõe payment-plan/legs para split. O endpoint legado de pagamento único continua funcionando normalmente.</small>
+                    </label>
+                    <label class="operator-config-field operator-config-field-inline">
+                      <span>Nunca cobrar remarcações</span>
+                      <input id="operatorConfigPaymentsNeverChargeReschedule" type="checkbox" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Valor do sinal (R$)</span>
+                      <input id="operatorConfigPaymentsDepositAmount" type="number" min="0" step="0.01" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Expiração (minutos)</span>
+                      <input id="operatorConfigPaymentsExpirationMinutes" type="number" min="1" step="1" />
+                    </label>
+
+                    <label class="operator-config-field operator-config-field-inline">
+                      <span>Ativar desconto no total do serviço</span>
+                      <input id="operatorConfigPaymentsDiscountEnabled" type="checkbox" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Tipo de desconto</span>
+                      <select id="operatorConfigPaymentsDiscountType">
+                        <option value="percentage">Percentual (%)</option>
+                        <option value="fixed">Valor fixo (R$)</option>
+                      </select>
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Valor do desconto</span>
+                      <input id="operatorConfigPaymentsDiscountValue" type="number" min="0" step="0.01" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>CPF do pagador (PIX) — Tenant</span>
+                      <input id="operatorConfigPaymentsPixPayerDocumentTenant" type="text" placeholder="somente números" />
+                    </label>
+
+                    <label class="operator-config-field">
+                      <span>Unidade (override opcional)</span>
+                      <select id="operatorConfigPaymentsUnitId"></select>
+                    </label>
+                    <label class="operator-config-field operator-config-field-inline">
+                      <span>Usar gateway próprio da unidade</span>
+                      <input id="operatorConfigPaymentsUnitOverride" type="checkbox" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Provider da unidade</span>
+                      <select id="operatorConfigPaymentsProvider">
+                        <option value="mercado_pago">Mercado Pago</option>
+                        <option value="stripe">Stripe</option>
+                      </select>
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Access token da unidade</span>
+                      <input id="operatorConfigPaymentsAccessToken" type="text" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>CPF PIX (unidade)</span>
+                      <input id="operatorConfigPaymentsPixPayerDocumentUnit" type="text" placeholder="opcional" />
+                    </label>
+                    <label class="operator-config-field">
+                      <span>Account ID (opcional)</span>
+                      <input id="operatorConfigPaymentsAccountId" type="text" />
+                    </label>
+                  </div>
+                  <div class="operator-config-inline-actions">
+                    <button class="btn btn-primary" id="operatorConfigPaymentsSave" type="button">Salvar pagamentos</button>
+                  </div>
+                </section>
+
+                <section class="operator-config-card operator-config-card-span-2 pos-operator-section" data-operator-tab-target="pos" id="posTerminalsRoot">
+              <div class="pos-premium-shell">
+                <div class="pos-premium-config-block" id="posPaymentsConfigRoot">
+                  <header class="pos-premium-config-head">
+                    <div>
+                      <span class="pos-operator-eyebrow">POS / Maquininhas</span>
+                      <h2 class="pos-premium-page-title">Pagamentos presenciais</h2>
+                      <p class="pos-operator-lead">Configure integração Point, parcelamento e maquininhas. O módulo geral fica na aba <strong>Pagamentos</strong>.</p>
+                    </div>
+                    <div class="pos-premium-config-actions">
+                      <span class="config-pro-status-pill admin-inline-status" id="posPaymentsConfigStatus" data-tone="neutral">—</span>
+                      <button type="button" class="pro-btn-ghost" id="posConfigReload">Atualizar</button>
+                      <button type="button" class="pro-btn-primary" id="posConfigSave">Salvar configuração POS</button>
+                    </div>
+                  </header>
+
+                  <div class="pos-premium-zone" data-pos-zone="setup">
+                    <span class="pos-zone-label">Configuração e integração</span>
+                    <div id="posConfigPosInner" class="pos-premium-split">
+                      <article class="pos-premium-card pos-premium-card--elevated" id="posPaymentsSettingsCard">
+                        <header class="pos-zone-card-head">
+                          <span class="pos-zone-card-icon pos-zone-card-icon--config" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                          </span>
+                          <div>
+                            <strong>Configuração POS</strong>
+                            <p class="pos-zone-card-desc">Provider e modo de operação das maquininhas.</p>
+                          </div>
+                        </header>
+                        <label class="operator-config-field operator-config-field-inline pos-premium-toggle-row">
+                          <span>Habilitar pagamentos POS</span>
+                          <input id="posConfigPosEnabled" type="checkbox" />
+                          <small class="operator-config-hint">Requer módulo de pagamentos ativo (aba Pagamentos).</small>
+                        </label>
+                        <div class="pos-premium-col-body">
+                          <label class="operator-config-field">
+                            <span>Provider POS</span>
+                            <select id="posConfigPosProvider">
+                              <option value="mercado_pago">Mercado Pago (Point)</option>
+                              <option value="stone" disabled>Stone (em breve)</option>
+                              <option value="cielo" disabled>Cielo (em breve)</option>
+                              <option value="getnet" disabled>Getnet (em breve)</option>
+                            </select>
+                          </label>
+                          <fieldset class="pos-premium-mode-fieldset">
+                            <legend>Modo POS</legend>
+                            <label class="pos-premium-mode-card">
+                              <input type="radio" name="posConfigPosMode" id="posConfigPosModeIntegrated" value="integrated" />
+                              <span class="pos-premium-mode-copy">
+                                <strong>Integrado automático</strong>
+                                <small>Sincronização em tempo real com o Point via API.</small>
+                              </span>
+                            </label>
+                            <label class="pos-premium-mode-card">
+                              <input type="radio" name="posConfigPosMode" id="posConfigPosModeManual" value="manual" />
+                              <span class="pos-premium-mode-copy">
+                                <strong>Manual conciliado</strong>
+                                <small>Cobrança na maquininha com conciliação no sistema.</small>
+                              </span>
+                            </label>
+                          </fieldset>
+                        </div>
+                      </article>
+
+                      <article class="pos-premium-card pos-premium-card--mp" id="posMpCloudCard">
+                        <header class="pos-premium-mp-head">
+                          <span class="pos-premium-mp-logo" aria-hidden="true">
+                            <svg viewBox="0 0 48 48" width="40" height="40" focusable="false">
+                              <circle cx="24" cy="24" r="24" fill="#009EE3"/>
+                              <path fill="#fff" d="M14 28c0-4.4 3.6-8 8-8h4c4.4 0 8 3.6 8 8v2H14v-2zm10-12c-3.3 0-6 2.7-6 6h4c0-1.1.9-2 2-2s2 .9 2 2h4c0-3.3-2.7-6-6-6z"/>
+                            </svg>
+                          </span>
+                          <div class="pos-premium-mp-head-copy">
+                            <strong>Mercado Pago Point (cloud)</strong>
+                            <p class="pos-zone-card-desc">Parcelamento, juros e credenciais do tenant.</p>
+                          </div>
+                          <a class="pos-mp-learn-more" href="https://www.mercadopago.com.br/developers/pt/docs/mp-point/landing" target="_blank" rel="noopener noreferrer">Saiba mais</a>
+                        </header>
+
+                        <section class="pos-mp-block">
+                          <div class="pos-mp-block-head">
+                            <h3 class="pos-mp-block-title">Parcelamento</h3>
+                            <label class="pos-mp-toggle">
+                              <span class="pos-mp-toggle-label">Cartão de crédito (Point)</span>
+                              <input id="posConfigCreditEnabled" type="checkbox" />
+                            </label>
+                          </div>
+                          <div id="posConfigInstallmentsBlock" class="pos-premium-installments">
+                            <span class="pos-mp-field-label">Opções de parcelas</span>
+                            <div class="pos-installment-chips" id="posConfigInstallmentChips" role="group" aria-label="Parcelas"></div>
+                          </div>
+                        </section>
+
+                        <section class="pos-mp-block">
+                          <h3 class="pos-mp-block-title">Juros (Mercado Pago)</h3>
+                          <div class="pos-segmented" role="radiogroup" aria-label="Juros do parcelamento">
+                            <label class="pos-segmented-item">
+                              <input type="radio" name="posInstallmentsCost" id="posConfigCostSeller" value="seller" checked />
+                              <span>Vendedor</span>
+                            </label>
+                            <label class="pos-segmented-item">
+                              <input type="radio" name="posInstallmentsCost" id="posConfigCostBuyer" value="buyer" />
+                              <span>Comprador</span>
+                            </label>
+                          </div>
+                        </section>
+
+                        <div class="pos-config-hints pos-mp-block pos-mp-block--alert" id="posConfigHints" hidden></div>
+
+                        <section class="pos-mp-block pos-mp-block--credentials">
+                          <h3 class="pos-mp-block-title">Credenciais</h3>
+                          <div class="pos-premium-grid-2">
+                            <label class="operator-config-field">
+                              <span>User ID MP (sponsor)</span>
+                              <input id="posConfigMpSponsor" type="text" placeholder="Ex.: 123456789" autocomplete="off" />
+                            </label>
+                            <label class="operator-config-field">
+                              <span>Access Token POS</span>
+                              <input id="posConfigMpToken" type="password" placeholder="••••••" autocomplete="new-password" />
+                            </label>
+                            <label class="operator-config-field">
+                              <span>Store ID (opcional)</span>
+                              <input id="posConfigStoreId" type="text" autocomplete="off" />
+                            </label>
+                            <label class="operator-config-field">
+                              <span>POS ID externo (opcional)</span>
+                              <input id="posConfigExternalPosId" type="text" autocomplete="off" />
+                            </label>
+                          </div>
+                        </section>
+                      </article>
+                    </div>
+                  </div>
+
+                  <div class="pos-premium-zone" data-pos-zone="unit">
+                    <span class="pos-zone-label">Unidade</span>
+                    <article class="pos-premium-card pos-premium-card--elevated" id="posConfigUnitCard">
+                      <header class="pos-zone-card-head">
+                        <span class="pos-zone-card-icon pos-zone-card-icon--unit" aria-hidden="true">
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+                        </span>
+                        <div>
+                          <strong>POS nesta unidade</strong>
+                          <p class="pos-zone-card-desc">Terminal padrão e overrides por filial.</p>
+                        </div>
+                      </header>
+                      <div class="pos-premium-grid-2 pos-unit-fields">
+                        <label class="operator-config-field">
+                          <span>Filial</span>
+                          <select id="posConfigPaymentsUnit"></select>
+                        </label>
+                        <label class="operator-config-field operator-config-field-inline pos-premium-toggle-row">
+                          <span>Habilitar POS nesta unidade</span>
+                          <input id="posConfigUnitEnabled" type="checkbox" />
+                        </label>
+                        <label class="operator-config-field pos-unit-field-span" id="posConfigUnitTerminalWrap">
+                          <span>Terminal padrão (opcional)</span>
+                          <select id="posConfigDefaultTerminal"><option value="">— Nenhum —</option></select>
+                        </label>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+
+                <div class="pos-premium-zone pos-premium-zone--operation">
+                  <span class="pos-zone-label">Operação</span>
+                <article class="pos-premium-card pos-premium-card--terminals pos-premium-card--elevated">
+                  <header class="pos-terminals-head">
+                    <div class="pos-terminals-head-copy">
+                      <strong>Terminais conectados</strong>
+                      <p class="pos-zone-card-desc">Gerencie maquininhas Point por unidade. Status, sync e ações rápidas.</p>
+                    </div>
+                    <div class="pos-operator-hero-actions">
+                      <label class="operator-config-field pos-operator-field-compact">
+                        <span>Filtrar por unidade</span>
+                        <select id="posTerminalUnitFilter" aria-label="Filtrar terminais por unidade">
+                          <option value="">Todas</option>
+                        </select>
+                      </label>
+                      <button type="button" class="btn btn-primary pos-terminal-add-btn" id="posTerminalNewBtn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Conectar maquininha</span>
+                      </button>
+                    </div>
+                  </header>
+
+                  <div class="pos-kpi-strip" id="posTerminalsKpi" hidden aria-live="polite"></div>
+
+                  <div class="pos-operator-subtabs" role="tablist" aria-label="POS">
+                    <button type="button" class="pos-operator-subtab is-active" data-pos-subtab="terminais" role="tab" aria-selected="true">Terminais</button>
+                    <button type="button" class="pos-operator-subtab" data-pos-subtab="transacoes" role="tab" aria-selected="false">Transações POS</button>
+                  </div>
+
+                  <div class="pos-operator-panel" id="posTerminalsPanel" data-pos-panel="terminais">
+                    <div class="pos-operator-toolbar">
+                      <span class="config-pro-status-pill admin-inline-status" id="posTerminalsStatus" data-tone="neutral">Aguardando empresa…</span>
+                      <button type="button" class="pro-btn-ghost pos-btn-compact" id="posTerminalsRefresh">Atualizar</button>
+                    </div>
+                    <div class="pos-terminals-grid" id="posTerminalsGrid" aria-live="polite"></div>
+                  </div>
+
+                  <div class="pos-operator-panel" id="posTransactionsPanel" data-pos-panel="transacoes" hidden>
+                    <div class="pos-operator-toolbar">
+                      <span class="config-pro-status-pill admin-inline-status" id="posTransactionsStatus" data-tone="neutral">—</span>
+                    </div>
+                    <div class="pos-terminals-table-card">
+                      <table class="pos-terminals-table pos-transactions-table">
+                        <thead>
+                          <tr>
+                            <th>Cliente</th>
+                            <th>Agenda / serviço</th>
+                            <th>Terminal</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th>Data</th>
+                          </tr>
+                        </thead>
+                        <tbody id="posTransactionsTableBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="pos-modal-backdrop pos-modal-backdrop--premium" id="posTerminalModalBackdrop" hidden>
+                    <div class="pos-modal card pos-modal--add pos-modal--premium" id="posTerminalModal" role="dialog" aria-modal="true" aria-labelledby="posTerminalModalTitle">
+                      <header class="pos-modal-head pos-modal-head--premium">
+                        <div class="pos-modal-head-copy">
+                          <span class="pos-modal-eyebrow">POS / Maquininhas</span>
+                          <h3 id="posTerminalModalTitle">Adicionar terminal</h3>
+                        </div>
+                        <button type="button" class="pos-modal-close" id="posTerminalModalClose" aria-label="Fechar">×</button>
+                      </header>
+                      <div class="pos-modal-body pos-modal-body--premium">
+                        <input type="hidden" id="posTerminalEditId" value="" />
+                        <input type="hidden" id="posTerminalFormExternalStoreId" value="" />
+                        <input type="hidden" id="posTerminalFormExternalPosId" value="" />
+
+                        <section class="pos-modal-section pos-modal-section--mp" id="posMpImportSection">
+                          <header class="pos-modal-section-head">
+                            <span class="pos-modal-section-icon pos-modal-section-icon--mp" aria-hidden="true">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                            </span>
+                            <div class="pos-modal-section-head-copy">
+                              <h4 class="pos-modal-section-title">Mercado Pago (PDV)</h4>
+                              <p class="pos-modal-section-sub">Maquininhas PDV na conta Mercado Pago. Depois marque <strong>Online</strong> no NeuraFlow para cobrar.</p>
+                            </div>
+                            <button type="button" class="pro-btn-ghost pos-btn-compact" id="posMpRefreshList">Atualizar lista</button>
+                          </header>
+                          <p class="pos-mp-summary" id="posMpSummary" aria-live="polite">Carregando maquininhas da conta MP…</p>
+                          <div class="pos-mp-table-card">
+                            <table class="pos-mp-table">
+                              <thead>
+                                <tr>
+                                  <th>ID MP</th>
+                                  <th>Modo</th>
+                                  <th>Nome sugerido</th>
+                                  <th>Ação</th>
+                                </tr>
+                              </thead>
+                              <tbody id="posMpAvailableTableBody">
+                                <tr><td colspan="4" class="pos-table-empty">Carregando…</td></tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          <p class="pos-mp-status admin-inline-status" id="posMpStatus" data-tone="neutral" hidden></p>
+                        </section>
+
+                        <div class="pos-modal-divider" id="posModalManualDivider">
+                          <span>Ou cadastro manual</span>
+                        </div>
+
+                        <section class="pos-modal-section pos-modal-section--manual" id="posModalManualSection">
+                          <div class="pos-modal-manual-grid">
+                        <label class="operator-config-field">
+                          <span>Nome <span class="pos-req">*</span></span>
+                          <input type="text" id="posTerminalFormName" placeholder="Ex.: Caixa 01" autocomplete="off" />
+                        </label>
+                        <label class="operator-config-field">
+                          <span>Unidade</span>
+                          <select id="posTerminalFormUnitId">
+                                <option value="">Todo o tenant</option>
+                          </select>
+                          <small class="operator-config-hint">Opcional. Vazio = terminal disponível para todo o tenant.</small>
+                        </label>
+                        <label class="operator-config-field">
+                          <span>Provider</span>
+                          <select id="posTerminalFormProvider" disabled>
+                            <option value="mercado_pago">Mercado Pago</option>
+                          </select>
+                        </label>
+                        <label class="operator-config-field">
+                              <span>Nº série (opcional)</span>
+                          <input type="text" id="posTerminalFormSerial" placeholder="Opcional" autocomplete="off" />
+                        </label>
+                            <label class="operator-config-field pos-modal-field-span-2">
+                          <span>ID do terminal na API MP</span>
+                              <input type="text" id="posTerminalFormExternalId" placeholder="Obtido em GET /terminals/v1/list — ex.: NEWLAND_N950_…" autocomplete="off" />
+                              <small class="operator-config-hint">Recomendado para Point integrado. Essencial para fluxo cloud.</small>
+                        </label>
+                            <label class="operator-config-field pos-edit-only pos-modal-field-span-2" id="posTerminalAccessTokenWrap" hidden>
+                          <span>Access token (opcional)</span>
+                          <input type="password" id="posTerminalFormAccessToken" placeholder="••••••••" autocomplete="new-password" />
+                        </label>
+                      </div>
+                        </section>
+                      </div>
+                      <footer class="pos-modal-foot pos-modal-foot--premium">
+                        <button type="button" class="pro-btn-ghost" id="posTerminalModalCancel">Cancelar</button>
+                        <button type="button" class="pro-btn-primary" id="posTerminalModalSubmit">Criar</button>
+                      </footer>
+                    </div>
+                  </div>
+                </article>
+                    </div>
                   </div>
                 </section>
 
@@ -2281,46 +1766,3 @@
               </div>
             </div>
           </section>
-
-
-
-
-        </div>
-      </div>
-    </div>
-
-    <script src="js/components/modal.js"></script>
-    <script src="js/components/table.js"></script>
-    <script src="js/admin-audit.js"></script>
-    <script>
-      /* Configurações (operator-mf): base NeuraFlow via BFF operator-service */
-      window.RESERVAAI_OPERATOR_API_BASE_URL = '/api/operator';
-      window.RESERVAAI_EXTERNAL_API_BASE_URL = '/api/operator';
-    </script>
-    <script src="js/operator-special-dates.js"></script>
-    <script src="js/tenant-company-admin.js"></script>
-    <script src="js/config-admin.js"></script>
-    <script src="js/pos-payments-config.js"></script>
-    <script src="js/pos-terminals-admin.js"></script>
-    <script src="js/tenant-knowledge-lib.js"></script>
-    <script src="js/tenant-knowledge-admin.js"></script>
-    <script src="js/whatsapp-business-profile-admin.js"></script>
-    <script src="js/tenant-users-admin.js"></script>
-    <script src="js/sales-consultants-admin.js"></script>
-    <script src="js/plano-uso-admin.js"></script>
-    <script src="js/audit-admin.js"></script>
-    <script src="js/service-packages-admin.js"></script>
-    <script src="js/clients-admin.js"></script>
-    <script src="js/engage-campaigns-admin.js"></script>
-    <script src="js/engage-meta-api.js"></script>
-    <script src="js/engage-meta-connections.js"></script>
-    <script src="js/engage-config.js"></script>
-    <script src="js/settings-modules.js"></script>
-    <script>
-      /* WhatsApp inbox: messaging-service (não usar /api/operator) */
-      window.RESERVAAI_EXTERNAL_API_BASE_URL = window.RESERVAAI_MESSAGING_API_BASE_URL || '/api/messaging';
-    </script>
-    <script src="js/bot-whatsapp.js"></script>
-    <script src="js/app.js"></script>
-  </body>
-</html>
