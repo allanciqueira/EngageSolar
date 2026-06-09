@@ -16,6 +16,8 @@
 
   const WINDOW_CLOSING_THRESHOLD_MS = 2 * 60 * 60 * 1000;
   const WINDOW_LIST_HINT_THRESHOLD_MS = 12 * 60 * 60 * 1000;
+  const POLL_MS = 5000;
+  const BADGE_POLL_MS = 30000;
 
   const FILE_MAX_BYTES = 15 * 1024 * 1024;
   const AUDIO_MAX_BYTES = 10 * 1024 * 1024;
@@ -70,6 +72,9 @@
     mediaObjectUrls: {},
     emojiPanelOpen: false,
     pollerId: null,
+    badgePollerId: null,
+    pollInFlight: false,
+    visibilityHandler: null,
     windowTickerId: null,
     lastMessageStatus: 'Aguardando seleção de conversa.',
     dom: {},
@@ -135,7 +140,9 @@
     const ids = new Set(options.map((tenant) => String(tenant?.id || '').trim()).filter(Boolean));
     const pick = (candidate) => {
       const id = String(candidate || '').trim();
-      return id && ids.has(id) ? id : '';
+      if (!id) return '';
+      if (!ids.size) return id;
+      return ids.has(id) ? id : '';
     };
     return pick(resolveSessionTenantId(session))
       || pick(readPreferredLoginTenantId())
@@ -363,6 +370,20 @@
     return state.authService?.getAccessToken?.() || state.session?.externalAccessToken || '';
   }
 
+  function getMessagingFetchContext() {
+    const base = getMessagingApiBaseUrl();
+    const isSameOrigin =
+      base.startsWith('/')
+      || (typeof window !== 'undefined'
+        && window.location.protocol.startsWith('http')
+        && base.startsWith(window.location.origin));
+    return {
+      base,
+      credentials: isSameOrigin ? 'include' : 'omit',
+      mode: isSameOrigin ? 'same-origin' : 'cors',
+    };
+  }
+
   async function requestExternal(path, options = {}) {
     const token = getCurrentToken();
     if (!token) {
@@ -379,18 +400,13 @@
       headers.set('Content-Type', 'application/json');
     }
 
-    const base = getMessagingApiBaseUrl();
-    const isSameOrigin =
-      base.startsWith('/')
-      || (typeof window !== 'undefined'
-        && window.location.protocol.startsWith('http')
-        && base.startsWith(window.location.origin));
+    const { base, credentials, mode } = getMessagingFetchContext();
 
     const response = await fetch(`${base}${path}`, {
       ...options,
       headers,
-      credentials: isSameOrigin ? 'include' : 'omit',
-      mode: isSameOrigin ? 'same-origin' : 'cors',
+      credentials,
+      mode,
     });
 
     const contentType = response.headers.get('content-type') || '';
@@ -482,6 +498,30 @@
     return normalizeMessageContent(message);
   }
 
+  function mediaSupplementText(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+    const withoutPlaceholder = raw.replace(
+      /^\[(Imagem|Documento|Vídeo|Áudio|Audio):[^\]]*\]\s*/i,
+      '',
+    ).trim();
+    if (withoutPlaceholder) return withoutPlaceholder;
+    if (!/^\[(Imagem|Documento|Vídeo|Áudio|Audio):/i.test(raw)) return raw;
+    return '';
+  }
+
+  function mediaSupplementHtml(message) {
+    const supplement = mediaSupplementText(messageDisplayText(message));
+    if (!supplement) return '';
+    return `<div class="whats-pro-bubble-text">${escapeHtml(supplement).replace(/\n/g, '<br />')}</div>`;
+  }
+
+  function isPdfMedia(message) {
+    const name = String(message?.mediaFileName || '').toLowerCase();
+    const mime = String(message?.mediaMimeType || '').toLowerCase();
+    return name.endsWith('.pdf') || mime === 'application/pdf';
+  }
+
   function formatFileSize(bytes) {
     const size = Number(bytes) || 0;
     if (size < 1024) return `${size} B`;
@@ -513,11 +553,12 @@
     if (!token || !state.selectedTenantId || !messageId) {
       throw new Error('Não foi possível carregar a mídia.');
     }
-    const url = `${externalApiBaseUrl}/messages/${encodeURIComponent(messageId)}/media?tenantId=${encodeURIComponent(state.selectedTenantId)}`;
+    const { base, credentials, mode } = getMessagingFetchContext();
+    const url = `${base}/messages/${encodeURIComponent(messageId)}/media?tenantId=${encodeURIComponent(state.selectedTenantId)}`;
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
-      credentials: 'omit',
-      mode: 'cors',
+      credentials,
+      mode,
     });
     if (response.status === 401) {
       state.authService?.clearSession?.();
@@ -617,26 +658,33 @@
     }
 
     const fileName = escapeHtml(message.mediaFileName || 'arquivo');
+    const rawFileName = String(message.mediaFileName || 'arquivo').trim() || 'arquivo';
     let mediaInner = `<span class="whats-pro-media-loading">Carregando mídia…</span>`;
     if (kind === 'image') {
       mediaInner = `<img class="whats-pro-media-image" alt="${fileName}" loading="lazy" />`;
     } else if (kind === 'video') {
-      mediaInner = `<video class="whats-pro-media-video" controls preload="metadata"></video>`;
+      mediaInner = `
+        <video class="whats-pro-media-video" controls preload="metadata"></video>
+        <span class="whats-pro-media-file-name">${fileName}</span>`;
     } else if (kind === 'audio') {
       mediaInner = `<audio class="whats-pro-media-audio" controls preload="metadata"></audio>`;
     } else {
+      const openLabel = isPdfMedia(message) ? 'Abrir PDF' : 'Abrir';
       mediaInner = `
-        <span class="whats-pro-media-doc-icon" aria-hidden="true">📄</span>
-        <span class="whats-pro-media-doc-name">${fileName}</span>
-        <a class="whats-pro-media-doc-link" href="#" data-media-open>Abrir</a>`;
+        <div class="whats-pro-media-doc">
+          <span class="whats-pro-media-doc-icon" aria-hidden="true">${isPdfMedia(message) ? '📄' : '📁'}</span>
+          <span class="whats-pro-media-doc-name">${fileName}</span>
+          <div class="whats-pro-media-doc-actions">
+            <a class="whats-pro-media-doc-link" href="#" data-media-open>${openLabel}</a>
+            <a class="whats-pro-media-doc-link" href="#" data-media-download>Descarregar</a>
+          </div>
+        </div>`;
     }
 
-    const caption = text && !/^\[(Imagem|Documento|Vídeo|Áudio|Audio):/i.test(text)
-      ? `<div class="whats-pro-bubble-text">${safeText}</div>`
-      : '';
+    const caption = mediaSupplementHtml(message);
 
     return `
-      <div class="whats-pro-bubble-media" data-media-message-id="${escapeHtml(message.id)}" data-media-kind="${escapeHtml(kind)}">
+      <div class="whats-pro-bubble-media" data-media-message-id="${escapeHtml(message.id)}" data-media-kind="${escapeHtml(kind)}" data-media-file-name="${escapeHtml(rawFileName)}">
         ${mediaInner}
       </div>
       ${caption}`;
@@ -692,6 +740,11 @@
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
     }
+    const downloadLink = slot.querySelector('[data-media-download]');
+    if (downloadLink) {
+      downloadLink.href = objectUrl;
+      downloadLink.download = slot.dataset.mediaFileName || 'arquivo';
+    }
   }
 
   async function hydrateMessageMedia() {
@@ -718,6 +771,8 @@
         if (loading) {
           loading.textContent = 'Pré-visualização indisponível';
         }
+        const actions = slot.querySelector('.whats-pro-media-doc-actions');
+        if (actions) actions.hidden = true;
       }
     }));
   }
@@ -919,13 +974,10 @@
   }
 
   function unreadCountFor(conversation) {
-    const explicit = Number(conversation?.unreadCount || conversation?.unread || 0);
-    if (Number.isFinite(explicit) && explicit > 0) {
+    const raw = conversation?.unreadCount ?? conversation?.unread;
+    const explicit = Number(raw);
+    if (Number.isFinite(explicit) && explicit >= 0) {
       return explicit;
-    }
-    const last = conversation?.messages?.[0];
-    if (last && last.direction === 'inbound') {
-      return 1;
     }
     return 0;
   }
@@ -996,12 +1048,38 @@
     });
   }
 
+  function totalUnreadCount() {
+    return state.conversations.reduce((acc, conversation) => acc + unreadCountFor(conversation), 0);
+  }
+
+  function emitInboxStats() {
+    window.dispatchEvent(new CustomEvent('reserva:inbox-stats', {
+      detail: {
+        totalUnread: totalUnreadCount(),
+        conversationCount: state.conversations.length,
+      },
+    }));
+  }
+
+  function messagesSignature(messages) {
+    if (!Array.isArray(messages) || !messages.length) return '0';
+    const last = messages[messages.length - 1];
+    return `${messages.length}:${last?.id || ''}:${last?.createdAt || ''}`;
+  }
+
+  function isMessagesNearBottom(threshold = 96) {
+    const el = state.dom.messages;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+  }
+
   function renderConversations() {
     if (!state.dom.chatList) {
       return;
     }
 
     renderFilters();
+    emitInboxStats();
 
     const items = filteredConversations();
     if (!items.length) {
@@ -1090,13 +1168,19 @@
     });
   }
 
-  function renderMessages() {
+  function renderMessages(options = {}) {
     if (!state.dom.messages) {
       return;
     }
 
+    const messagesEl = state.dom.messages;
+    const preserveScroll = options.stickToBottom === false;
+    const scrollFromBottom = preserveScroll
+      ? Math.max(0, messagesEl.scrollHeight - messagesEl.scrollTop)
+      : 0;
+
     if (!state.messages.length) {
-      state.dom.messages.innerHTML = '<div class="whats-pro-chat-empty">Nenhuma mensagem encontrada para esta conversa.</div>';
+      messagesEl.innerHTML = '<div class="whats-pro-chat-empty">Nenhuma mensagem encontrada para esta conversa.</div>';
       return;
     }
 
@@ -1140,10 +1224,14 @@
         </div>`);
     });
 
-    state.dom.messages.innerHTML = rows.join('');
+    messagesEl.innerHTML = rows.join('');
     bindMessageInteractions();
     void hydrateMessageMedia();
-    state.dom.messages.scrollTop = state.dom.messages.scrollHeight;
+    if (preserveScroll) {
+      messagesEl.scrollTop = Math.max(0, messagesEl.scrollHeight - scrollFromBottom);
+    } else {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
   }
 
   function applyWindowState() {
@@ -1542,6 +1630,141 @@
     }
   }
 
+  async function loadMessagesSilently() {
+    if (!state.selectedTenantId || !state.selectedConversationId) {
+      return;
+    }
+
+    try {
+      const payload = await requestExternal(
+        `/messages?conversationId=${encodeURIComponent(state.selectedConversationId)}&tenantId=${encodeURIComponent(state.selectedTenantId)}`,
+      );
+      const next = Array.isArray(payload) ? payload : [];
+      if (messagesSignature(next) === messagesSignature(state.messages)) {
+        return;
+      }
+
+      const previousLength = state.messages.length;
+      const stickToBottom = isMessagesNearBottom();
+      const hasNewInbound = next.length > previousLength
+        && next.slice(previousLength).some((message) => message.direction === 'inbound');
+
+      state.messages = next;
+      state.lastMessageStatus = `Sincronização concluída com ${state.messages.length} mensagens.`;
+      renderMessages({ stickToBottom });
+      renderCrm();
+
+      if (hasNewInbound) {
+        setSyncMessage('Nova mensagem recebida.', 'success');
+        window.setTimeout(() => {
+          if (state.active && state.dom.sync?.textContent === 'Nova mensagem recebida.') {
+            setSyncMessage('Inbox sincronizada.', 'success');
+          }
+        }, 3200);
+      }
+    } catch (error) {
+      // Mantém thread atual se refresh leve falhar.
+    }
+  }
+
+  function isComposerBusy() {
+    return state.isSendingText
+      || state.isUploadingFile
+      || state.isUploadingAudio
+      || state.isReacting
+      || state.busy;
+  }
+
+  async function pollInboxSilently() {
+    if (!state.active || state.pollInFlight || !state.selectedTenantId) {
+      return;
+    }
+    if (isComposerBusy()) {
+      return;
+    }
+
+    state.pollInFlight = true;
+    try {
+      await loadConversationsSilently();
+      await loadMessagesSilently();
+    } finally {
+      state.pollInFlight = false;
+    }
+  }
+
+  async function refreshInboxBadgeSilently() {
+    if (state.active) {
+      return;
+    }
+    syncSelectedTenantFromSession(state.session, { persist: false, render: false });
+    if (!state.selectedTenantId) {
+      return;
+    }
+    try {
+      const payload = await requestExternal(`/conversations?tenantId=${encodeURIComponent(state.selectedTenantId)}`);
+      state.conversations = Array.isArray(payload) ? payload : [];
+      emitInboxStats();
+    } catch (error) {
+      // Mantém badge anterior se refresh leve falhar.
+    }
+  }
+
+  function bindVisibilityRefresh() {
+    if (state.visibilityHandler || typeof document === 'undefined') {
+      return;
+    }
+    state.visibilityHandler = () => {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+      if (state.active) {
+        void pollInboxSilently();
+        return;
+      }
+      void refreshInboxBadgeSilently();
+    };
+    document.addEventListener('visibilitychange', state.visibilityHandler);
+  }
+
+  function unbindVisibilityRefresh() {
+    if (!state.visibilityHandler || typeof document === 'undefined') {
+      return;
+    }
+    document.removeEventListener('visibilitychange', state.visibilityHandler);
+    state.visibilityHandler = null;
+  }
+
+  function startPolling() {
+    stopPolling();
+    if (!state.active) {
+      return;
+    }
+    bindVisibilityRefresh();
+    state.pollerId = window.setInterval(() => {
+      void pollInboxSilently();
+    }, POLL_MS);
+  }
+
+  function startBadgePolling() {
+    stopBadgePolling();
+    if (state.active) {
+      return;
+    }
+    bindVisibilityRefresh();
+    void refreshInboxBadgeSilently();
+    state.badgePollerId = window.setInterval(() => {
+      void refreshInboxBadgeSilently();
+    }, BADGE_POLL_MS);
+  }
+
+  function stopBadgePolling() {
+    if (!state.badgePollerId) {
+      return;
+    }
+    window.clearInterval(state.badgePollerId);
+    state.badgePollerId = null;
+  }
+
   async function sendFileMessage() {
     const pending = state.pendingFile;
     if (!pending?.file || !state.selectedTenantId || !state.selectedConversationId) {
@@ -1797,12 +2020,10 @@
   }
 
   function stopPolling() {
-    if (!state.pollerId) {
-      return;
+    if (state.pollerId) {
+      window.clearInterval(state.pollerId);
+      state.pollerId = null;
     }
-
-    window.clearInterval(state.pollerId);
-    state.pollerId = null;
   }
 
   function applyQuickAction(action) {
@@ -2100,9 +2321,12 @@
     startWindowTicker();
 
     try {
+      stopBadgePolling();
       await bootstrap();
       syncSelectedTenantFromSession(state.session, { persist: true, render: true });
       await refreshWorkspace(true);
+      startPolling();
+      void pollInboxSilently();
     } catch (error) {
       setSyncMessage(formatUserError(error, 'whatsappInbox'), 'error');
       setError(formatUserError(error, 'whatsappInbox'));
@@ -2112,6 +2336,7 @@
   function deactivate() {
     state.active = false;
     stopPolling();
+    startBadgePolling();
     stopWindowTicker();
     void stopAudioRecording();
     clearPendingFile();
@@ -2127,11 +2352,16 @@
     state.session = context?.session || state.session;
     mount();
     updateLiveBadge();
+    syncSelectedTenantFromSession(state.session, { persist: true, render: false });
+    if (!state.active) {
+      startBadgePolling();
+    }
   }
 
   window.ReservaAiBotInbox = {
     init,
     activate,
     deactivate,
+    getUnreadTotal: totalUnreadCount,
   };
 })();

@@ -43,7 +43,7 @@
   const NAV = [
     { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
     { id: 'leads', label: 'Leads', icon: '🎯' },
-    { id: 'conversas', label: 'Conversas', iconSvg: 'whatsapp', badge: 12 },
+    { id: 'conversas', label: 'Conversas', iconSvg: 'whatsapp' },
     { id: 'campanhas', label: 'Campanhas', icon: '📋' },
     { id: 'automacao', label: 'Automação', icon: '🤖' },
     { id: 'followup', label: 'Follow-up', icon: '📞', badge: 4 },
@@ -113,7 +113,14 @@
   }
 
   const botInbox = () => window.ReservaAiBotInbox;
-  const state = { panel: 'dashboard', data: null, session: null, botInboxReady: false };
+  const state = {
+    panel: 'dashboard',
+    data: null,
+    session: null,
+    botInboxReady: false,
+    inboxUnread: 0,
+    inboxStatsReady: false,
+  };
 
   function qs(sel, root = document) {
     return root.querySelector(sel);
@@ -165,11 +172,19 @@
       if (!item.group) {
         const active = item.id === state.panel;
         const navExtra = item.id === 'engage-config' ? ' es-nav-item--engage-config' : '';
+        let navBadge = '';
+        if (item.id === 'conversas') {
+          if (state.inboxStatsReady && state.inboxUnread > 0) {
+            navBadge = `<span class="es-nav-badge">${state.inboxUnread > 99 ? '99+' : state.inboxUnread}</span>`;
+          }
+        } else if (item.badge) {
+          navBadge = `<span class="es-nav-badge">${item.badge}</span>`;
+        }
         return `
       <button type="button" class="es-nav-item${navExtra}${active ? ' is-active' : ''}" data-es-nav="${item.id}">
         <span class="es-nav-icon" aria-hidden="true">${renderNavIcon(item)}</span>
         <span class="es-nav-label">${escapeHtml(item.label)}</span>
-        ${item.badge ? `<span class="es-nav-badge">${item.badge}</span>` : ''}
+        ${navBadge}
       </button>`;
       }
 
@@ -846,6 +861,13 @@
       if (grid) grid.innerHTML = `<div class="es-placeholder">${escapeHtml(friendly)}</div>`;
     }
   }
+
+  window.addEventListener('reserva:inbox-stats', (event) => {
+    const totalUnread = Number(event?.detail?.totalUnread);
+    state.inboxUnread = Number.isFinite(totalUnread) && totalUnread >= 0 ? totalUnread : 0;
+    state.inboxStatsReady = true;
+    renderNav();
+  });
 
   document.addEventListener('DOMContentLoaded', init);
 })();

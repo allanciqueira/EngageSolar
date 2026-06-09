@@ -1327,6 +1327,47 @@
   color: #667781;
 }
 
+.whats-pro-media-file-name {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #667781;
+  word-break: break-word;
+}
+
+.whats-pro-media-doc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(11, 20, 26, 0.04);
+}
+
+.whats-pro-media-doc-name {
+  flex: 1 1 120px;
+  font-size: 0.86rem;
+  word-break: break-word;
+}
+
+.whats-pro-media-doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.whats-pro-media-doc-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #027eb5;
+  text-decoration: none;
+}
+
+.whats-pro-media-doc-link:hover {
+  text-decoration: underline;
+}
+
 .whats-pro-bubble-contact {
   display: flex;
   align-items: center;
