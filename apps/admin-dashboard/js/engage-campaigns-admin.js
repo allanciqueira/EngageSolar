@@ -196,6 +196,25 @@
     return formatNumber(value);
   }
 
+  const CHART_STATUS_COLORS = {
+    PENDING: '#fbbf24',
+    DELIVERED: '#2563eb',
+    READ: '#22c55e',
+    SENT: '#60a5fa',
+    QUEUED: '#94a3b8',
+    FAILED: '#ef4444',
+    SENDING: '#f59e0b',
+    COMPLETED: '#10b981',
+    ACCEPTED: '#38bdf8',
+    SCHEDULED: '#a78bfa',
+    PAUSED: '#fb923c',
+    RUNNING: '#3b82f6',
+  };
+
+  function chartColorForStatus(key) {
+    return CHART_STATUS_COLORS[String(key || '').trim().toUpperCase()] || '#64748b';
+  }
+
   function renderBreakdown(title, map) {
     const entries = map && typeof map === 'object'
       ? Object.entries(map).filter(([, count]) => Number(count) > 0)
@@ -207,10 +226,145 @@
     const rows = entries.map(([key, count]) => `
       <div class="engage-campaign-breakdown-row">
         <span>${statusChip(key)}</span>
-        <div class="engage-campaign-breakdown-bar" aria-hidden="true"><span style="width:${Math.max(8, (Number(count) / max) * 100)}%"></span></div>
+        <div class="engage-campaign-breakdown-bar" aria-hidden="true"><span style="width:${Math.max(8, (Number(count) / max) * 100)}%;background:${chartColorForStatus(key)}"></span></div>
         <strong>${formatNumber(count)}</strong>
       </div>`).join('');
     return `<article class="engage-campaign-breakdown"><h4>${escapeHtml(title)}</h4>${rows}</article>`;
+  }
+
+  function renderDonutChart(title, map) {
+    const entries = map && typeof map === 'object'
+      ? Object.entries(map).filter(([, count]) => Number(count) > 0)
+      : [];
+    if (!entries.length) {
+      return `<article class="engage-campaign-chart-card engage-campaign-donut-card"><h4>${escapeHtml(title)}</h4><p class="engage-campaign-muted">Sem dados.</p></article>`;
+    }
+    const total = entries.reduce((sum, [, count]) => sum + (Number(count) || 0), 0);
+    let acc = 0;
+    const gradientStops = entries.map(([key, count]) => {
+      const pct = ((Number(count) || 0) / total) * 100;
+      const start = acc;
+      acc += pct;
+      return `${chartColorForStatus(key)} ${start}% ${acc}%`;
+    }).join(', ');
+    const legend = entries.map(([key, count]) => {
+      const pct = ((Number(count) || 0) / total) * 100;
+      return `
+        <div class="engage-campaign-donut-legend-item">
+          <span class="engage-campaign-donut-swatch" style="background:${chartColorForStatus(key)}"></span>
+          <span class="engage-campaign-donut-legend-label">${escapeHtml(String(key).replace(/_/g, ' '))}</span>
+          <strong>${formatNumber(count)}</strong>
+          <small>${pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</small>
+        </div>`;
+    }).join('');
+    return `
+      <article class="engage-campaign-chart-card engage-campaign-donut-card">
+        <h4>${escapeHtml(title)}</h4>
+        <div class="engage-campaign-donut-wrap">
+          <div class="engage-campaign-donut" style="background:conic-gradient(${gradientStops})" role="img" aria-label="${escapeAttr(title)}">
+            <div class="engage-campaign-donut-hole">
+              <strong>${formatNumber(total)}</strong>
+              <small>total</small>
+            </div>
+          </div>
+          <div class="engage-campaign-donut-legend">${legend}</div>
+        </div>
+      </article>`;
+  }
+
+  function renderFunnel(outbound, conversions) {
+    const convSummary = conversions?.summary || conversions || {};
+    const sent = Number(outbound?.messagesSent) || 0;
+    const delivered = Number(outbound?.messagesDeliveredLive) || 0;
+    const read = Number(outbound?.messagesReadLive) || 0;
+    const replies = Number(convSummary.replies) || 0;
+    const steps = [
+      { label: 'Enviadas', value: sent, color: '#1e5aa8' },
+      { label: 'Entregues', value: delivered, color: '#2563eb' },
+      { label: 'Lidas', value: read, color: '#22c55e' },
+      { label: 'Respostas', value: replies, color: '#fbbf24' },
+    ];
+    const max = Math.max(sent, 1);
+    const rows = steps.map((step, index) => {
+      const widthPct = Math.max(14, (step.value / max) * 100);
+      const prev = index > 0 ? steps[index - 1].value : 0;
+      const convPct = prev > 0 ? ((step.value / prev) * 100) : null;
+      return `
+        <div class="engage-campaign-funnel-step">
+          <div class="engage-campaign-funnel-label">
+            <span>${escapeHtml(step.label)}</span>
+            ${convPct != null ? `<small>${convPct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do anterior</small>` : ''}
+          </div>
+          <div class="engage-campaign-funnel-bar-wrap" aria-hidden="true">
+            <div class="engage-campaign-funnel-bar" style="width:${widthPct}%;background:${step.color}"></div>
+          </div>
+          <strong>${formatNumber(step.value)}</strong>
+        </div>`;
+    }).join('');
+    return `
+      <article class="engage-campaign-chart-card engage-campaign-funnel-card">
+        <h4>Funil de entrega</h4>
+        <div class="engage-campaign-funnel">${rows}</div>
+      </article>`;
+  }
+
+  function renderCompletionGauge(summary) {
+    const pctRaw = Number(summary?.completionPct);
+    const pct = Number.isFinite(pctRaw) ? Math.min(100, Math.max(0, pctRaw)) : 0;
+    const radius = 52;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference * (1 - pct / 100);
+    const finish = summary?.estimatedFinish ? formatDateTime(summary.estimatedFinish) : '—';
+    return `
+      <article class="engage-campaign-chart-card engage-campaign-gauge-card">
+        <h4>Progresso da campanha</h4>
+        <div class="engage-campaign-gauge-wrap">
+          <svg class="engage-campaign-gauge" viewBox="0 0 120 120" aria-hidden="true">
+            <defs>
+              <linearGradient id="engageCampaignGaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1e5aa8" />
+                <stop offset="100%" stop-color="#fbbf24" />
+              </linearGradient>
+            </defs>
+            <circle class="engage-campaign-gauge-track" cx="60" cy="60" r="${radius}" />
+            <circle
+              class="engage-campaign-gauge-fill"
+              cx="60"
+              cy="60"
+              r="${radius}"
+              stroke-dasharray="${circumference.toFixed(2)}"
+              stroke-dashoffset="${offset.toFixed(2)}"
+            />
+          </svg>
+          <div class="engage-campaign-gauge-center">
+            <strong>${formatPercent(pct)}</strong>
+            <small>conclusão</small>
+          </div>
+        </div>
+        <dl class="engage-campaign-gauge-meta">
+          <div><dt>Est. finish</dt><dd>${escapeHtml(finish)}</dd></div>
+          <div><dt>Taxa/h</dt><dd>${escapeHtml(formatNumber(summary?.processingRatePerHour))}</dd></div>
+          <div><dt>Recipients</dt><dd>${escapeHtml(`${formatNumber(summary?.pendingRecipients)} pendentes · ${formatNumber(summary?.recipientTotal)} total`)}</dd></div>
+        </dl>
+        <p class="engage-campaign-help">Projected from now + cadence</p>
+      </article>`;
+  }
+
+  function renderKpiSection(title, cardsHtml) {
+    return `
+      <section class="engage-campaign-section">
+        <header class="engage-campaign-section-head"><h3>${escapeHtml(title)}</h3></header>
+        <div class="engage-campaign-kpi-grid">${cardsHtml}</div>
+      </section>`;
+  }
+
+  function renderVisualDashboard(summary, outbound, conversions, dash) {
+    return `
+      <section class="engage-campaign-visual-row">
+        ${renderFunnel(outbound, conversions)}
+        ${renderDonutChart('Recipients por status', dash.recipientsByStatus)}
+        ${renderCompletionGauge(summary)}
+      </section>`;
   }
 
   function kpiCard(label, value, sub) {
@@ -249,18 +403,34 @@
       </div>`;
   }
 
-  function renderConversionSection(data, title) {
+  function renderConversionSection(data, title, options = {}) {
     const summary = data?.summary || data || {};
+    const outbound = options.outbound || null;
+    const cards = outbound
+      ? [
+        kpiCard('Lidas', formatNumber(outbound.messagesReadLive)),
+        kpiCard('Respostas', formatNumber(summary.replies)),
+        kpiCard('Taxa de resposta', formatPercent(summary.replyRate)),
+        kpiCard('Conversas atribuídas', formatNumber(summary.attributedConversations)),
+      ]
+      : [
+        kpiCard('Respostas', formatNumber(summary.replies)),
+        kpiCard('Taxa de resposta', formatPercent(summary.replyRate)),
+        kpiCard('Respondentes únicos', formatNumber(summary.uniqueRepliers)),
+        kpiCard('Conversas atribuídas', formatNumber(summary.attributedConversations)),
+      ];
     return `
       <section class="engage-campaign-section">
         <header class="engage-campaign-section-head"><h3>${escapeHtml(title)}</h3></header>
-        <div class="engage-campaign-kpi-grid">
-          ${kpiCard('Respostas', formatNumber(summary.replies))}
-          ${kpiCard('Taxa de resposta', formatPercent(summary.replyRate))}
-          ${kpiCard('Respondentes únicos', formatNumber(summary.uniqueRepliers))}
-          ${kpiCard('Conversas atribuídas', formatNumber(summary.attributedConversations))}
-        </div>
+        <div class="engage-campaign-kpi-grid">${cards.join('')}</div>
       </section>`;
+  }
+
+  function healthRiskTone(riskLevel) {
+    const value = String(riskLevel || '').trim().toUpperCase();
+    if (value === 'HIGH' || value === 'CRITICAL') return 'danger';
+    if (value === 'MEDIUM' || value === 'MODERATE') return 'warn';
+    return 'ok';
   }
 
   function renderHealthPanel(health) {
@@ -273,17 +443,54 @@
     }
     const warnings = Array.isArray(health.warnings) ? health.warnings : [];
     const reasons = Array.isArray(health.reasons) ? health.reasons : [];
+    const riskTone = healthRiskTone(health.riskLevel);
+    const riskScore = Number(health.riskScore);
+    const riskBarPct = Number.isFinite(riskScore) ? Math.min(100, Math.max(4, riskScore)) : 0;
+    const utilPctRaw = Number(health.capacityUtilization?.utilizationPct);
+    const utilPct = Number.isFinite(utilPctRaw) ? Math.min(100, Math.max(0, utilPctRaw)) : 0;
+    const utilTone = utilPct >= 85 ? 'danger' : utilPct >= 60 ? 'warn' : 'ok';
+    const senderLabel = health.senderHealth?.verifiedName || health.senderHealth?.displayNumber || '—';
+    const senderQuality = health.senderHealth?.qualityRating || '—';
+    const tierLabel = health.senderHealth?.messagingTierLabel || health.senderHealth?.messagingTier || '—';
+    const utilStatus = health.capacityUtilization?.status || 'within limits';
+
     return `
-      <section class="engage-campaign-section">
+      <section class="engage-campaign-section engage-campaign-health">
         <header class="engage-campaign-section-head">
           <h3>Campaign Health</h3>
           ${health.allowed === false ? '<span class="engage-campaign-chip" data-tone="danger">BLOCKED</span>' : ''}
         </header>
-        <div class="engage-campaign-kpi-grid">
-          ${kpiCard('Risco', escapeHtml(health.riskLevel || '—'), `Score ${formatNumber(health.riskScore)}`)}
-          ${kpiCard('Sender', escapeHtml(health.senderHealth?.verifiedName || health.senderHealth?.displayNumber || '—'), escapeHtml(health.senderHealth?.qualityRating || ''))}
-          ${kpiCard('Tier', escapeHtml(health.senderHealth?.messagingTierLabel || health.senderHealth?.messagingTier || '—'))}
-          ${kpiCard('Utilização', formatPercent(health.capacityUtilization?.utilizationPct), escapeHtml(health.capacityUtilization?.status || ''))}
+        <div class="engage-campaign-health-grid">
+          <article class="engage-campaign-health-card" data-tone="${riskTone}">
+            <span class="engage-campaign-health-label">Risco</span>
+            <strong>${escapeHtml(health.riskLevel || '—')}</strong>
+            <div class="engage-campaign-meter" data-tone="${riskTone}" aria-hidden="true">
+              <div class="engage-campaign-meter-fill" style="width:${riskBarPct}%"></div>
+            </div>
+            <small>Score ${formatNumber(health.riskScore)}</small>
+          </article>
+          <article class="engage-campaign-health-card">
+            <span class="engage-campaign-health-label">Sender</span>
+            <strong>${escapeHtml(senderLabel)}</strong>
+            <span class="engage-campaign-chip" data-tone="${String(senderQuality).toUpperCase() === 'HIGH' ? 'ok' : 'neutral'}">${escapeHtml(senderQuality)}</span>
+            <small>Qualidade Meta</small>
+          </article>
+          <article class="engage-campaign-health-card engage-campaign-health-card--capacity" data-tone="${utilTone}">
+            <div class="engage-campaign-health-capacity-head">
+              <div>
+                <span class="engage-campaign-health-label">Tier Meta</span>
+                <strong>${escapeHtml(tierLabel)}</strong>
+              </div>
+              <div class="engage-campaign-health-util">
+                <span class="engage-campaign-health-label">Utilização</span>
+                <strong>${formatPercent(utilPct)}</strong>
+              </div>
+            </div>
+            <div class="engage-campaign-meter engage-campaign-meter--capacity" data-tone="${utilTone}" aria-hidden="true">
+              <div class="engage-campaign-meter-fill" style="width:${Math.max(utilPct, utilPct > 0 ? 4 : 0)}%"></div>
+            </div>
+            <small>${escapeHtml(utilStatus)}</small>
+          </article>
         </div>
         ${warnings.length ? `<ul class="engage-campaign-list">${warnings.map((w) => `<li>${escapeHtml(w.message || w.code || '')}</li>`).join('')}</ul>` : ''}
         ${reasons.length ? `<ul class="engage-campaign-list is-info">${reasons.map((r) => `<li>${escapeHtml(r.message || r.code || '')}</li>`).join('')}</ul>` : ''}
@@ -445,26 +652,24 @@
         <p>${escapeHtml(audience.audience?.name || audience.source || '—')} · ${formatNumber(audience.members || audience.audience?.memberCount)} contatos</p>
       </section>
       ${renderHealthPanel(state.campaignHealth)}
-      ${state.campaignConversions ? renderConversionSection(state.campaignConversions, 'Conversões da campanha') : ''}
-      <div class="engage-campaign-kpi-grid">
-        ${kpiCard('Enviadas', formatNumber(outbound.messagesSent))}
-        ${kpiCard('Meta (live)', formatNumber(outbound.messagesSentLive))}
-        ${kpiCard('Entregues', formatNumber(outbound.messagesDeliveredLive))}
-        ${kpiCard('Lidas', formatNumber(outbound.messagesReadLive))}
-        ${kpiCard('Falhas', formatNumber(outbound.messagesFailed))}
-        ${kpiCard('Conclusão', formatPercent(summary.completionPct))}
-        <article class="engage-campaign-kpi engage-campaign-kpi--est-finish">
-          <span>Est. finish</span>
-          <strong>${escapeHtml(summary.estimatedFinish ? formatDateTime(summary.estimatedFinish) : '—')}</strong>
-          <small>Projected from now + cadence</small>
-        </article>
-        ${kpiCard('Taxa/h', formatNumber(summary.processingRatePerHour))}
-        ${kpiCard('Recipients', formatNumber(summary.recipientTotal), `${formatNumber(summary.pendingRecipients)} pendentes`)}
-      </div>
+      ${renderVisualDashboard(summary, outbound, state.campaignConversions, dash)}
+      ${renderKpiSection('Envio', [
+        kpiCard('Enviadas', formatNumber(outbound.messagesSent)),
+        kpiCard('Meta (live)', formatNumber(outbound.messagesSentLive)),
+        kpiCard('Entregues', formatNumber(outbound.messagesDeliveredLive)),
+        kpiCard('Falhas', formatNumber(outbound.messagesFailed)),
+      ].join(''))}
+      ${state.campaignConversions
+        ? renderConversionSection(state.campaignConversions, 'Engajamento', { outbound })
+        : renderKpiSection('Engajamento', [
+          kpiCard('Lidas', formatNumber(outbound.messagesReadLive)),
+          kpiCard('Respostas', '—'),
+          kpiCard('Taxa de resposta', '—'),
+          kpiCard('Conversas atribuídas', '—'),
+        ].join(''))}
       <p class="engage-campaign-help">Engagement usa o último attempt por destinatário (ex.: READ mesmo quando o recipient permanece DELIVERED).</p>
       <div class="engage-campaign-breakdown-grid">
-        ${renderBreakdown('Recipients por status', dash.recipientsByStatus)}
-        ${renderBreakdown('Engagement', dash.recipientsByEngagement)}
+        ${renderDonutChart('Engagement', dash.recipientsByEngagement)}
         ${renderBreakdown('Attempts no período', dash.attemptsByStatusInWindow)}
         ${renderBreakdown('Attempts (total)', dash.attemptsByStatus)}
       </div>
