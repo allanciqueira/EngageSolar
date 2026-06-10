@@ -44,6 +44,7 @@
     { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
     { id: 'leads', label: 'Leads', icon: '🎯' },
     { id: 'conversas', label: 'Conversas', iconSvg: 'whatsapp' },
+    { id: 'central-respostas', label: 'Central de Respostas', icon: '↩️' },
     { id: 'campanhas', label: 'Campanhas', icon: '📋' },
     { id: 'automacao', label: 'Automação', icon: '🤖' },
     { id: 'followup', label: 'Follow-up', icon: '📞', badge: 4 },
@@ -64,6 +65,7 @@
   const PANEL_TITLES = {
     leads: 'Leads',
     conversas: 'Conversas',
+    'central-respostas': 'Central de Respostas',
     campanhas: 'Dashboard de campanhas',
     automacao: 'Automação',
     followup: 'Follow-up',
@@ -226,7 +228,7 @@
     const heroSub = qs('#esHeroSubtitle');
     const pageHeading = qs('#esPageHeading');
     if (pageHeading) {
-      pageHeading.hidden = panelId === 'conversas' || panelId === 'engage-config' || panelId === 'clientes' || panelId === 'campanhas' || isSettingsPanel(panelId);
+      pageHeading.hidden = panelId === 'conversas' || panelId === 'central-respostas' || panelId === 'engage-config' || panelId === 'clientes' || panelId === 'campanhas' || isSettingsPanel(panelId);
     }
 
     if (panelId === 'dashboard') {
@@ -254,6 +256,11 @@
       if (heroTitle) heroTitle.textContent = title;
       if (heroSub) heroSub.textContent = 'Volume de mensagens e estado operacional das campanhas (ledger Engage).';
       window.ReservaAiEngageCampaignsAdmin?.activate?.(state.session);
+    } else if (panelId === 'central-respostas') {
+      const title = PANEL_TITLES[panelId] || panelId;
+      if (heroTitle) heroTitle.textContent = title;
+      if (heroSub) heroSub.textContent = 'Acompanhe todas as respostas das suas campanhas em um só lugar.';
+      window.ReservaAiEngageRepliesCenterAdmin?.activate?.(state.session);
     } else {
       const title = PANEL_TITLES[panelId] || panelId;
       if (heroTitle) heroTitle.textContent = title;
@@ -271,6 +278,9 @@
     }
     if (panelId !== 'campanhas') {
       window.ReservaAiEngageCampaignsAdmin?.deactivate?.();
+    }
+    if (panelId !== 'central-respostas') {
+      window.ReservaAiEngageRepliesCenterAdmin?.deactivate?.();
     }
 
     const inbox = botInbox();
@@ -841,6 +851,9 @@
     if (inbox && auth && state.session) {
       inbox.init({ authService: auth, session: state.session });
       state.botInboxReady = true;
+      if (inbox.refreshUnreadBadge) {
+        void inbox.refreshUnreadBadge();
+      }
     }
 
     if (SETTINGS && state.session) {

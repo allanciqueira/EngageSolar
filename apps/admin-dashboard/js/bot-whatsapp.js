@@ -77,6 +77,12 @@
     visibilityHandler: null,
     windowTickerId: null,
     lastMessageStatus: 'Aguardando seleção de conversa.',
+    disposition: null,
+    dispositionMode: 'hidden',
+    dispositionLoading: false,
+    dispositionBusy: false,
+    dispositionError: '',
+    dispositionNote: '',
     dom: {},
   };
 
@@ -974,10 +980,13 @@
   }
 
   function unreadCountFor(conversation) {
-    const raw = conversation?.unreadCount ?? conversation?.unread;
-    const explicit = Number(raw);
-    if (Number.isFinite(explicit) && explicit >= 0) {
+    const explicit = Number(conversation?.unreadCount || conversation?.unread || 0);
+    if (Number.isFinite(explicit) && explicit > 0) {
       return explicit;
+    }
+    const last = conversation?.messages?.[0];
+    if (last && String(last.direction || '').toLowerCase() === 'inbound') {
+      return 1;
     }
     return 0;
   }
@@ -1151,9 +1160,15 @@
         state.dom.shell?.classList.add('is-thread-open');
         highlightSelectedConversation();
         setError('');
+        state.disposition = null;
+        state.dispositionMode = 'hidden';
+        state.dispositionError = '';
+        state.dispositionNote = '';
+        renderDispositionBar();
         renderThreadLoading();
         renderCrm();
         void loadMessages(true);
+        void loadDisposition();
       });
     });
   }
@@ -1294,6 +1309,177 @@
     }
   }
 
+  let dispositionRequestSeq = 0;
+
+  function resetDispositionState() {
+    dispositionRequestSeq += 1;
+    state.disposition = null;
+    state.dispositionMode = 'hidden';
+    state.dispositionLoading = false;
+    state.dispositionBusy = false;
+    state.dispositionError = '';
+    state.dispositionNote = '';
+    renderDispositionBar();
+  }
+
+  function formatDispositionDate(iso) {
+    if (!iso) {
+      return '';
+    }
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  async function loadDisposition() {
+    const api = window.EngageDispositionApi;
+    const convId = state.selectedConversationId;
+    const tenantId = state.selectedTenantId;
+    if (!api || !convId || !tenantId) {
+      resetDispositionState();
+      return;
+    }
+
+    const seq = dispositionRequestSeq + 1;
+    dispositionRequestSeq = seq;
+    state.dispositionLoading = true;
+    state.dispositionError = '';
+    renderDispositionBar();
+
+    try {
+      const ctx = await api.getDisposition(state.session, tenantId, convId);
+      if (seq !== dispositionRequestSeq) {
+        return;
+      }
+      state.disposition = ctx;
+      state.dispositionMode = api.shouldShowBar(ctx);
+      if (ctx?.dispositionNote) {
+        state.dispositionNote = String(ctx.dispositionNote);
+      }
+    } catch (error) {
+      if (seq !== dispositionRequestSeq) {
+        return;
+      }
+      state.disposition = null;
+      state.dispositionMode = 'hidden';
+      const status = Number(error?.statusCode || 0);
+      if (status !== 404) {
+        state.dispositionError = formatUserError(error, 'whatsappInbox');
+      }
+    } finally {
+      if (seq === dispositionRequestSeq) {
+        state.dispositionLoading = false;
+        renderDispositionBar();
+      }
+    }
+  }
+
+  async function applyCampaignDisposition(kind) {
+    const api = window.EngageDispositionApi;
+    const conversation = state.conversations.find((item) => item.id === state.selectedConversationId);
+    if (!api || !conversation || state.dispositionBusy) {
+      return;
+    }
+
+    state.dispositionBusy = true;
+    state.dispositionError = '';
+    renderDispositionBar();
+
+    try {
+      const result = await api.applyDisposition(state.session, state.selectedTenantId, conversation.id, {
+        kind,
+        note: String(state.dispositionNote || '').trim() || undefined,
+        inboundPhone: conversation.phone || undefined,
+      });
+      const ctx = result?.context || result;
+      state.disposition = ctx;
+      state.dispositionMode = api.shouldShowBar(ctx);
+      if (ctx?.dispositionNote) {
+        state.dispositionNote = String(ctx.dispositionNote);
+      }
+    } catch (error) {
+      state.dispositionError = formatUserError(error, 'whatsappInbox');
+    } finally {
+      state.dispositionBusy = false;
+      renderDispositionBar();
+    }
+  }
+
+  function renderDispositionBar() {
+    const el = state.dom.disposition;
+    if (!el) {
+      return;
+    }
+
+    const mode = state.dispositionMode;
+    const showShell = mode !== 'hidden' || state.dispositionLoading || state.dispositionError;
+    if (!showShell) {
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+
+    el.hidden = false;
+    const api = window.EngageDispositionApi;
+    const ctx = state.disposition || {};
+    const busy = state.dispositionBusy || state.dispositionLoading;
+    const badgeLabel = api?.lossLabel(ctx.lossCategory) || 'Sem classificação';
+    const returnLine = ctx.nextContactAt
+      ? `Retorno: ${formatDispositionDate(ctx.nextContactAt)}`
+      : '';
+    const reasoning = String(ctx.lossReasoning || '').trim();
+
+    if (mode === 'warning') {
+      el.innerHTML = `
+        <div class="whats-pro-engage-disposition is-warning">
+          <div class="whats-pro-engage-disposition-head">
+            <span class="whats-pro-engage-disposition-title">Engage — resposta da campanha</span>
+          </div>
+          <p class="whats-pro-engage-disposition-warning">
+            Resposta de campanha detectada, mas sem contacto no Contact Hub para este número. Importe ou sincronize o contacto para classificar.
+          </p>
+          ${state.dispositionError ? `<p class="whats-pro-engage-disposition-error">${escapeHtml(state.dispositionError)}</p>` : ''}
+        </div>`;
+      return;
+    }
+
+    const buttons = (api?.DISPOSITION_BUTTONS || []).map((btn) => `
+      <button type="button" class="whats-pro-engage-disposition-btn is-${btn.tone}" data-disposition-kind="${escapeHtml(btn.kind)}" ${busy ? 'disabled' : ''}>
+        ${escapeHtml(btn.label)}
+      </button>`).join('');
+
+    el.innerHTML = `
+      <div class="whats-pro-engage-disposition ${busy ? 'is-busy' : ''}">
+        <div class="whats-pro-engage-disposition-head">
+          <span class="whats-pro-engage-disposition-title">Engage — resposta da campanha</span>
+          <span class="whats-pro-engage-disposition-badge">${escapeHtml(badgeLabel)}</span>
+        </div>
+        ${returnLine ? `<p class="whats-pro-engage-disposition-meta">${escapeHtml(returnLine)}</p>` : ''}
+        ${reasoning ? `<p class="whats-pro-engage-disposition-reason">${escapeHtml(reasoning)}</p>` : ''}
+        <div class="whats-pro-engage-disposition-actions" role="group" aria-label="Classificar lead da campanha">
+          ${buttons}
+        </div>
+        <label class="whats-pro-engage-disposition-note">
+          <span class="visually-hidden">Nota opcional</span>
+          <input type="text" id="botInboxDispositionNote" maxlength="2000" placeholder="Nota opcional (ex.: pediu retorno após obra)" value="${escapeHtml(state.dispositionNote)}" ${busy ? 'disabled' : ''} autocomplete="off" />
+        </label>
+        ${state.dispositionError ? `<p class="whats-pro-engage-disposition-error">${escapeHtml(state.dispositionError)}</p>` : ''}
+        ${state.dispositionLoading ? '<p class="whats-pro-engage-disposition-loading">Carregando classificação…</p>' : ''}
+      </div>`;
+
+    el.querySelector('#botInboxDispositionNote')?.addEventListener('input', (event) => {
+      state.dispositionNote = event.target.value;
+    });
+
+    el.querySelectorAll('[data-disposition-kind]').forEach((button) => {
+      button.addEventListener('click', () => {
+        void applyCampaignDisposition(button.dataset.dispositionKind);
+      });
+    });
+  }
+
   function startWindowTicker() {
     stopWindowTicker();
     state.windowTickerId = window.setInterval(() => {
@@ -1322,6 +1508,7 @@
     }
 
     if (!hasSelection) {
+      resetDispositionState();
       applyWindowState();
       updateDebug('Nenhuma conversa selecionada.');
       return;
@@ -1531,6 +1718,7 @@
 
     renderConversations();
     await loadMessages(true);
+    void loadDisposition();
   }
 
   async function refreshWorkspace(showLoading) {
@@ -1698,14 +1886,17 @@
     }
     syncSelectedTenantFromSession(state.session, { persist: false, render: false });
     if (!state.selectedTenantId) {
+      state.conversations = [];
+      emitInboxStats();
       return;
     }
     try {
       const payload = await requestExternal(`/conversations?tenantId=${encodeURIComponent(state.selectedTenantId)}`);
       state.conversations = Array.isArray(payload) ? payload : [];
-      emitInboxStats();
     } catch (error) {
-      // Mantém badge anterior se refresh leve falhar.
+      // Mantém conversas anteriores se refresh leve falhar.
+    } finally {
+      emitInboxStats();
     }
   }
 
@@ -2245,6 +2436,7 @@
       headerName: qs('#botInboxHeaderName'),
       headerMeta: qs('#botInboxHeaderMeta'),
       avatar: qs('#botInboxAvatar'),
+      disposition: qs('#botInboxDisposition'),
       messages: qs('#botInboxMessages'),
       error: qs('#botInboxError'),
       composer: root.querySelector('.whats-pro-composer'),
@@ -2358,10 +2550,15 @@
     }
   }
 
+  async function refreshUnreadBadge() {
+    await refreshInboxBadgeSilently();
+  }
+
   window.ReservaAiBotInbox = {
     init,
     activate,
     deactivate,
     getUnreadTotal: totalUnreadCount,
+    refreshUnreadBadge,
   };
 })();

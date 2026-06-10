@@ -30,6 +30,7 @@
     return isEngageDevProxy ? '/api/identity' : `${legacyFallback}/api/identity`;
   };
 
+  /** Dev 5173: base vazia → fetch relativo → dev-server.mjs faz proxy para o gateway ReservaAI. */
   const resolveGatewayBase = () => {
     if (isEngageDevProxy) {
       return '';
@@ -95,9 +96,23 @@
     return payload;
   };
 
+  function resolveAccessToken(options = {}) {
+    const fromOptions = String(
+      options.authToken
+      || options.session?.externalAccessToken
+      || '',
+    ).trim();
+    if (fromOptions) return fromOptions;
+    return String(
+      window.ReservaAiAuth?.getAccessToken?.()
+      || window.EngageSolarAuth?.getAccessToken?.()
+      || '',
+    ).trim();
+  }
+
   const createClient = (baseUrlOverride) => ({
     async request(path, options = {}) {
-      const token = window.ReservaAiAuth?.getAccessToken?.() || '';
+      const token = resolveAccessToken(options);
       const headers = new Headers(options.headers || {});
       const isMultipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
 

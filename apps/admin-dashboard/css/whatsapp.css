@@ -609,6 +609,139 @@
   flex: 0 0 auto;
 }
 
+.whats-pro-engage-disposition-wrap {
+  flex: 0 0 auto;
+}
+
+.whats-pro-engage-disposition {
+  padding: 0.65rem 0.85rem 0.75rem;
+  background: linear-gradient(180deg, rgba(217, 253, 211, 0.72), rgba(217, 253, 211, 0.38));
+  border-bottom: 1px solid rgba(18, 140, 126, 0.22);
+  color: var(--whats-text);
+}
+
+.whats-pro-engage-disposition.is-warning {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.14), rgba(251, 191, 36, 0.08));
+  border-bottom-color: rgba(251, 191, 36, 0.35);
+}
+
+.whats-pro-engage-disposition-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.whats-pro-engage-disposition-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--whats-green-deep);
+}
+
+.whats-pro-engage-disposition-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid rgba(18, 140, 126, 0.2);
+  color: var(--whats-green-deep);
+}
+
+.whats-pro-engage-disposition-meta,
+.whats-pro-engage-disposition-reason,
+.whats-pro-engage-disposition-warning,
+.whats-pro-engage-disposition-loading {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--whats-muted);
+}
+
+.whats-pro-engage-disposition-reason {
+  color: var(--whats-muted);
+}
+
+.whats-pro-engage-disposition-warning {
+  color: #8b5a13;
+}
+
+.whats-pro-engage-disposition-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.whats-pro-engage-disposition-btn {
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(11, 20, 26, 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.whats-pro-engage-disposition-btn.is-defer {
+  border: 1px solid rgba(18, 140, 126, 0.25);
+  background: #ffffff;
+  color: var(--whats-green-deep);
+}
+
+.whats-pro-engage-disposition-btn.is-defer:hover:not(:disabled) {
+  background: rgba(37, 211, 102, 0.1);
+  border-color: var(--whats-green-deep);
+  color: #0d6e63;
+}
+
+.whats-pro-engage-disposition-btn.is-lost {
+  border: 1px solid rgba(199, 78, 78, 0.35);
+  background: #ffffff;
+  color: #8f3131;
+}
+
+.whats-pro-engage-disposition-btn.is-lost:hover:not(:disabled) {
+  background: rgba(199, 78, 78, 0.08);
+  border-color: rgba(199, 78, 78, 0.5);
+}
+
+.whats-pro-engage-disposition-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.whats-pro-engage-disposition-note input {
+  width: 100%;
+  border: 1px solid #d8dbdf;
+  border-radius: 10px;
+  padding: 0.42rem 0.55rem;
+  font-size: 0.78rem;
+  background: #ffffff;
+  color: var(--whats-text);
+}
+
+.whats-pro-engage-disposition-note input::placeholder {
+  color: var(--whats-muted);
+}
+
+.whats-pro-engage-disposition-note input:focus {
+  outline: none;
+  border-color: var(--whats-green-deep);
+  box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.15);
+}
+
+.whats-pro-engage-disposition-error {
+  margin: 0.4rem 0 0;
+  font-size: 0.74rem;
+  color: #8f3131;
+}
+
 .whats-pro-thread-back {
   display: none;
 }

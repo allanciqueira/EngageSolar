@@ -97,6 +97,12 @@
     } else {
       window.EngageMetaConnections?.deactivate?.();
     }
+
+    if (tabId === 'templates') {
+      window.EngageTemplatesAdmin?.activate?.(session);
+    } else {
+      window.EngageTemplatesAdmin?.deactivate?.();
+    }
   }
 
   function activate(session) {
@@ -110,6 +116,7 @@
   function deactivate() {
     active = false;
     window.EngageMetaConnections?.deactivate?.();
+    window.EngageTemplatesAdmin?.deactivate?.();
   }
 
   window.EngageConfig = {

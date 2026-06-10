@@ -1,6 +1,7 @@
 /**
  * Engage — Dashboard de campanhas (somente leitura).
  * Spec: HANDOFF-ENGAGE-SOLAR-FRONT-CAMPAIGN-DASHBOARD.md
+ *       HANDOFF-ENGAGE-SOLAR-FRONT-CAMPAIGN-CONVERSOES-RESPOSTAS.md
  */
 (function () {
   const adminApi = window.ReservaAiApi;
@@ -11,6 +12,25 @@
     { key: '15d', label: 'Últimos 15 dias' },
     { key: '30d', label: 'Último mês' },
   ];
+
+  const REPLY_WINDOW_OPTIONS = [
+    { key: 'all', label: 'Todas as respostas' },
+    { key: '1d', label: 'Último dia' },
+    { key: '7d', label: 'Última semana' },
+    { key: '15d', label: 'Últimos 15 dias' },
+    { key: '30d', label: 'Último mês' },
+  ];
+
+  const LOSS_CATEGORY_LABELS = {
+    ADIADO: 'Adiado',
+    FECHOU_CONCORRENTE: 'Perdeu com concorrência',
+    SEM_INTERESSE: 'Sem interesse',
+    SEM_CONTATO: 'Sem contato',
+    ORCAMENTO_ALTO: 'Orçamento alto',
+    CONSTRUINDO: 'Em obra',
+    OUTRO: 'Outro',
+    NAO_CLASSIFICADO: 'Não classificado',
+  };
 
   const SUCCESS_STATUSES = new Set([
     'COMPLETED', 'SENT', 'ACCEPTED', 'DELIVERED', 'READ', 'DELIVERED_SIMULATED', 'READ_SIMULATED',
@@ -31,6 +51,9 @@
     conversionAnalytics: null,
     campaignHealth: null,
     campaignConversions: null,
+    replyDispositions: null,
+    replyDispositionsWindow: 'all',
+    replyDispositionsError: '',
     refreshTimerId: null,
     selectedAttemptId: '',
     attemptDetail: null,
@@ -144,6 +167,109 @@
     const num = Number(value);
     if (!Number.isFinite(num)) return '—';
     return `${num.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+  }
+
+  function formatDateShort(value) {
+    if (!value) return '—';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    return parsed.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
+  function normalizeConversionMetrics(data) {
+    const raw = data?.summary || data || {};
+    return {
+      replies: Number(raw.replies),
+      uniqueRepliers: Number(raw.uniqueRepliers),
+      replyRate: raw.replyRate,
+      attributedConversations: Number(raw.attributedConversations),
+      sentCount: Number(raw.sentCount),
+      repliedCount: Number(raw.repliedCount),
+    };
+  }
+
+  /** Taxa corrigida no front: uniqueRepliers / enviados (API pode devolver 100% por repliedCount). */
+  function resolveReplyRatePct(metrics, outbound) {
+    const unique = Number.isFinite(metrics.uniqueRepliers) ? metrics.uniqueRepliers : null;
+    const replies = Number.isFinite(metrics.replies) ? metrics.replies : null;
+    const sent = Number.isFinite(metrics.sentCount) && metrics.sentCount > 0
+      ? metrics.sentCount
+      : Number(outbound?.messagesSentLive ?? outbound?.messagesSent);
+    const read = Number(outbound?.messagesReadLive);
+
+    if (sent > 0 && unique != null && unique >= 0) {
+      return (unique / sent) * 100;
+    }
+    if (sent > 0 && replies != null && replies >= 0) {
+      return (replies / sent) * 100;
+    }
+    if (read > 0 && replies != null && replies >= 0) {
+      return (replies / read) * 100;
+    }
+    const api = Number(metrics.replyRate);
+    return Number.isFinite(api) ? api : null;
+  }
+
+  function lossCategoryLabel(category) {
+    const key = String(category || '').trim().toUpperCase();
+    if (!key) return 'Não classificado';
+    return LOSS_CATEGORY_LABELS[key] || key.replace(/_/g, ' ');
+  }
+
+  function formatPhoneE164(item) {
+    const full = String(item?.phoneE164 || item?.phone || '').trim();
+    if (full) return full;
+    return String(item?.phoneMasked || '—').trim() || '—';
+  }
+
+  function buildReplyDispositionPaths() {
+    const tenantId = getDefaultTenantId(state.session);
+    const encTenant = encodeURIComponent(tenantId);
+    const encCampaign = encodeURIComponent(state.selectedCampaignId);
+    const qs = tenantQuery(state.session, {
+      window: state.replyDispositionsWindow || 'all',
+      limit: '500',
+    });
+    const suffix = `?${new URLSearchParams({
+      window: state.replyDispositionsWindow || 'all',
+      limit: '500',
+    }).toString()}`;
+    return [
+      `/api/operator/engage/campaigns/${encCampaign}/reply-dispositions?${qs}`,
+      `/api/operator/engage/tenants/${encTenant}/campaigns/${encCampaign}/reply-dispositions${suffix}`,
+    ];
+  }
+
+  function downloadReplyDispositionsCsv() {
+    const report = state.replyDispositions;
+    const items = Array.isArray(report?.items) ? report.items : [];
+    if (!items.length) return;
+    const campaignName = state.dashboard?.campaign?.name || 'campanha';
+    const slug = String(campaignName).replace(/[^\w\-]+/g, '-').slice(0, 40);
+    const header = ['nome', 'telefone', 'categoria', 'data_retorno', 'respondeu_em', 'disposition_kind', 'motivo'];
+    const rows = items.map((item) => [
+      item.name || '',
+      formatPhoneE164(item),
+      lossCategoryLabel(item.lossCategory),
+      item.nextContactAt || '',
+      item.lastReplyAt || item.repliedAt || '',
+      item.dispositionKind || '',
+      item.lossReasoning || '',
+    ]);
+    const csvBody = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+    const blob = new Blob([`\uFEFF${csvBody}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `campanha-respostas-${slug}-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   function formatDateTime(value) {
@@ -404,25 +530,139 @@
   }
 
   function renderConversionSection(data, title, options = {}) {
-    const summary = data?.summary || data || {};
+    const metrics = normalizeConversionMetrics(data);
     const outbound = options.outbound || null;
+    const replyRate = resolveReplyRatePct(metrics, outbound);
+    const rateHint = Number.isFinite(metrics.sentCount) && metrics.sentCount > 0
+      ? `Únicos / ${formatNumber(metrics.sentCount)} enviados`
+      : (outbound?.messagesSentLive ? `Únicos / ${formatNumber(outbound.messagesSentLive)} enviados` : '');
     const cards = outbound
       ? [
         kpiCard('Lidas', formatNumber(outbound.messagesReadLive)),
-        kpiCard('Respostas', formatNumber(summary.replies)),
-        kpiCard('Taxa de resposta', formatPercent(summary.replyRate)),
-        kpiCard('Conversas atribuídas', formatNumber(summary.attributedConversations)),
+        kpiCard('Respostas', formatNumber(metrics.replies)),
+        kpiCard('Taxa de resposta', formatPercent(replyRate), rateHint || 'Respondentes únicos / enviados'),
+        kpiCard('Conversas atribuídas', formatNumber(metrics.attributedConversations)),
       ]
       : [
-        kpiCard('Respostas', formatNumber(summary.replies)),
-        kpiCard('Taxa de resposta', formatPercent(summary.replyRate)),
-        kpiCard('Respondentes únicos', formatNumber(summary.uniqueRepliers)),
-        kpiCard('Conversas atribuídas', formatNumber(summary.attributedConversations)),
+        kpiCard('Respostas', formatNumber(metrics.replies)),
+        kpiCard('Taxa de resposta', formatPercent(replyRate), rateHint || 'Respondentes únicos / enviados'),
+        kpiCard('Respondentes únicos', formatNumber(metrics.uniqueRepliers)),
+        kpiCard('Conversas atribuídas', formatNumber(metrics.attributedConversations)),
       ];
     return `
       <section class="engage-campaign-section">
         <header class="engage-campaign-section-head"><h3>${escapeHtml(title)}</h3></header>
         <div class="engage-campaign-kpi-grid">${cards.join('')}</div>
+      </section>`;
+  }
+
+  function renderCampaignConversionsPanel(data, outbound) {
+    if (!data) {
+      return `
+        <section class="engage-campaign-section">
+          <header class="engage-campaign-section-head"><h3>Campaign Conversions</h3></header>
+          <p class="engage-campaign-muted">Sem respostas registadas para esta campanha.</p>
+        </section>`;
+    }
+    const metrics = normalizeConversionMetrics(data);
+    const replyRate = resolveReplyRatePct(metrics, outbound);
+    const rateHint = Number.isFinite(metrics.sentCount) && metrics.sentCount > 0
+      ? `Base: ${formatNumber(metrics.uniqueRepliers)} / ${formatNumber(metrics.sentCount)} enviados`
+      : '';
+    return `
+      <section class="engage-campaign-section engage-campaign-conversions">
+        <header class="engage-campaign-section-head"><h3>Campaign Conversions</h3></header>
+        <div class="engage-campaign-kpi-grid">
+          ${kpiCard('Replies', formatNumber(metrics.replies))}
+          ${kpiCard('Reply rate', formatPercent(replyRate), rateHint)}
+          ${kpiCard('Unique repliers', formatNumber(metrics.uniqueRepliers))}
+          ${kpiCard('Attributed conversations', formatNumber(metrics.attributedConversations))}
+        </div>
+      </section>`;
+  }
+
+  function renderReplyDispositionsPanel() {
+    const report = state.replyDispositions;
+    const windowOptions = REPLY_WINDOW_OPTIONS.map((opt) => (
+      `<option value="${escapeAttr(opt.key)}"${opt.key === state.replyDispositionsWindow ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`
+    )).join('');
+    const windowLabel = report?.window?.labelPt || REPLY_WINDOW_OPTIONS.find((o) => o.key === state.replyDispositionsWindow)?.label || '';
+
+    if (state.replyDispositionsError) {
+      return `
+        <section class="engage-campaign-section engage-campaign-replies">
+          <header class="engage-campaign-section-head">
+            <h3>Respostas da campanha</h3>
+            <div class="engage-campaign-replies-toolbar">
+              <label class="engage-campaign-field">
+                <span>Período (respostas)</span>
+                <select id="adminEngageCampaignsReplyWindow">${windowOptions}</select>
+              </label>
+            </div>
+          </header>
+          <p class="engage-config-error">${escapeHtml(state.replyDispositionsError)}</p>
+        </section>`;
+    }
+
+    if (!report) {
+      return `
+        <section class="engage-campaign-section engage-campaign-replies">
+          <header class="engage-campaign-section-head"><h3>Respostas da campanha</h3></header>
+          <p class="engage-campaign-muted">Carregando classificação das respostas…</p>
+        </section>`;
+    }
+
+    const items = Array.isArray(report.items) ? report.items : [];
+    const byCategory = Array.isArray(report.byCategory) ? report.byCategory : [];
+    const chips = byCategory.length
+      ? byCategory.map((row) => `<span class="engage-campaign-reply-chip">${escapeHtml(lossCategoryLabel(row.category))}: ${formatNumber(row.count)}</span>`).join('')
+      : '<span class="engage-campaign-muted">Sem categorias classificadas.</span>';
+
+    const tableRows = items.length
+      ? items.map((item) => `
+        <tr>
+          <td>${escapeHtml(item.name || '—')}</td>
+          <td><code class="engage-config-mono">${escapeHtml(formatPhoneE164(item))}</code></td>
+          <td>${escapeHtml(lossCategoryLabel(item.lossCategory))}</td>
+          <td>${formatDateShort(item.nextContactAt)}</td>
+          <td>${formatDateTime(item.lastReplyAt || item.repliedAt)}</td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="5" class="engage-campaign-muted">Nenhuma resposta neste período.</td></tr>';
+
+    return `
+      <section class="engage-campaign-section engage-campaign-replies">
+        <header class="engage-campaign-section-head engage-campaign-replies-head">
+          <div>
+            <h3>Respostas da campanha</h3>
+            <p class="engage-campaign-help">Classificação no Contact Hub (Inbox / auto-detect). Janela: ${escapeHtml(windowLabel)}</p>
+          </div>
+          <div class="engage-campaign-replies-toolbar">
+            <label class="engage-campaign-field">
+              <span>Período (respostas)</span>
+              <select id="adminEngageCampaignsReplyWindow">${windowOptions}</select>
+            </label>
+            <button type="button" class="engage-config-btn" id="adminEngageCampaignsReplyExport" ${items.length ? '' : 'disabled'}>Exportar CSV</button>
+          </div>
+        </header>
+        <div class="engage-campaign-kpi-grid engage-campaign-replies-kpis">
+          ${kpiCard('Repliers', formatNumber(report.totalRepliers))}
+          ${kpiCard('Classificados', formatNumber(report.classifiedCount))}
+          ${kpiCard('Sem classificação', formatNumber(report.unclassifiedCount))}
+        </div>
+        <div class="engage-campaign-reply-chips">${chips}</div>
+        <div class="engage-config-table-card">
+          <div class="engage-config-table-scroll">
+            <table class="engage-config-table engage-campaign-replies-table">
+              <thead>
+                <tr>
+                  <th>Nome</th><th>Telefone</th><th>Categoria</th><th>Retorno</th><th>Respondeu</th>
+                </tr>
+              </thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+        </div>
       </section>`;
   }
 
@@ -570,10 +810,12 @@
     const renderedText = String(message.renderedText || message.body || message.text || '').trim();
     const templateName = String(message.templateName || message.template || '—').trim();
     const disclaimer = String(message.previewDisclaimer || '').trim();
+    const phoneDisplay = String(recipient.phoneE164 || recipient.phone || recipient.phoneMasked || '').trim() || '—';
+    const recipientStatus = recipient.recipientStatus || recipient.status || '';
     const recipientLabel = [
-      recipient.phoneMasked || recipient.phone || '',
-      recipient.status ? String(recipient.status).toUpperCase() : '',
-    ].filter(Boolean).join(' — ') || '—';
+      phoneDisplay,
+      recipientStatus ? String(recipientStatus).toUpperCase() : '',
+    ].filter(Boolean).join(' · ') || '—';
 
     return `
       <div class="engage-campaign-message-detail" id="engageCampaignAttemptDetail">
@@ -667,6 +909,8 @@
           kpiCard('Taxa de resposta', '—'),
           kpiCard('Conversas atribuídas', '—'),
         ].join(''))}
+      ${renderCampaignConversionsPanel(state.campaignConversions, outbound)}
+      ${renderReplyDispositionsPanel()}
       <p class="engage-campaign-help">Engagement usa o último attempt por destinatário (ex.: READ mesmo quando o recipient permanece DELIVERED).</p>
       <div class="engage-campaign-breakdown-grid">
         ${renderDonutChart('Engagement', dash.recipientsByEngagement)}
@@ -766,6 +1010,11 @@
       button.addEventListener('click', clearAttemptDetail);
     });
     state.dom.root?.querySelector('#engageCampaignAttemptHide')?.addEventListener('click', clearAttemptDetail);
+    state.dom.root?.querySelector('#adminEngageCampaignsReplyWindow')?.addEventListener('change', (event) => {
+      state.replyDispositionsWindow = event.target.value || 'all';
+      void loadReplyDispositions().then(() => render());
+    });
+    state.dom.root?.querySelector('#adminEngageCampaignsReplyExport')?.addEventListener('click', downloadReplyDispositionsCsv);
   }
 
   function render() {
@@ -807,6 +1056,25 @@
     state.dashboard = await apiGet(paths);
   }
 
+  async function loadReplyDispositions() {
+    if (!state.selectedCampaignId) {
+      state.replyDispositions = null;
+      state.replyDispositionsError = '';
+      return;
+    }
+    state.replyDispositionsError = '';
+    try {
+      state.replyDispositions = await apiGet(buildReplyDispositionPaths());
+    } catch (err) {
+      state.replyDispositions = null;
+      if (Number(err?.statusCode || 0) === 404) {
+        state.replyDispositionsError = 'Relatório de respostas indisponível (aguarde deploy api-engage).';
+      } else {
+        state.replyDispositionsError = err?.message || 'Falha ao carregar respostas da campanha.';
+      }
+    }
+  }
+
   async function loadTenantExtras() {
     if (state.selectedCampaignId) {
       const enc = encodeURIComponent(state.selectedCampaignId);
@@ -824,11 +1092,14 @@
       state.campaignHealth = health;
       state.campaignConversions = conversions;
       state.conversionAnalytics = null;
+      await loadReplyDispositions();
       return;
     }
 
     state.campaignHealth = null;
     state.campaignConversions = null;
+    state.replyDispositions = null;
+    state.replyDispositionsError = '';
     const paths = buildPaths('conversion-analytics', state.session);
     state.conversionAnalytics = await apiGet(paths);
   }
@@ -903,5 +1174,12 @@
     mount();
   }
 
-  window.ReservaAiEngageCampaignsAdmin = { init, activate, deactivate };
+  function selectCampaign(campaignId) {
+    state.selectedCampaignId = String(campaignId || '').trim();
+    if (state.active) {
+      refreshData(true);
+    }
+  }
+
+  window.ReservaAiEngageCampaignsAdmin = { init, activate, deactivate, selectCampaign };
 })();

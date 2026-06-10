@@ -524,6 +524,22 @@
     });
   };
 
+  const resolveTenantId = (context) => {
+    const fromContext = normalizeText(context?.tenantId);
+    if (fromContext) return fromContext;
+    const fromSelect = normalizeText(document.getElementById('operatorConfigTenant')?.value);
+    if (fromSelect) return fromSelect;
+    const session = context?.session || state.session;
+    const fromResolver = window.ReservaPermissions?.resolveEffectiveTenantId?.(session);
+    if (fromResolver) return normalizeText(fromResolver);
+    return normalizeText(
+      session?.activeTenantId
+      || session?.tenantId
+      || session?.tenant?.id
+      || '',
+    );
+  };
+
   window.ReservaAiTenantCompany = {
     async activate(context) {
       bindDom();
@@ -532,7 +548,7 @@
       state.session = context?.session || window.ReservaAiAdminShell?.getCurrentSession?.() || state.session;
       state.me = context?.me || state.me;
       state.tenantOptions = Array.isArray(context?.tenantOptions) ? context.tenantOptions : state.tenantOptions;
-      state.tenantId = normalizeText(context?.tenantId || state.tenantId);
+      state.tenantId = resolveTenantId(context);
       applyReadonlyMode();
       await load();
     },

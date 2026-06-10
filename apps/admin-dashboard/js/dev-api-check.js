@@ -4,8 +4,7 @@
   fetch('/__engage/dev-health', { cache: 'no-store' })
     .then((r) => r.json())
     .then((data) => {
-      if (data?.ok) return;
-      warnServe();
+      if (!data?.ok) warnServe();
     })
     .catch(warnServe);
 
@@ -20,7 +19,7 @@
       })
       .catch(() => {
         console.error(
-          '[Engage Solar] Não foi possível falar com a API. Use npm run dev (proxy → localhost:8080).',
+          '[Engage Solar] Não foi possível falar com a API. Use npm run dev (proxy → gateway ReservaAI).',
         );
       });
   }

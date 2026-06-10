@@ -63,8 +63,16 @@
       throw new Error('Cliente API indisponível.');
     }
 
-    const path = `/engage/meta-connections?tenantId=${encodeURIComponent(tenantId)}`;
-    return api.request(path, { method: 'GET', cache: 'no-store' });
+    const qs = `tenantId=${encodeURIComponent(tenantId)}`;
+    const path = `/api/operator/engage/meta-connections?${qs}`;
+    try {
+      return await api.request(path, { method: 'GET', cache: 'no-store' });
+    } catch (err) {
+      if (Number(err?.statusCode || 0) === 404) {
+        return api.request(`/engage/meta-connections?${qs}`, { method: 'GET', cache: 'no-store' });
+      }
+      throw err;
+    }
   }
 
   async function syncMetaConnections(session) {
@@ -76,11 +84,16 @@
 
     const tenantId = resolveTenantId(session);
     const api = window.EngageSolarApi || window.ReservaAiApi;
-    const path = `/engage/meta-connections/sync?tenantId=${encodeURIComponent(tenantId)}`;
-    return api.request(path, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
+    const qs = `tenantId=${encodeURIComponent(tenantId)}`;
+    const path = `/api/operator/engage/meta-connections/sync?${qs}`;
+    try {
+      return await api.request(path, { method: 'POST', body: JSON.stringify({}) });
+    } catch (err) {
+      if (Number(err?.statusCode || 0) === 404) {
+        return api.request(`/engage/meta-connections/sync?${qs}`, { method: 'POST', body: JSON.stringify({}) });
+      }
+      throw err;
+    }
   }
 
   function mapApiError(err) {

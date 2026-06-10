@@ -16,13 +16,16 @@
     <link rel="stylesheet" href="css/dashboard.css" />
     <link rel="stylesheet" href="css/whatsapp.css" />
     <link rel="stylesheet" href="css/engage-config.css" />
+    <link rel="stylesheet" href="css/engage-templates.css" />
     <link rel="stylesheet" href="css/settings-nav.css" />
     <link rel="stylesheet" href="css/settings-reserva.css" />
     <link rel="stylesheet" href="css/sales-consultants.css" />
     <link rel="stylesheet" href="css/settings-engage-theme.css" />
     <link rel="stylesheet" href="css/clients-reserva.css" />
     <link rel="stylesheet" href="css/company-geral-reserva.css" />
+    <link rel="stylesheet" href="css/engage-solar-config.css" />
     <link rel="stylesheet" href="css/engage-campaigns-reserva.css" />
+    <link rel="stylesheet" href="css/engage-replies-center.css" />
     <script src="js/config.js"></script>
     <script src="js/dev-api-check.js"></script>
     <script>
@@ -272,6 +275,8 @@
                     </div>
                   </header>
 
+                  <div class="whats-pro-engage-disposition-wrap" id="botInboxDisposition" hidden></div>
+
                   <div class="whats-pro-debug" id="botInboxDebug" hidden></div>
 
                   <div class="whats-pro-messages" id="botInboxMessages"></div>
@@ -430,6 +435,9 @@
               </header>
               <div id="adminEngageCampaignsContent" class="engage-campaign-content" aria-live="polite"></div>
             </div>
+          </section>
+          <section class="es-panel es-panel--central-respostas" data-es-panel="central-respostas" hidden>
+            <div class="erc-shell" id="adminEngageRepliesCenterRoot" aria-live="polite"></div>
           </section>
           <section class="es-panel" data-es-panel="automacao" hidden>
             <div class="es-placeholder"><strong>Automação</strong><br />Fluxos e bots — Fase 3.</div>
@@ -603,6 +611,7 @@
             <div class="ec-shell" id="engageConfigRoot">
               <nav class="ec-subnav" id="engageConfigSubnav" role="tablist" aria-label="Engage Config">
                 <button type="button" class="ec-subnav-tab is-active" role="tab" data-ec-tab="meta-connections" aria-selected="true">Meta connections</button>
+                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="templates" aria-selected="false" tabindex="-1">Templates WhatsApp</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="sender-profiles" aria-selected="false" tabindex="-1">Sender profiles</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="queues" aria-selected="false" tabindex="-1">Queues</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="controls" aria-selected="false" tabindex="-1">Controls</button>
@@ -663,6 +672,10 @@
                       </table>
                     </div>
                   </div>
+                </section>
+
+                <section class="ec-tab-panel" data-ec-panel="templates" role="tabpanel" hidden>
+                  <div id="engageTemplatesRoot" class="et-shell" aria-live="polite"></div>
                 </section>
 
                 <section class="ec-tab-panel" data-ec-panel="queues" role="tabpanel" hidden>
@@ -1336,7 +1349,7 @@
 
               <div class="config-pro-segmented-tabs operator-config-tabs" id="operatorConfigTabs" role="tablist" aria-label="Seções das configurações do operador">
                 <button type="button" class="operator-config-tab config-pro-tab is-active" role="tab" aria-selected="true" data-operator-tab="geral">Geral</button>
-                <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="gerais">Configurações gerais</button>
+                <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="gerais">Simulador solar</button>
                 <button type="button" class="operator-config-tab config-pro-tab" role="tab" aria-selected="false" data-operator-tab="crm">CRM</button>
               </div>
 
@@ -1525,114 +1538,52 @@
                   </div>
                 </section>
 
-                <section class="operator-config-card" data-operator-tab-target="gerais" hidden>
+                <section class="operator-config-card operator-config-card-span-2 engage-solar-config" data-operator-tab-target="gerais" hidden>
                   <header class="operator-config-card-head">
                     <div>
-                      <span>Configuração principal</span>
-                      <strong>Motor da agenda e do atendimento</strong>
+                      <span>WhatsApp · IA</span>
+                      <strong>Simulador de energia solar</strong>
                     </div>
                   </header>
-                  <div class="operator-config-form-grid">
-                    <label class="operator-config-field">
-                      <span>Provider do calendário</span>
-                      <select id="operatorConfigCalendarProvider">
-                        <option value="internal">Interno</option>
-                        <option value="google_calendar">Google Calendar</option>
-                      </select>
+                  <p class="engage-solar-config-lead">
+                    Respostas determinísticas a partir de valor em R$, kWh, PDF ou foto da conta (WhatsApp Cloud API).
+                  </p>
+                  <label class="engage-solar-config-toggle">
+                    <input id="operatorConfigSolarEnabled" type="checkbox" />
+                    <span class="engage-solar-config-toggle-copy">
+                      <strong>Ativar simulador solar</strong>
+                      <small>Com a feature ativa, o worker aplica as regras abaixo (independentemente do modelo de linguagem). Desligada, o fluxo permanece como antes.</small>
+                    </span>
+                  </label>
+                  <div class="engage-solar-config-panel" id="operatorConfigSolarPanel" hidden>
+                    <div class="engage-solar-config-params">
+                      <label class="engage-solar-config-field">
+                        <span>custo_por_kwp (R$)</span>
+                        <input id="operatorConfigSolarCustoKwp" type="number" min="1" step="1" value="5000" />
+                      </label>
+                      <label class="engage-solar-config-field">
+                        <span>eficiencia (0–1)</span>
+                        <input id="operatorConfigSolarEficiencia" type="number" min="0.01" max="1" step="0.01" value="0.9" />
+                      </label>
+                      <label class="engage-solar-config-field">
+                        <span>fator_geracao (kWh/kWp)</span>
+                        <input id="operatorConfigSolarFatorGeracao" type="number" min="1" step="1" value="130" />
+                      </label>
+                    </div>
+                    <label class="engage-solar-config-field engage-solar-config-field--wide">
+                      <span>Mensagem ao pedir simulação sem conta (opcional)</span>
+                      <textarea id="operatorConfigSolarBillInvite" rows="4" placeholder="Vazio = texto padrão pedindo PDF/foto da conta ou valor/kWh."></textarea>
+                      <small class="engage-solar-config-hint">Campo JSON: <code>billUploadInviteText</code> em <code>solarEnergyConfig</code>. Quando o cliente pede simulação mas ainda não enviou números nem anexo, o worker responde com este texto (ou o padrão).</small>
                     </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Agenda por profissional</span>
-                      <input id="operatorConfigProfessionalSchedule" type="checkbox" />
+                    <label class="engage-solar-config-field engage-solar-config-field--wide">
+                      <span>Fecho após simulação (PDF/foto ou texto com números)</span>
+                      <textarea id="operatorConfigSolarFollowUp" rows="3" placeholder="Vazio = texto padrão (dúvidas, interesse, especialista). O ramo solar não usa o promptBase."></textarea>
+                      <small class="engage-solar-config-hint">Campo JSON: <code>simulationFollowUpText</code>. A resposta com números é determinística (sem LLM); este texto mantém a conversa após os resultados.</small>
                     </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Botões na saudação WhatsApp</span>
-                      <input id="operatorConfigWelcomeReplyButtons" type="checkbox" />
-                      <small class="operator-config-hint">Envia botões rápidos na primeira saudação.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Agendamento automático</span>
-                      <input id="operatorConfigAutoSchedule" type="checkbox" />
-                      <small class="operator-config-hint">Bot conduz e registra agendamentos automaticamente.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Agenda profissional no WhatsApp</span>
-                      <input id="operatorConfigStaffAgendaWhatsapp" type="checkbox" />
-                      <small class="operator-config-hint">Permite comandos como “minha agenda”.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Confirmação automática da agenda</span>
-                      <input id="operatorConfigAppointmentConfirmation" type="checkbox" />
-                      <small class="operator-config-hint">Confirma horário automaticamente após coleta dos dados.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Permitir confirmação sem pagamento</span>
-                      <input id="operatorConfigAllowConfirmWithoutPayment" type="checkbox" />
-                      <small class="operator-config-hint">Cliente pode confirmar sem quitar sinal/Pix.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Permitir cancelamento sem confirmação</span>
-                      <input id="operatorConfigCancelWithoutConfirmation" type="checkbox" />
-                      <small class="operator-config-hint">Cancela sem pedir confirmação adicional.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Permitir sobreposição de agendamentos</span>
-                      <input id="operatorConfigAllowOverlapping" type="checkbox" />
-                      <small class="operator-config-hint">Permite mais de um agendamento no mesmo horário.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Reativação de clientes</span>
-                      <input id="operatorConfigReactivation" type="checkbox" />
-                      <small class="operator-config-hint">Ativa mensagens de reengajamento.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Cadastro automático de clientes (CRM)</span>
-                      <input id="operatorConfigEnableAutoCustomerIngest" type="checkbox" />
-                      <small class="operator-config-hint">Quando ativo, cada contacto novo é registado com telefone e nome do perfil WhatsApp (processamento em fila dedicada — não atrasa o atendimento). Guarda com «Guardar» em baixo.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Priorizar horários do mesmo dia</span>
-                      <input id="operatorConfigSameDayPriority" type="checkbox" />
-                      <small class="operator-config-hint">Prioriza sugestões para hoje.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Confirmação de atendimento pelo profissional</span>
-                      <input id="operatorConfigEnableServiceConfirmation" type="checkbox" />
-                      <small class="operator-config-hint">Profissional confirma atendimento realizado via WhatsApp.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Lembrete automático de agendamento</span>
-                      <input id="operatorConfigEnableBookingReminder" type="checkbox" />
-                      <small class="operator-config-hint">Envia lembrete antes do horário (WhatsApp).</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Pacote de Serviços</span>
-                      <input id="operatorConfigEnableServicePackages" type="checkbox" />
-                      <small class="operator-config-hint">Ativa planos, venda no painel Pacote de Serviços e aba na ficha do cliente. Com desligado, a API fica indisponível.</small>
-                    </label>
-                    <label class="operator-config-field operator-config-field-inline">
-                      <span>Histórico de fotos do corte</span>
-                      <input id="operatorConfigEnableHaircutPhotoHistory" type="checkbox" />
-                      <small class="operator-config-hint">Permite fotografar o corte após concluir atendimento no cockpit (até 5 fotos por visita).</small>
-                    </label>
-                    <label class="operator-config-field" id="operatorConfigHaircutPromptModeWrap">
-                      <span>Quando pedir fotos ao concluir</span>
-                      <select id="operatorConfigHaircutPhotosPromptMode">
-                        <option value="manual_only">Só quando eu pedir (sem popup automático)</option>
-                        <option value="ask_every_time">Perguntar sempre</option>
-                        <option value="ask_once_per_day">Perguntar uma vez por dia</option>
-                        <option value="off">Não perguntar</option>
-                      </select>
-                      <small class="operator-config-hint">O popup antes do pagamento só aparece com «Perguntar sempre» ou «Perguntar uma vez por dia». Com «Só quando eu pedir», use o botão Fotografar corte no card.</small>
-                    </label>
-                    <label class="operator-config-field">
-                      <span>Antecedência do lembrete (minutos)</span>
-                      <input id="operatorConfigReminderMinutesBefore" type="number" min="5" max="1440" step="5" />
-                      <small class="operator-config-hint">Intervalo válido: 5 a 1440 minutos.</small>
-                    </label>
-                    <label class="operator-config-field">
-                      <span>Telefone fallback da agenda</span>
-                      <input id="operatorConfigFallbackPhone" type="tel" placeholder="5511999999999" />
-                    </label>
+                    <p class="engage-solar-config-deploy-note">
+                      Deploy: serviço Python isolado — <code>SOLAR_ENERGY_SERVICE_URL</code> no worker.
+                      Kill-switch global: <code>SOLAR_ENERGY_WORKER_ENABLED=false</code>.
+                    </p>
                   </div>
                 </section>
 
@@ -2312,8 +2263,14 @@
     <script src="js/service-packages-admin.js"></script>
     <script src="js/clients-admin.js"></script>
     <script src="js/engage-campaigns-admin.js"></script>
+    <script src="js/engage-replies-center-api.js"></script>
+    <script src="js/engage-replies-center-admin.js"></script>
     <script src="js/engage-meta-api.js"></script>
     <script src="js/engage-meta-connections.js"></script>
+    <script src="js/engage-disposition-api.js"></script>
+    <script src="js/engage-templates-api.js"></script>
+    <script src="js/engage-templates-utils.js"></script>
+    <script src="js/engage-templates-admin.js"></script>
     <script src="js/engage-config.js"></script>
     <script src="js/settings-modules.js"></script>
     <script>

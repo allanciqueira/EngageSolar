@@ -34,7 +34,18 @@
     specialDatesLoading: false,
     /** Na aba Serviços: '' = catálogo global (quando há picker multi-filial); senão id da filial. */
     servicesCatalogBranchId: '',
+    solarEnabled: false,
+    solarEnergyConfig: null,
     dom: {},
+  };
+
+  const SOLAR_FEATURE_KEY = 'solar_energy_calculator';
+  const DEFAULT_SOLAR_ENERGY_PARAMS = {
+    custo_por_kwp: 5000,
+    eficiencia: 0.9,
+    fator_geracao: 130,
+    billUploadInviteText: '',
+    simulationFollowUpText: '',
   };
 
   function qs(selector) {
@@ -298,7 +309,7 @@
   function buildDefaultConfig() {
     return {
       botEnabled: true,
-      agentType: 'barber',
+      agentType: 'solar',
       calendarProvider: 'internal',
       multiBranch: false,
       professionalSchedule: true,
@@ -328,6 +339,88 @@
       services: [],
       branchServiceOverrides: {},
     };
+  }
+
+  function isSolarSettingsUi() {
+    return Boolean(state.dom.solarEnabled);
+  }
+
+  function isSolarFeatureEnabled(features) {
+    if (!features || typeof features !== 'object') return false;
+    const nested = features.features;
+    if (nested && typeof nested === 'object' && typeof nested[SOLAR_FEATURE_KEY] === 'boolean') {
+      return nested[SOLAR_FEATURE_KEY];
+    }
+    if (typeof features[SOLAR_FEATURE_KEY] === 'boolean') return features[SOLAR_FEATURE_KEY];
+    return false;
+  }
+
+  function parseSolarEnergyConfig(raw) {
+    const defaults = { ...DEFAULT_SOLAR_ENERGY_PARAMS };
+    if (!raw || typeof raw !== 'object') return defaults;
+    const source = raw;
+    const custo = Number(source.custo_por_kwp);
+    const eficiencia = Number(source.eficiencia);
+    const fator = Number(source.fator_geracao);
+    return {
+      custo_por_kwp: Number.isFinite(custo) && custo > 0 ? custo : defaults.custo_por_kwp,
+      eficiencia: Number.isFinite(eficiencia) && eficiencia > 0 && eficiencia <= 1 ? eficiencia : defaults.eficiencia,
+      fator_geracao: Number.isFinite(fator) && fator > 0 ? fator : defaults.fator_geracao,
+      billUploadInviteText: typeof source.billUploadInviteText === 'string' ? source.billUploadInviteText : '',
+      simulationFollowUpText: typeof source.simulationFollowUpText === 'string' ? source.simulationFollowUpText : '',
+    };
+  }
+
+  function hydrateSolarFromSettings(settings) {
+    state.solarEnabled = isSolarFeatureEnabled(settings?.features);
+    state.solarEnergyConfig = parseSolarEnergyConfig(settings?.solarEnergyConfig);
+  }
+
+  function applySolarPanelVisibility() {
+    if (!state.dom.solarPanel || !state.dom.solarEnabled) return;
+    const enabled = state.dom.solarEnabled.checked === true;
+    state.solarEnabled = enabled;
+    state.dom.solarPanel.hidden = !enabled;
+  }
+
+  function renderSolarForm() {
+    if (!state.dom.solarEnabled || !state.solarEnergyConfig) return;
+    const solar = state.solarEnergyConfig;
+    const readonly = !canManageSelectedTenant();
+    state.dom.solarEnabled.checked = state.solarEnabled === true;
+    state.dom.solarCustoKwp.value = String(solar.custo_por_kwp);
+    state.dom.solarEficiencia.value = String(solar.eficiencia);
+    state.dom.solarFatorGeracao.value = String(solar.fator_geracao);
+    state.dom.solarBillInvite.value = solar.billUploadInviteText || '';
+    state.dom.solarFollowUp.value = solar.simulationFollowUpText || '';
+    [
+      state.dom.solarEnabled,
+      state.dom.solarCustoKwp,
+      state.dom.solarEficiencia,
+      state.dom.solarFatorGeracao,
+      state.dom.solarBillInvite,
+      state.dom.solarFollowUp,
+    ].forEach((el) => {
+      if (el) el.disabled = readonly;
+    });
+    applySolarPanelVisibility();
+  }
+
+  function collectSolarPayload() {
+    const defaults = DEFAULT_SOLAR_ENERGY_PARAMS;
+    const custo = Number(state.dom.solarCustoKwp?.value);
+    const eficiencia = Number(state.dom.solarEficiencia?.value);
+    const fator = Number(state.dom.solarFatorGeracao?.value);
+    const payload = {
+      custo_por_kwp: Number.isFinite(custo) && custo > 0 ? custo : defaults.custo_por_kwp,
+      eficiencia: Number.isFinite(eficiencia) && eficiencia > 0 && eficiencia <= 1 ? eficiencia : defaults.eficiencia,
+      fator_geracao: Number.isFinite(fator) && fator > 0 ? fator : defaults.fator_geracao,
+    };
+    const billInvite = String(state.dom.solarBillInvite?.value || '').trim();
+    const followUp = String(state.dom.solarFollowUp?.value || '').trim();
+    if (billInvite) payload.billUploadInviteText = billInvite;
+    if (followUp) payload.simulationFollowUpText = followUp;
+    return payload;
   }
 
   function buildDefaultPaymentConfig() {
@@ -1412,6 +1505,7 @@
     if (!state.selectedTenantId) {
       state.rawTenantSettings = {};
       state.config = buildDefaultConfig();
+      hydrateSolarFromSettings({});
       state.crmEnrichment = buildDefaultCrmEnrichmentConfig();
       state.branches = [];
       state.professionals = [];
@@ -1436,6 +1530,10 @@
 
     state.rawTenantSettings = tenantSettings || {};
     state.config = normalizeTenantSettings(tenantSettings);
+    hydrateSolarFromSettings(tenantSettings);
+    if (state.config) {
+      state.config.agentType = 'solar';
+    }
     state.crmEnrichment = mergeCrmEnrichmentConfig(tenantSettings?.agentConfig?.crmEnrichment);
     state.branches = Array.isArray(branches) ? branches.map(normalizeBranch) : [];
     const globalServiceNames = (state.config.services || []).map((service) => String(service?.name || '').trim()).filter(Boolean);
@@ -1507,10 +1605,6 @@
     }
     void hydrateProfessionalAvatars();
     const tenantName = state.tenantOptions.find((tenant) => tenant.id === state.selectedTenantId)?.name || 'empresa atual';
-    if (!state.tenantMembers.length) {
-      setStatus(`Configurações carregadas para ${tenantName}. Nenhum usuário ativo disponível para vincular em Barbeiros.`, 'warn');
-      return;
-    }
     setStatus(`Configurações carregadas para ${tenantName}.`, 'success');
   }
 
@@ -1556,15 +1650,23 @@
       state.dom.title.textContent = `Configuração operacional de ${tenantName}`;
     }
     if (state.dom.subtitle) {
-      state.dom.subtitle.textContent = 'Dados da empresa, motor do atendimento e CRM. Escrita protegida para OWNER/ADMIN e PLATFORM_ADMIN.';
+      state.dom.subtitle.textContent = 'Dados da empresa, motor do atendimento e CRM.';
     }
     if (state.dom.kpis) {
-      state.dom.kpis.innerHTML = [
-        { label: 'Bot WhatsApp', value: state.config.botEnabled ? 'Ativo' : 'Inativo', meta: 'Atendimento automático no canal' },
-        { label: 'CRM progressivo', value: state.crmEnrichment?.enabled ? 'Ativo' : 'Inativo', meta: 'Coleta de dados no WhatsApp' },
-        { label: 'Confirmação automática', value: state.config.appointmentConfirmation ? 'Ativa' : 'Inativa', meta: 'Fluxo de confirmação de agendamentos' },
-        { label: 'Cadastro automático', value: state.config.enableAutoCustomerIngest ? 'Ativo' : 'Inativo', meta: 'Clientes criados a partir das conversas' },
-      ].map((item) => `
+      const kpiItems = isSolarSettingsUi()
+        ? [
+          { label: 'Bot WhatsApp', value: state.config.botEnabled ? 'Ativo' : 'Inativo', meta: 'Atendimento automático no canal' },
+          { label: 'Simulador solar', value: state.solarEnabled ? 'Ativo' : 'Inativo', meta: 'Simulação determinística no WhatsApp' },
+          { label: 'CRM progressivo', value: state.crmEnrichment?.enabled ? 'Ativo' : 'Inativo', meta: 'Coleta de dados no WhatsApp' },
+          { label: 'Cadastro automático', value: state.config.enableAutoCustomerIngest ? 'Ativo' : 'Inativo', meta: 'Leads criados a partir das conversas' },
+        ]
+        : [
+          { label: 'Bot WhatsApp', value: state.config.botEnabled ? 'Ativo' : 'Inativo', meta: 'Atendimento automático no canal' },
+          { label: 'CRM progressivo', value: state.crmEnrichment?.enabled ? 'Ativo' : 'Inativo', meta: 'Coleta de dados no WhatsApp' },
+          { label: 'Confirmação automática', value: state.config.appointmentConfirmation ? 'Ativa' : 'Inativa', meta: 'Fluxo de confirmação de agendamentos' },
+          { label: 'Cadastro automático', value: state.config.enableAutoCustomerIngest ? 'Ativo' : 'Inativo', meta: 'Clientes criados a partir das conversas' },
+        ];
+      state.dom.kpis.innerHTML = kpiItems.map((item) => `
         <article class="operator-config-kpi">
           <span>${escapeHtml(item.label)}</span>
           <strong>${escapeHtml(String(item.value))}</strong>
@@ -1576,6 +1678,15 @@
 
   function renderPrimaryForm() {
     if (!state.config) {
+      return;
+    }
+
+    if (isSolarSettingsUi()) {
+      renderSolarForm();
+      return;
+    }
+
+    if (!state.dom.calendarProvider) {
       return;
     }
 
@@ -1767,7 +1878,7 @@
   }
 
   function renderBranches() {
-    if (!state.dom.branches) {
+    if (!state.dom.branches || !state.config) {
       return;
     }
     const branchCard = state.dom.branches.closest('.operator-config-card');
@@ -1955,6 +2066,9 @@
   }
 
   function renderProfessionals() {
+    if (!state.dom.professionals || !state.config) {
+      return;
+    }
     const focusState = captureProfessionalsFocusState();
     const branchOptions = getVisibleBranches();
     const professionalTypeOptions = getProfessionalTypeOptions();
@@ -2647,28 +2761,37 @@
   }
 
   function collectConfigFromForm() {
+    if (isSolarSettingsUi()) {
+      state.solarEnabled = state.dom.solarEnabled?.checked === true;
+      state.solarEnergyConfig = collectSolarPayload();
+      return {
+        ...state.config,
+        agentType: 'solar',
+      };
+    }
+
     const workingDays = state.dom.workingDays
       ? Array.from(state.dom.workingDays.querySelectorAll('input[type="checkbox"]:checked')).map((input) => Number(input.value))
       : (Array.isArray(state.config?.workingDays) ? state.config.workingDays : [1, 2, 3, 4, 5]);
-    const reminderMinutesBefore = Number(state.dom.reminderMinutesBefore.value || 60);
+    const reminderMinutesBefore = Number(state.dom.reminderMinutesBefore?.value || state.config?.reminderMinutesBefore || 60);
     const minimumBookingLeadMinutes = Number(state.dom.minimumBookingLeadMinutes?.value || state.config?.minimumBookingLeadMinutes || 0);
     return {
       botEnabled: state.config.botEnabled,
       agentType: state.config.agentType,
-      calendarProvider: state.dom.calendarProvider.value,
+      calendarProvider: state.dom.calendarProvider?.value || state.config?.calendarProvider || 'internal',
       multiBranch: branchesEnabledForPayload(),
-      professionalSchedule: state.dom.professionalSchedule.checked,
-      whatsappWelcomeReplyButtons: state.dom.welcomeReplyButtons.checked,
-      autoSchedule: state.dom.autoSchedule.checked,
-      staffAgendaWhatsapp: state.dom.staffAgendaWhatsapp.checked,
-      appointmentConfirmation: state.dom.appointmentConfirmation.checked,
-      allowAppointmentConfirmationWithoutPayment: state.dom.allowConfirmWithoutPayment.checked,
-      cancelWithoutConfirmation: state.dom.cancelWithoutConfirmation.checked,
-      allowOverlappingAppointments: state.dom.allowOverlapping.checked,
-      reactivation: state.dom.reactivation.checked,
-      sameDayPriority: state.dom.sameDayPriority.checked,
-      enableServiceConfirmation: state.dom.enableServiceConfirmation.checked,
-      enableBookingReminder: state.dom.enableBookingReminder.checked,
+      professionalSchedule: state.dom.professionalSchedule?.checked ?? state.config?.professionalSchedule,
+      whatsappWelcomeReplyButtons: state.dom.welcomeReplyButtons?.checked ?? state.config?.whatsappWelcomeReplyButtons,
+      autoSchedule: state.dom.autoSchedule?.checked ?? state.config?.autoSchedule,
+      staffAgendaWhatsapp: state.dom.staffAgendaWhatsapp?.checked ?? state.config?.staffAgendaWhatsapp,
+      appointmentConfirmation: state.dom.appointmentConfirmation?.checked ?? state.config?.appointmentConfirmation,
+      allowAppointmentConfirmationWithoutPayment: state.dom.allowConfirmWithoutPayment?.checked ?? state.config?.allowAppointmentConfirmationWithoutPayment,
+      cancelWithoutConfirmation: state.dom.cancelWithoutConfirmation?.checked ?? state.config?.cancelWithoutConfirmation,
+      allowOverlappingAppointments: state.dom.allowOverlapping?.checked ?? state.config?.allowOverlappingAppointments,
+      reactivation: state.dom.reactivation?.checked ?? state.config?.reactivation,
+      sameDayPriority: state.dom.sameDayPriority?.checked ?? state.config?.sameDayPriority,
+      enableServiceConfirmation: state.dom.enableServiceConfirmation?.checked ?? state.config?.enableServiceConfirmation,
+      enableBookingReminder: state.dom.enableBookingReminder?.checked ?? state.config?.enableBookingReminder,
       enableAutoCustomerIngest: state.dom.enableAutoCustomerIngest?.checked === true,
       enableServicePackages: state.dom.enableServicePackages?.checked === true,
       enableHaircutPhotoHistory: state.dom.enableHaircutPhotoHistory?.checked === true,
@@ -2822,6 +2945,18 @@
         reminderMinutesBefore: state.config.reminderMinutesBefore,
       },
     };
+
+    if (isSolarSettingsUi()) {
+      payload.features = {
+        ...(latestTenantSettings.features || {}),
+        features: {
+          ...((latestTenantSettings.features || {}).features || {}),
+          [SOLAR_FEATURE_KEY]: state.solarEnabled === true,
+        },
+      };
+      payload.solarEnergyConfig = state.solarEnergyConfig || collectSolarPayload();
+      payload.agentConfig.agent_type = 'solar';
+    }
 
     await requestExternal(`/tenant-settings${tenantQuery()}`, {
       method: 'PUT',
@@ -3135,6 +3270,10 @@
 
     state.dom.tabButtons?.forEach((button) => {
       button.addEventListener('click', () => applyOperatorTab(button.dataset.operatorTab));
+    });
+
+    state.dom.solarEnabled?.addEventListener('change', () => {
+      applySolarPanelVisibility();
     });
 
     state.dom.servicesTenantSelect?.addEventListener('change', () => {
@@ -3697,6 +3836,13 @@
       branches: qs('#operatorConfigBranches'),
       addProfessional: qs('#operatorConfigAddProfessional'),
       professionals: qs('#operatorConfigProfessionals'),
+      solarEnabled: qs('#operatorConfigSolarEnabled'),
+      solarPanel: qs('#operatorConfigSolarPanel'),
+      solarCustoKwp: qs('#operatorConfigSolarCustoKwp'),
+      solarEficiencia: qs('#operatorConfigSolarEficiencia'),
+      solarFatorGeracao: qs('#operatorConfigSolarFatorGeracao'),
+      solarBillInvite: qs('#operatorConfigSolarBillInvite'),
+      solarFollowUp: qs('#operatorConfigSolarFollowUp'),
     };
 
     bindStaticEvents();
