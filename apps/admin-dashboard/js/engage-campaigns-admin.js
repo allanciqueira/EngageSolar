@@ -59,6 +59,8 @@
     attemptDetail: null,
     attemptDetailLoading: false,
     attemptDetailError: '',
+    hourlyActivity: null,
+    hourlyActivitySource: 'none',
     dom: {},
   };
 
@@ -432,6 +434,219 @@
         <h4>Funil de entrega</h4>
         <div class="engage-campaign-funnel">${rows}</div>
       </article>`;
+  }
+
+  function createEmptyHourlyBuckets() {
+    return Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      sent: 0,
+      read: 0,
+      replied: 0,
+    }));
+  }
+
+  function hourFromIso(iso) {
+    if (!iso) return null;
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.getHours();
+  }
+
+  function bumpHourlyBucket(buckets, hour, field) {
+    if (hour == null || hour < 0 || hour > 23) return;
+    buckets[hour][field] += 1;
+  }
+
+  function collectDashboardAttempts(dash) {
+    const map = new Map();
+    const lists = [
+      dash?.hourlyActivity?.attempts,
+      dash?.attemptsInWindow,
+      dash?.windowAttempts,
+      dash?.recentAttempts,
+      dash?.attempts,
+    ];
+    lists.forEach((list) => {
+      if (!Array.isArray(list)) return;
+      list.forEach((attempt) => {
+        const id = String(attempt?.id || `${attempt?.attemptNo || ''}-${attempt?.metaMessageId || ''}-${attempt?.updatedAt || ''}`).trim();
+        if (!id) return;
+        if (!map.has(id)) map.set(id, attempt);
+      });
+    });
+    return [...map.values()];
+  }
+
+  function sentTimestampForAttempt(attempt) {
+    return attempt?.acceptedAt || attempt?.deliveredAt || attempt?.sentAt || null;
+  }
+
+  function normalizeHourlyBuckets(rawBuckets) {
+    const buckets = createEmptyHourlyBuckets();
+    if (!rawBuckets) return buckets;
+
+    if (Array.isArray(rawBuckets)) {
+      rawBuckets.forEach((row, index) => {
+        const hour = Number.isFinite(Number(row?.hour)) ? Number(row.hour) : index;
+        if (hour < 0 || hour > 23) return;
+        buckets[hour].sent = Number(row?.sent ?? row?.sends ?? row?.sentCount ?? 0) || 0;
+        buckets[hour].read = Number(row?.read ?? row?.reads ?? row?.readCount ?? 0) || 0;
+        buckets[hour].replied = Number(row?.replied ?? row?.replies ?? row?.replyCount ?? 0) || 0;
+      });
+      return buckets;
+    }
+
+    const sent = Array.isArray(rawBuckets.sent) ? rawBuckets.sent : [];
+    const read = Array.isArray(rawBuckets.read) ? rawBuckets.read : [];
+    const replied = Array.isArray(rawBuckets.replied ?? rawBuckets.replies) ? (rawBuckets.replied || rawBuckets.replies) : [];
+    for (let hour = 0; hour < 24; hour += 1) {
+      buckets[hour].sent = Number(sent[hour]) || 0;
+      buckets[hour].read = Number(read[hour]) || 0;
+      buckets[hour].replied = Number(replied[hour]) || 0;
+    }
+    return buckets;
+  }
+
+  function hourlyBucketsHaveData(buckets) {
+    return buckets.some((row) => row.sent > 0 || row.read > 0 || row.replied > 0);
+  }
+
+  function buildHourlyActivityFromDash(dash, replyDispositions) {
+    const fromApi = dash?.hourlyActivity || dash?.activityByHour || dash?.summary?.hourlyActivity;
+    if (fromApi) {
+      const buckets = normalizeHourlyBuckets(fromApi.buckets || fromApi);
+      return {
+        buckets,
+        timezone: fromApi.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        source: 'dashboard',
+        partial: false,
+      };
+    }
+
+    const buckets = createEmptyHourlyBuckets();
+    collectDashboardAttempts(dash).forEach((attempt) => {
+      bumpHourlyBucket(buckets, hourFromIso(sentTimestampForAttempt(attempt)), 'sent');
+      bumpHourlyBucket(buckets, hourFromIso(attempt?.readAt), 'read');
+    });
+
+    const replyItems = Array.isArray(replyDispositions?.items) ? replyDispositions.items : [];
+    replyItems.forEach((item) => {
+      bumpHourlyBucket(buckets, hourFromIso(item?.lastReplyAt || item?.repliedAt), 'replied');
+    });
+
+    const hasAttempts = collectDashboardAttempts(dash).length > 0;
+    return {
+      buckets,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      source: 'estimated',
+      partial: hasAttempts && (dash?.summary?.outbound?.messagesSentLive || 0) > collectDashboardAttempts(dash).length,
+    };
+  }
+
+  function normalizeHourlyActivityPayload(payload) {
+    if (!payload || typeof payload !== 'object') return null;
+    const buckets = normalizeHourlyBuckets(payload.buckets || payload);
+    if (!hourlyBucketsHaveData(buckets)) return null;
+    return {
+      buckets,
+      timezone: payload.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      source: 'api',
+      partial: Boolean(payload.partial),
+      peaks: payload.peaks || null,
+    };
+  }
+
+  function findPeakHour(buckets, field) {
+    let peakHour = null;
+    let peakValue = 0;
+    buckets.forEach((row) => {
+      const value = Number(row[field]) || 0;
+      if (value > peakValue) {
+        peakValue = value;
+        peakHour = row.hour;
+      }
+    });
+    return peakValue > 0 ? { hour: peakHour, value: peakValue } : null;
+  }
+
+  function formatHourLabel(hour) {
+    return `${String(hour).padStart(2, '0')}h`;
+  }
+
+  function renderHourlyActivityChart(activity) {
+    if (!activity || !hourlyBucketsHaveData(activity.buckets)) {
+      return `
+        <section class="engage-campaign-section engage-campaign-hourly-section">
+          <header class="engage-campaign-section-head">
+            <div>
+              <h3>Atividade por horário</h3>
+              <p class="engage-campaign-section-sub">Envios, leituras e respostas ao longo do dia (horário local).</p>
+            </div>
+          </header>
+          <article class="engage-campaign-chart-card engage-campaign-hourly-card">
+            <p class="engage-campaign-muted">Sem dados de horário para o período seleccionado.</p>
+          </article>
+        </section>`;
+    }
+
+    const buckets = activity.buckets;
+    const max = Math.max(
+      ...buckets.flatMap((row) => [row.sent, row.read, row.replied]),
+      1,
+    );
+    const readPeak = activity.peaks?.readHour != null
+      ? { hour: activity.peaks.readHour, value: buckets[activity.peaks.readHour]?.read || 0 }
+      : findPeakHour(buckets, 'read');
+    const replyPeak = activity.peaks?.replyHour != null
+      ? { hour: activity.peaks.replyHour, value: buckets[activity.peaks.replyHour]?.replied || 0 }
+      : findPeakHour(buckets, 'replied');
+
+    const columns = buckets.map((row) => {
+      const sentHeight = Math.max(4, (row.sent / max) * 100);
+      const readHeight = Math.max(row.read > 0 ? 4 : 0, (row.read / max) * 100);
+      const repliedHeight = Math.max(row.replied > 0 ? 4 : 0, (row.replied / max) * 100);
+      const title = `${formatHourLabel(row.hour)} · enviados ${row.sent} · lidas ${row.read} · respostas ${row.replied}`;
+      return `
+        <div class="engage-campaign-hourly-col" title="${escapeAttr(title)}">
+          <div class="engage-campaign-hourly-bars" aria-hidden="true">
+            <span class="engage-campaign-hourly-bar" data-series="sent" style="height:${sentHeight.toFixed(1)}%"></span>
+            <span class="engage-campaign-hourly-bar" data-series="read" style="height:${readHeight.toFixed(1)}%"></span>
+            <span class="engage-campaign-hourly-bar" data-series="replied" style="height:${repliedHeight.toFixed(1)}%"></span>
+          </div>
+          <span class="engage-campaign-hourly-label">${row.hour % 3 === 0 ? formatHourLabel(row.hour) : ''}</span>
+        </div>`;
+    }).join('');
+
+    const insights = [
+      readPeak ? `Pico de leituras: ${formatHourLabel(readPeak.hour)} (${formatNumber(readPeak.value)})` : null,
+      replyPeak ? `Pico de respostas: ${formatHourLabel(replyPeak.hour)} (${formatNumber(replyPeak.value)})` : null,
+    ].filter(Boolean);
+
+    const partialNote = activity.partial
+      ? '<p class="engage-campaign-help">Envios/leituras parciais (amostra recente). Respostas usam o relatório classificado da campanha.</p>'
+      : '';
+
+    return `
+      <section class="engage-campaign-section engage-campaign-hourly-section">
+        <header class="engage-campaign-section-head">
+          <div>
+            <h3>Atividade por horário</h3>
+            <p class="engage-campaign-section-sub">Distribuição de envios, leituras e respostas por hora do dia (${escapeHtml(activity.timezone || 'local')}).</p>
+          </div>
+        </header>
+        <article class="engage-campaign-chart-card engage-campaign-hourly-card">
+          <div class="engage-campaign-hourly-legend" aria-hidden="true">
+            <span><i data-series="sent"></i> Enviados</span>
+            <span><i data-series="read"></i> Lidas</span>
+            <span><i data-series="replied"></i> Respostas</span>
+          </div>
+          <div class="engage-campaign-hourly-chart" role="img" aria-label="Gráfico de colunas por horário">
+            ${columns}
+          </div>
+          ${insights.length ? `<p class="engage-campaign-hourly-insights">${insights.map((line) => escapeHtml(line)).join(' · ')}</p>` : ''}
+          ${partialNote}
+        </article>
+      </section>`;
   }
 
   function renderCompletionGauge(summary) {
@@ -895,6 +1110,7 @@
       </section>
       ${renderHealthPanel(state.campaignHealth)}
       ${renderVisualDashboard(summary, outbound, state.campaignConversions, dash)}
+      ${renderHourlyActivityChart(state.hourlyActivity)}
       ${renderKpiSection('Envio', [
         kpiCard('Enviadas', formatNumber(outbound.messagesSent)),
         kpiCard('Meta (live)', formatNumber(outbound.messagesSentLive)),
@@ -1056,6 +1272,46 @@
     state.dashboard = await apiGet(paths);
   }
 
+  function buildHourlyActivityPaths() {
+    const tenantId = getDefaultTenantId(state.session);
+    const encTenant = encodeURIComponent(tenantId);
+    const encCampaign = encodeURIComponent(state.selectedCampaignId);
+    const qs = tenantQuery(state.session, { window: state.windowKey || '7d' });
+    return [
+      `/api/operator/engage/campaigns/${encCampaign}/hourly-activity?${qs}`,
+      `/api/operator/engage/tenants/${encTenant}/campaigns/${encCampaign}/hourly-activity?${qs}`,
+    ];
+  }
+
+  async function loadHourlyActivity() {
+    if (!state.selectedCampaignId) {
+      state.hourlyActivity = null;
+      state.hourlyActivitySource = 'none';
+      return;
+    }
+
+    state.hourlyActivity = null;
+    state.hourlyActivitySource = 'none';
+
+    try {
+      const payload = await apiGet(buildHourlyActivityPaths());
+      const normalized = normalizeHourlyActivityPayload(payload);
+      if (normalized) {
+        state.hourlyActivity = normalized;
+        state.hourlyActivitySource = 'api';
+        return;
+      }
+    } catch (_) {
+      /* fallback abaixo */
+    }
+
+    const estimated = buildHourlyActivityFromDash(state.dashboard, state.replyDispositions);
+    if (hourlyBucketsHaveData(estimated.buckets)) {
+      state.hourlyActivity = estimated;
+      state.hourlyActivitySource = estimated.source;
+    }
+  }
+
   async function loadReplyDispositions() {
     if (!state.selectedCampaignId) {
       state.replyDispositions = null;
@@ -1093,12 +1349,15 @@
       state.campaignConversions = conversions;
       state.conversionAnalytics = null;
       await loadReplyDispositions();
+      await loadHourlyActivity();
       return;
     }
 
     state.campaignHealth = null;
     state.campaignConversions = null;
     state.replyDispositions = null;
+    state.hourlyActivity = null;
+    state.hourlyActivitySource = 'none';
     state.replyDispositionsError = '';
     const paths = buildPaths('conversion-analytics', state.session);
     state.conversionAnalytics = await apiGet(paths);

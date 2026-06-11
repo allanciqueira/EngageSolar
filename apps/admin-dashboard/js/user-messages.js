@@ -53,6 +53,7 @@
     'Sem permissão para sincronizar.': 'Você não tem permissão para sincronizar.',
     'Sem permissão para alterar configurações desta empresa.': 'Você não tem permissão para alterar as configurações desta empresa.',
     'Sem permissão para alterar configurações.': 'Você não tem permissão para alterar estas configurações.',
+    'Sem permissão para este tenant.': 'Você não tem acesso a esta empresa. Faça logout e entre novamente selecionando a empresa correta.',
     'Sessão autenticada indisponível.': CONTEXT_DEFAULTS.session,
     'Sessão de integração expirada.': CONTEXT_DEFAULTS.session,
     'Token externo indisponível.': CONTEXT_DEFAULTS.session,

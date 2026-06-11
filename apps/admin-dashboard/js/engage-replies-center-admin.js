@@ -12,10 +12,10 @@
   ];
 
   const TAB_OPTIONS = [
-    { key: '', label: 'Todas' },
-    { key: 'need_action', label: 'Precisam de ação' },
+    { key: 'all', label: 'Todas' },
+    { key: 'action', label: 'Precisam de ação' },
     { key: 'interested', label: 'Interessados' },
-    { key: 'scheduled_return', label: 'Retorno futuro' },
+    { key: 'defer', label: 'Retorno futuro' },
     { key: 'no_interest', label: 'Sem interesse' },
     { key: 'unclassified', label: 'Não classificados' },
   ];
@@ -41,7 +41,7 @@
     loading: false,
     error: '',
     windowKey: '7d',
-    activeTab: '',
+    activeTab: 'all',
     searchTerm: '',
     data: null,
     refreshTimerId: null,
@@ -183,6 +183,7 @@
             ${renderAvatar(item)}
             <div class="erc-list-item-copy">
               <strong>${escapeHtml(item.contactName)}</strong>
+              ${item.phone ? `<small class="erc-phone">${escapeHtml(item.phone)}</small>` : ''}
               <p>${escapeHtml(item.messagePreview || '—')}</p>
               <div class="erc-list-item-meta">
                 <span>${escapeHtml(item.campaignName)}</span>
@@ -285,14 +286,31 @@
   function tabCount(key, data) {
     const tabs = data?.conversations?.tabs || {};
     const map = {
-      '': tabs.all,
-      need_action: tabs.needAction,
+      all: tabs.all,
+      action: tabs.needAction,
       interested: tabs.interested,
-      scheduled_return: tabs.scheduledReturn,
+      defer: tabs.scheduledReturn,
       no_interest: tabs.noInterest,
       unclassified: tabs.unclassified,
     };
     return Number(map[key] ?? 0);
+  }
+
+  async function openConversation(conversationId) {
+    const id = String(conversationId || '').trim();
+    if (!id) return;
+    const inbox = window.ReservaAiBotInbox;
+    if (!inbox) return;
+    inbox.prepareConversation?.(id);
+    const onConversas = document.querySelector('[data-es-nav="conversas"]')?.classList.contains('is-active');
+    if (!onConversas) {
+      document.querySelector('[data-es-nav="conversas"]')?.click();
+    }
+    if (inbox.isActive?.()) {
+      await inbox.selectConversation(id, state.session);
+    } else {
+      await inbox.activate(state.session);
+    }
   }
 
   function renderTableTabs() {
@@ -370,12 +388,8 @@
     if (!data) return '<div class="erc-muted">Sem dados.</div>';
 
     const interestedTotal = tabCount('interested', data) || data.interestBuckets.reduce((sum, b) => sum + Number(b.count || 0), 0);
-    const fallbackNote = data._fallback
-      ? '<p class="erc-fallback-note">Exibindo dados parciais (campaign-dashboard + conversion-analytics). Aguarde deploy do BFF <code>/api/operator/engage/campaign-replies</code>.</p>'
-      : '';
 
     return `
-      ${fallbackNote}
       ${renderKpiCards(data.summary)}
       <div class="erc-main-grid">
         <div class="erc-main-col">
@@ -453,7 +467,7 @@
 
     state.dom.root.querySelectorAll('[data-open-conversation]').forEach((button) => {
       button.addEventListener('click', () => {
-        document.querySelector('[data-es-nav="conversas"]')?.click();
+        void openConversation(button.dataset.openConversation);
       });
     });
 
@@ -500,9 +514,6 @@
         limit: 50,
       });
       state.data = payload;
-      if (payload?._fallback) {
-        state.error = '';
-      }
     } catch (err) {
       const status = Number(err?.statusCode || err?.status || err?.details?.status || 0);
       if (status === 401) {

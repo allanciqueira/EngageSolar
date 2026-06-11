@@ -5,10 +5,28 @@
 (function () {
   const cfg = () => window.ENGAGESOLAR_CONFIG || {};
 
+  function readJwtTenantId(session) {
+    const claims = window.ReservaPermissions?.readExternalTokenClaims?.(session?.externalAccessToken)
+      || null;
+    return String(claims?.tenantId || claims?.tenant_id || claims?.activeTenantId || '').trim();
+  }
+
   function resolveTenantId(session) {
-    return String(
-      session?.activeTenantId || session?.tenantId || cfg().tenantId || '',
+    const fromResolver = window.ReservaPermissions?.resolveEffectiveTenantId?.(session);
+    if (fromResolver) return String(fromResolver).trim();
+    const direct = String(
+      session?.activeTenantId
+      || session?.tenantId
+      || session?.tenant?.id
+      || session?.tenant?.tenantId
+      || '',
     ).trim();
+    if (direct) return direct;
+    const fromJwt = readJwtTenantId(session);
+    if (fromJwt) return fromJwt;
+    const preferred = window.ReservaAiAuth?.getPreferredLoginTenantId?.() || '';
+    if (preferred) return String(preferred).trim();
+    return String(cfg().tenantId || '').trim();
   }
 
   function resolveRole(session) {
@@ -66,10 +84,10 @@
     const qs = `tenantId=${encodeURIComponent(tenantId)}`;
     const path = `/api/operator/engage/meta-connections?${qs}`;
     try {
-      return await api.request(path, { method: 'GET', cache: 'no-store' });
+      return await api.request(path, { method: 'GET', cache: 'no-store', session });
     } catch (err) {
       if (Number(err?.statusCode || 0) === 404) {
-        return api.request(`/engage/meta-connections?${qs}`, { method: 'GET', cache: 'no-store' });
+        return api.request(`/engage/meta-connections?${qs}`, { method: 'GET', cache: 'no-store', session });
       }
       throw err;
     }
@@ -87,10 +105,10 @@
     const qs = `tenantId=${encodeURIComponent(tenantId)}`;
     const path = `/api/operator/engage/meta-connections/sync?${qs}`;
     try {
-      return await api.request(path, { method: 'POST', body: JSON.stringify({}) });
+      return await api.request(path, { method: 'POST', body: JSON.stringify({}), session });
     } catch (err) {
       if (Number(err?.statusCode || 0) === 404) {
-        return api.request(`/engage/meta-connections/sync?${qs}`, { method: 'POST', body: JSON.stringify({}) });
+        return api.request(`/engage/meta-connections/sync?${qs}`, { method: 'POST', body: JSON.stringify({}), session });
       }
       throw err;
     }

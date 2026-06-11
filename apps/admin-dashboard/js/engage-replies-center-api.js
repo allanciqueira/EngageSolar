@@ -1,9 +1,30 @@
 /**
- * Engage — Central de Respostas (campaign-replies).
- * BFF: GET /api/operator/engage/campaign-replies
+ * Engage — Central de Respostas (response-center).
+ * BFF: GET /api/operator/engage/response-center
  */
 (function () {
   const adminApi = () => window.ReservaAiApi || window.EngageSolarApi;
+
+  const INTENT_LABELS = {
+    BUDGET: 'Quero orçamento',
+    VISIT: 'Quero visita',
+    SIMULATION: 'Quero simulação',
+    FINANCING: 'Quero financiamento',
+    GENERAL_INTEREST: 'Tenho interesse',
+  };
+
+  const CATEGORY_LABELS = {
+    INTERESSADO: 'Interessado',
+    INTERESTED: 'Interessado',
+    RETORNO_FUTURO: 'Retorno futuro',
+    SCHEDULED_RETURN: 'Retorno futuro',
+    SEM_INTERESSE: 'Sem interesse',
+    NO_INTEREST: 'Sem interesse',
+    DUVIDA: 'Dúvidas',
+    DOUBT: 'Dúvidas',
+    NAO_CLASSIFICADO: 'Não classificado',
+    UNCLASSIFIED: 'Não classificado',
+  };
 
   function readExternalTokenClaims(token) {
     const raw = String(token || '').trim();
@@ -45,14 +66,20 @@
     return params.toString();
   }
 
-  function httpStatus(err) {
-    return Number(err?.statusCode || err?.status || err?.details?.status || 0);
-  }
-
-  function isNotFoundError(err) {
-    if (httpStatus(err) === 404) return true;
-    const msg = String(err?.message || err?.details?.message || '').toLowerCase();
-    return msg.includes('campaign-replies') && msg.includes('cannot get');
+  function mapTabToApi(tab) {
+    const map = {
+      '': 'all',
+      all: 'all',
+      need_action: 'action',
+      action: 'action',
+      interested: 'interested',
+      scheduled_return: 'defer',
+      defer: 'defer',
+      no_interest: 'no_interest',
+      unclassified: 'unclassified',
+      doubt: 'doubt',
+    };
+    return map[String(tab || '').trim()] || 'all';
   }
 
   async function apiGet(paths, session) {
@@ -69,216 +96,207 @@
         });
       } catch (err) {
         lastErr = err;
-        if (!isNotFoundError(err)) throw err;
+        if (Number(err?.statusCode || err?.status || 0) !== 404) throw err;
       }
     }
     throw lastErr || new Error('Rota Engage não encontrada.');
   }
 
-  function buildPaths(resource, session, extraQuery) {
+  function buildPaths(session, extraQuery) {
     const qs = tenantQuery(session, extraQuery);
-    return [`/api/operator/engage/${resource}?${qs}`];
+    return [
+      `/api/operator/engage/response-center?${qs}`,
+      `/api/operator/engage/campaign-replies?${qs}`,
+    ];
   }
 
-  function normalizeSummary(raw) {
-    const summary = raw?.summary || raw?.totals || {};
-    const deltas = raw?.deltas || summary?.deltas || {};
-    return {
-      activeCampaigns: Number(summary.activeCampaigns ?? summary.campaigns ?? 0),
-      messagesSent: Number(summary.messagesSent ?? summary.outbound?.messagesSent ?? 0),
-      messagesSentDeltaPct: Number(deltas.messagesSentPct ?? summary.messagesSentDeltaPct ?? 0),
-      repliesReceived: Number(summary.repliesReceived ?? summary.replies ?? 0),
-      repliesDeltaPct: Number(deltas.repliesPct ?? summary.repliesDeltaPct ?? 0),
-      needAction: Number(summary.needAction ?? summary.needActionCount ?? 0),
-      needActionDeltaPct: Number(deltas.needActionPct ?? summary.needActionDeltaPct ?? 0),
-      scheduledReturn: Number(summary.scheduledReturn ?? summary.scheduledReturnCount ?? 0),
-      scheduledReturnDeltaPct: Number(deltas.scheduledReturnPct ?? summary.scheduledReturnDeltaPct ?? 0),
-      unclassified: Number(summary.unclassified ?? summary.unclassifiedCount ?? 0),
-    };
+  function labelCategory(value) {
+    const key = String(value || '').trim().toUpperCase();
+    return CATEGORY_LABELS[key] || value || '—';
   }
 
   function normalizeItem(row) {
     if (!row || typeof row !== 'object') return null;
+    const phone = String(row.phoneE164 || row.phone || row.normalizedPhone || '').trim();
+    const name = String(row.name || row.contactName || '').trim();
+    const category = String(row.category || row.classification || row.lossCategory || '').trim();
     return {
-      id: String(row.id || row.conversationId || row.recipientId || '').trim(),
-      conversationId: String(row.conversationId || row.id || '').trim(),
-      contactName: String(row.contactName || row.name || row.preferredName || 'Contato').trim(),
-      phone: String(row.phone || row.phoneMasked || '').trim(),
+      id: String(row.recipientId || row.id || row.conversationId || '').trim(),
+      conversationId: String(row.conversationId || '').trim(),
+      contactName: name || phone || 'Contato',
+      phone,
       avatarUrl: String(row.avatarUrl || '').trim(),
-      messagePreview: String(row.messagePreview || row.message || row.lastMessage || '').trim(),
+      messagePreview: String(
+        row.lastInboundMessage || row.messagePreview || row.message || row.lastMessage || '',
+      ).trim(),
       campaignId: String(row.campaignId || '').trim(),
       campaignName: String(row.campaignName || row.campaign?.name || '—').trim(),
-      receivedAt: row.receivedAt || row.repliedAt || row.updatedAt || null,
-      classification: String(row.classification || row.aiClassification || row.lossCategory || '').trim(),
-      classificationLabel: String(row.classificationLabel || row.classification || '').trim(),
+      receivedAt: row.lastReplyAt || row.repliedAt || row.receivedAt || row.updatedAt || null,
+      classification: category,
+      classificationLabel: labelCategory(category),
       nextContactAt: row.nextContactAt || null,
-      interestLabel: String(row.interestLabel || row.interestBucket || '').trim(),
-      needsSeller: row.needsSeller === true,
+      interestLabel: String(row.replyIntent || row.interestLabel || '').trim(),
+      needsSeller: row.needsAction === true,
+      assignedAgentName: String(row.assignedAgentName || '').trim(),
     };
+  }
+
+  function normalizeSummary(raw) {
+    const kpis = raw?.kpis || raw?.summary || raw?.totals || {};
+    const trends = raw?.trends || {};
+    return {
+      activeCampaigns: Number(kpis.activeCampaigns ?? kpis.campaigns ?? 0),
+      messagesSent: Number(kpis.messagesSent ?? kpis.outbound?.messagesSent ?? 0),
+      messagesSentDeltaPct: Number(trends.messagesSent?.deltaPct ?? kpis.messagesSentDeltaPct ?? 0),
+      repliesReceived: Number(kpis.repliesReceived ?? kpis.replies ?? 0),
+      repliesDeltaPct: Number(trends.repliesReceived?.deltaPct ?? kpis.repliesDeltaPct ?? 0),
+      needAction: Number(kpis.needsAction ?? kpis.needAction ?? kpis.needActionCount ?? 0),
+      needActionDeltaPct: Number(trends.needsAction?.deltaPct ?? kpis.needActionDeltaPct ?? 0),
+      scheduledReturn: Number(kpis.deferred ?? kpis.scheduledReturn ?? kpis.scheduledReturnCount ?? 0),
+      scheduledReturnDeltaPct: Number(trends.deferred?.deltaPct ?? kpis.scheduledReturnDeltaPct ?? 0),
+      unclassified: Number(kpis.unclassified ?? kpis.unclassifiedCount ?? 0),
+      unclassifiedDeltaPct: Number(trends.unclassified?.deltaPct ?? 0),
+    };
+  }
+
+  function classificationCount(rows, key) {
+    const list = Array.isArray(rows) ? rows : [];
+    const found = list.find((r) => String(r.category || r.key || '').toUpperCase() === key);
+    return Number(found?.count ?? 0);
   }
 
   function normalizePayload(raw) {
     if (!raw || typeof raw !== 'object') return null;
-    const needAction = Array.isArray(raw.needActionItems)
-      ? raw.needActionItems.map(normalizeItem).filter(Boolean)
-      : Array.isArray(raw.needAction)
-        ? raw.needAction.map(normalizeItem).filter(Boolean)
+
+    const isResponseCenter = raw.kpis || raw.lists || Array.isArray(raw.rows);
+
+    const needAction = isResponseCenter
+      ? (Array.isArray(raw.lists?.needsAction) ? raw.lists.needsAction : [])
+      : Array.isArray(raw.needActionItems)
+        ? raw.needActionItems
+        : Array.isArray(raw.needAction) ? raw.needAction : [];
+
+    const scheduledReturn = isResponseCenter
+      ? (Array.isArray(raw.lists?.deferred) ? raw.lists.deferred : [])
+      : Array.isArray(raw.scheduledReturnItems)
+        ? raw.scheduledReturnItems
+        : Array.isArray(raw.scheduledReturn) ? raw.scheduledReturn : [];
+
+    const interestBuckets = isResponseCenter
+      ? (Array.isArray(raw.lists?.interestedByIntent)
+        ? raw.lists.interestedByIntent.map((b) => ({
+          key: String(b.intent || b.key || '').trim(),
+          label: INTENT_LABELS[b.intent] || String(b.label || b.intent || '').trim(),
+          count: Number(b.count || 0),
+        }))
+        : [])
+      : Array.isArray(raw.interestBuckets)
+        ? raw.interestBuckets.map((b) => ({
+          key: String(b.key || b.id || '').trim(),
+          label: String(b.label || b.name || '').trim(),
+          count: Number(b.count || 0),
+        }))
         : [];
-    const scheduledReturn = Array.isArray(raw.scheduledReturnItems)
-      ? raw.scheduledReturnItems.map(normalizeItem).filter(Boolean)
-      : Array.isArray(raw.scheduledReturn)
-        ? raw.scheduledReturn.map(normalizeItem).filter(Boolean)
+
+    const aiClassification = isResponseCenter
+      ? (Array.isArray(raw.classification)
+        ? raw.classification.map((b) => ({
+          key: String(b.category || b.key || '').trim(),
+          label: labelCategory(b.category || b.label),
+          count: Number(b.count || 0),
+          pct: Number(b.pct ?? b.percent ?? 0),
+        }))
+        : [])
+      : Array.isArray(raw.aiClassification)
+        ? raw.aiClassification.map((b) => ({
+          key: String(b.key || b.id || '').trim(),
+          label: String(b.label || b.name || '').trim(),
+          count: Number(b.count || 0),
+          pct: Number(b.pct ?? b.percent ?? 0),
+        }))
         : [];
-    const interestBuckets = Array.isArray(raw.interestBuckets)
-      ? raw.interestBuckets.map((b) => ({
-        key: String(b.key || b.id || '').trim(),
-        label: String(b.label || b.name || '').trim(),
-        count: Number(b.count || 0),
-      }))
-      : [];
-    const aiClassification = Array.isArray(raw.aiClassification)
-      ? raw.aiClassification.map((b) => ({
-        key: String(b.key || b.id || '').trim(),
-        label: String(b.label || b.name || '').trim(),
-        count: Number(b.count || 0),
-        pct: Number(b.pct ?? b.percent ?? 0),
-      }))
-      : [];
-    const rows = Array.isArray(raw.conversations?.items)
-      ? raw.conversations.items.map(normalizeItem).filter(Boolean)
-      : Array.isArray(raw.items)
-        ? raw.items.map(normalizeItem).filter(Boolean)
-        : [];
-    const tabCounts = raw.conversations?.tabs || raw.tabCounts || {};
+
+    const rows = isResponseCenter
+      ? (Array.isArray(raw.rows) ? raw.rows : [])
+      : Array.isArray(raw.conversations?.items)
+        ? raw.conversations.items
+        : Array.isArray(raw.items) ? raw.items : [];
+
+    const summary = normalizeSummary(raw);
+    const meta = raw.meta || {};
+    const classification = raw.classification || [];
+
+    const tabCounts = isResponseCenter
+      ? {
+        all: Number(meta.total ?? summary.repliesReceived ?? rows.length),
+        needAction: summary.needAction,
+        interested: classificationCount(classification, 'INTERESSADO'),
+        scheduledReturn: summary.scheduledReturn,
+        noInterest: classificationCount(classification, 'SEM_INTERESSE'),
+        unclassified: summary.unclassified,
+      }
+      : {
+        all: Number(raw.conversations?.tabs?.all ?? raw.tabCounts?.all ?? rows.length),
+        needAction: Number(raw.conversations?.tabs?.needAction ?? summary.needAction ?? 0),
+        interested: Number(raw.conversations?.tabs?.interested ?? 0),
+        scheduledReturn: Number(raw.conversations?.tabs?.scheduledReturn ?? summary.scheduledReturn ?? 0),
+        noInterest: Number(raw.conversations?.tabs?.noInterest ?? 0),
+        unclassified: Number(raw.conversations?.tabs?.unclassified ?? summary.unclassified ?? 0),
+      };
+
+    const responseTime = raw.responseTime || {};
+    const daily = Array.isArray(responseTime.daily) ? responseTime.daily : [];
+
     return {
       fetchedAt: raw.fetchedAt || null,
       window: raw.window || null,
-      summary: normalizeSummary(raw),
-      needActionItems: needAction,
-      scheduledReturnItems: scheduledReturn,
+      summary,
+      needActionItems: needAction.map(normalizeItem).filter(Boolean),
+      scheduledReturnItems: scheduledReturn.map(normalizeItem).filter(Boolean),
       interestBuckets,
-      avgResponseTimeMinutes: Number(raw.avgResponseTimeMinutes ?? raw.responseTime?.avgMinutes ?? 0),
-      responseTimeSeries: Array.isArray(raw.responseTimeSeries)
-        ? raw.responseTimeSeries
-        : Array.isArray(raw.responseTime?.series)
-          ? raw.responseTime.series
-          : [],
+      avgResponseTimeMinutes: Number(
+        responseTime.averageMinutes ?? raw.avgResponseTimeMinutes ?? 0,
+      ),
+      responseTimeSeries: daily.length
+        ? daily.map((d) => Number(d.averageMinutes ?? d.value ?? 0))
+        : Array.isArray(raw.responseTimeSeries) ? raw.responseTimeSeries : [],
       aiClassification,
       aiTip: raw.aiTip || null,
       conversations: {
-        items: rows,
-        total: Number(raw.conversations?.total ?? raw.total ?? rows.length),
-        tabs: {
-          all: Number(tabCounts.all ?? tabCounts.todas ?? rows.length),
-          needAction: Number(tabCounts.needAction ?? tabCounts.need_action ?? 0),
-          interested: Number(tabCounts.interested ?? tabCounts.interessados ?? 0),
-          scheduledReturn: Number(tabCounts.scheduledReturn ?? tabCounts.scheduled_return ?? 0),
-          noInterest: Number(tabCounts.noInterest ?? tabCounts.no_interest ?? 0),
-          unclassified: Number(tabCounts.unclassified ?? tabCounts.unclassified ?? 0),
-        },
+        items: rows.map(normalizeItem).filter(Boolean),
+        total: Number(meta.total ?? raw.conversations?.total ?? raw.total ?? rows.length),
+        tabs: tabCounts,
         nextCursor: String(raw.conversations?.nextCursor || raw.nextCursor || '').trim(),
       },
     };
   }
 
-  async function fetchCampaignReplies(session, options) {
+  async function fetchResponseCenter(session, options) {
     const extra = {
       window: options?.window || '7d',
-      tab: options?.tab || '',
+      tab: mapTabToApi(options?.tab),
       q: options?.q || '',
       limit: String(options?.limit || 50),
+      page: String(options?.page || 1),
       cursor: options?.cursor || '',
     };
     Object.keys(extra).forEach((key) => {
       if (!extra[key]) delete extra[key];
     });
-    const raw = await apiGet(buildPaths('campaign-replies', session, extra), session);
+    if (extra.page === '1') delete extra.page;
+    const raw = await apiGet(buildPaths(session, extra), session);
     return normalizePayload(raw);
   }
 
-  async function fetchFallback(session, windowKey) {
-    const pathsDash = buildPaths('campaign-dashboard', session, { window: windowKey });
-    const pathsConv = buildPaths('conversion-analytics', session, {});
-    const [dashboard, conversions] = await Promise.all([
-      apiGet(pathsDash, session).catch(() => null),
-      apiGet(pathsConv, session).catch(() => null),
-    ]);
-    const campaigns = Array.isArray(dashboard?.campaigns) ? dashboard.campaigns : [];
-    const activeCampaigns = campaigns.filter((c) => {
-      const status = String(c?.status || '').toUpperCase();
-      return status === 'RUNNING' || status === 'PAUSED' || status === 'SCHEDULED';
-    }).length;
-    const outbound = dashboard?.totals?.outbound || {};
-    const recentReplies = Array.isArray(conversions?.recentReplies)
-      ? conversions.recentReplies
-      : [];
-    const items = recentReplies.map((row) => normalizeItem({
-      id: row.recipientId || row.contactId,
-      conversationId: row.conversationId,
-      contactName: row.contactName || row.phoneMasked,
-      phone: row.phoneMasked,
-      messagePreview: row.messagePreview || 'Resposta recebida',
-      campaignId: row.campaignId,
-      campaignName: row.campaignName,
-      receivedAt: row.repliedAt,
-      classification: 'UNCLASSIFIED',
-      classificationLabel: 'Não classificado',
-    })).filter(Boolean);
-    return normalizePayload({
-      fetchedAt: dashboard?.fetchedAt || conversions?.fetchedAt || new Date().toISOString(),
-      window: dashboard?.window || { key: windowKey, label: windowKey },
-      summary: {
-        activeCampaigns: activeCampaigns || Number(dashboard?.totals?.campaigns || 0),
-        messagesSent: Number(outbound.messagesSent || 0),
-        repliesReceived: Number(conversions?.summary?.replies || 0),
-        needAction: items.length,
-        scheduledReturn: 0,
-        unclassified: items.length,
-      },
-      needActionItems: items.slice(0, 8),
-      scheduledReturnItems: [],
-      interestBuckets: [],
-      avgResponseTimeMinutes: 0,
-      responseTimeSeries: [],
-      aiClassification: [],
-      aiTip: conversions?.summary?.replies
-        ? { message: 'Respostas recentes carregadas via analytics — aguarde API campaign-replies no NeuraFlow.', count: Number(conversions.summary.replies || 0) }
-        : null,
-      conversations: {
-        items,
-        total: items.length,
-        tabs: {
-          all: items.length,
-          needAction: items.length,
-          interested: 0,
-          scheduledReturn: 0,
-          noInterest: 0,
-          unclassified: items.length,
-        },
-      },
-      _fallback: true,
-    });
-  }
-
   async function load(session, options) {
-    try {
-      return await fetchCampaignReplies(session, options);
-    } catch (err) {
-      // URL do browser: /api/operator/engage/campaign-replies (BFF OK).
-      // 404 com message "/engage/campaign-replies" = NeuraFlow ainda sem a rota upstream.
-      if (isNotFoundError(err)) {
-        const fallback = await fetchFallback(session, options?.window || '7d');
-        fallback._fallback = true;
-        return fallback;
-      }
-      throw err;
-    }
+    return fetchResponseCenter(session, options);
   }
 
   window.EngageRepliesCenterApi = {
     getDefaultTenantId,
     load,
-    fetchCampaignReplies,
+    fetchResponseCenter,
     normalizePayload,
+    mapTabToApi,
   };
 })();

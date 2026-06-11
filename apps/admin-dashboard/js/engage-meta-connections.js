@@ -210,8 +210,12 @@
     btn.addEventListener('click', () => void onSync());
   }
 
-  function activate(nextSession) {
-    session = nextSession || null;
+  async function activate(nextSession) {
+    let resolved = nextSession || session;
+    if (window.ReservaPermissions?.enrichSessionWithOperatorMe) {
+      resolved = await window.ReservaPermissions.enrichSessionWithOperatorMe(resolved);
+    }
+    session = resolved;
     bindOnce();
     void load();
   }

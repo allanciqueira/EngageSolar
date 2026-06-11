@@ -1514,7 +1514,9 @@
       state.specialDates = [];
       state.specialDatesEditingId = '';
       renderAll();
-      void window.ReservaAiOperatorSpecialDates?.onWorkspaceLoaded?.();
+      if (qs('#operatorSpecialDatesRoot')) {
+        void window.ReservaAiOperatorSpecialDates?.onWorkspaceLoaded?.();
+      }
       setStatus('Nenhuma empresa disponível para configuração.', 'warn');
       return;
     }
@@ -1594,7 +1596,9 @@
       state.posTerminals = [];
     }
     renderAll();
-    void window.ReservaAiOperatorSpecialDates?.onWorkspaceLoaded?.();
+    if (qs('#operatorSpecialDatesRoot')) {
+      void window.ReservaAiOperatorSpecialDates?.onWorkspaceLoaded?.();
+    }
     if (state.activeTab === 'geral' && typeof window.ReservaAiTenantCompany?.reload === 'function') {
       void window.ReservaAiTenantCompany.reload({
         session: state.session,
@@ -2574,7 +2578,9 @@
     renderProfessionals();
     renderPaymentsForm();
     renderCrmForm();
-    window.ReservaAiOperatorSpecialDates?.renderAll?.();
+    if (qs('#operatorSpecialDatesRoot')) {
+      window.ReservaAiOperatorSpecialDates?.renderAll?.();
+    }
     applyOperatorTab(state.activeTab);
   }
 

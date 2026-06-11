@@ -54,6 +54,7 @@
     selectedTenantId: '',
     conversations: [],
     selectedConversationId: null,
+    pendingSelectConversationId: null,
     messages: [],
     search: '',
     activeFilter: 'all',
@@ -1150,25 +1151,7 @@
     state.dom.chatList.querySelectorAll('[data-conversation-id]').forEach((button) => {
       button.addEventListener('click', () => {
         state.selectedConversationId = button.dataset.conversationId;
-        Object.values(state.mediaObjectUrls).forEach((url) => URL.revokeObjectURL(url));
-        state.mediaObjectUrls = {};
-        clearPendingFile();
-        void stopAudioRecording();
-        clearPendingAudio();
-        closeEmojiPanel();
-        closeContactModal();
-        state.dom.shell?.classList.add('is-thread-open');
-        highlightSelectedConversation();
-        setError('');
-        state.disposition = null;
-        state.dispositionMode = 'hidden';
-        state.dispositionError = '';
-        state.dispositionNote = '';
-        renderDispositionBar();
-        renderThreadLoading();
-        renderCrm();
-        void loadMessages(true);
-        void loadDisposition();
+        void openSelectedConversation();
       });
     });
   }
@@ -1712,7 +1695,13 @@
     const payload = await requestExternal(`/conversations?tenantId=${encodeURIComponent(state.selectedTenantId)}`);
     state.conversations = Array.isArray(payload) ? payload : [];
 
-    if (!state.selectedConversationId || !state.conversations.some((conversation) => conversation.id === state.selectedConversationId)) {
+    const pending = state.pendingSelectConversationId;
+    if (pending) {
+      state.selectedConversationId = pending;
+    } else if (
+      !state.selectedConversationId
+      || !state.conversations.some((conversation) => conversation.id === state.selectedConversationId)
+    ) {
       state.selectedConversationId = state.conversations[0]?.id || null;
     }
 
@@ -2189,10 +2178,16 @@
     setError('');
 
     try {
-      await requestExternal(`/tenant-settings?tenantId=${encodeURIComponent(state.selectedTenantId)}`, {
-        method: 'PUT',
-        body: JSON.stringify({ botEnabled: nextValue }),
-      });
+      const settingsPath = `/tenant-settings?tenantId=${encodeURIComponent(state.selectedTenantId)}`;
+      const settingsBody = JSON.stringify({ botEnabled: nextValue });
+      try {
+        await requestExternal(settingsPath, { method: 'PUT', body: settingsBody });
+      } catch (putErr) {
+        if (Number(putErr?.statusCode || putErr?.status || 0) !== 405) {
+          throw putErr;
+        }
+        await requestExternal(settingsPath, { method: 'PATCH', body: settingsBody });
+      }
       await recordAudit('WHATSAPP_BOT_TOGGLED', 'tenant-settings', state.selectedTenantId, nextValue ? 'Bot do WhatsApp ativado.' : 'Bot do WhatsApp pausado.', {
         tenantId: state.selectedTenantId,
         botEnabled: nextValue,
@@ -2501,6 +2496,60 @@
     return true;
   }
 
+  async function openSelectedConversation() {
+    const id = String(state.selectedConversationId || '').trim();
+    if (!id) return;
+    Object.values(state.mediaObjectUrls).forEach((url) => URL.revokeObjectURL(url));
+    state.mediaObjectUrls = {};
+    clearPendingFile();
+    void stopAudioRecording();
+    clearPendingAudio();
+    closeEmojiPanel();
+    closeContactModal();
+    state.dom.shell?.classList.add('is-thread-open');
+    highlightSelectedConversation();
+    setError('');
+    state.disposition = null;
+    state.dispositionMode = 'hidden';
+    state.dispositionError = '';
+    state.dispositionNote = '';
+    renderDispositionBar();
+    renderThreadLoading();
+    renderCrm();
+    await loadMessages(true);
+    void loadDisposition();
+    renderConversations();
+  }
+
+  function prepareConversation(conversationId) {
+    const id = String(conversationId || '').trim();
+    if (!id) return;
+    state.pendingSelectConversationId = id;
+    state.selectedConversationId = id;
+  }
+
+  async function selectConversation(conversationId, session) {
+    const id = String(conversationId || '').trim();
+    if (!id) return false;
+    if (session) state.session = session;
+    prepareConversation(id);
+    if (!state.active) {
+      return false;
+    }
+    if (!state.initialized) {
+      await bootstrap();
+    }
+    syncSelectedTenantFromSession(state.session, { persist: true, render: true });
+    if (!state.conversations.some((conversation) => conversation.id === id)) {
+      await loadConversations();
+    }
+    if (!state.conversations.some((conversation) => conversation.id === id)) {
+      state.selectedConversationId = id;
+    }
+    await openSelectedConversation();
+    return true;
+  }
+
   async function activate(session) {
     if (!mount()) {
       return;
@@ -2517,6 +2566,12 @@
       await bootstrap();
       syncSelectedTenantFromSession(state.session, { persist: true, render: true });
       await refreshWorkspace(true);
+      if (state.pendingSelectConversationId) {
+        const target = state.pendingSelectConversationId;
+        state.pendingSelectConversationId = null;
+        state.selectedConversationId = target;
+        await openSelectedConversation();
+      }
       startPolling();
       void pollInboxSilently();
     } catch (error) {
@@ -2558,6 +2613,9 @@
     init,
     activate,
     deactivate,
+    prepareConversation,
+    selectConversation,
+    isActive: () => state.active,
     getUnreadTotal: totalUnreadCount,
     refreshUnreadBadge,
   };

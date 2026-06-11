@@ -98,10 +98,22 @@
       window.EngageMetaConnections?.deactivate?.();
     }
 
+    if (tabId === 'sender-profiles') {
+      window.EngageSenderProfiles?.activate?.(session);
+    } else {
+      window.EngageSenderProfiles?.deactivate?.();
+    }
+
     if (tabId === 'templates') {
       window.EngageTemplatesAdmin?.activate?.(session);
     } else {
       window.EngageTemplatesAdmin?.deactivate?.();
+    }
+
+    if (tabId === 'contact-hub') {
+      window.EngageContactHub?.activate?.(session);
+    } else {
+      window.EngageContactHub?.deactivate?.();
     }
   }
 
@@ -116,7 +128,9 @@
   function deactivate() {
     active = false;
     window.EngageMetaConnections?.deactivate?.();
+    window.EngageSenderProfiles?.deactivate?.();
     window.EngageTemplatesAdmin?.deactivate?.();
+    window.EngageContactHub?.deactivate?.();
   }
 
   window.EngageConfig = {

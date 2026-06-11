@@ -34,6 +34,30 @@
     state.dom.status.dataset.tone = tone || 'neutral';
   }
 
+  function resolveTenantId(session) {
+    const fromResolver = window.ReservaPermissions?.resolveEffectiveTenantId?.(session);
+    if (fromResolver) return String(fromResolver).trim();
+    return String(
+      session?.activeTenantId
+      || session?.tenantId
+      || session?.tenant?.id
+      || window.ReservaAiAuth?.getPreferredLoginTenantId?.()
+      || '',
+    ).trim();
+  }
+
+  function eventMatchesTenant(event, tenantId) {
+    if (!tenantId) return true;
+    const details = event?.details && typeof event.details === 'object' ? event.details : {};
+    const fromDetails = String(details.tenantId || '').trim();
+    if (fromDetails && fromDetails === tenantId) return true;
+    if (String(event?.entityType || '').toLowerCase() === 'tenant'
+      && String(event?.entityId || '').trim() === tenantId) {
+      return true;
+    }
+    return false;
+  }
+
   function mount() {
     if (state.mounted) {
       return;
@@ -123,7 +147,11 @@
       return;
     }
 
+    const tenantId = resolveTenantId(state.session);
     const params = new URLSearchParams({ limit: '250' });
+    if (tenantId) {
+      params.set('tenantId', tenantId);
+    }
     if (state.dom.sourceModule?.value) {
       params.set('sourceModule', state.dom.sourceModule.value);
     }
@@ -137,7 +165,9 @@
     setStatus('Carregando eventos de auditoria...', 'neutral');
 
     try {
-      state.events = await auditApi.request(`/events?${params.toString()}`);
+      const payload = await auditApi.request(`/events?${params.toString()}`);
+      const rows = Array.isArray(payload) ? payload : [];
+      state.events = tenantId ? rows.filter((event) => eventMatchesTenant(event, tenantId)) : rows;
       renderKpis();
       renderTable();
       setStatus('Auditoria carregada com sucesso.', 'success');
@@ -154,7 +184,11 @@
     },
     async activate(session) {
       state.active = true;
-      state.session = session || state.session;
+      let resolved = session || state.session;
+      if (window.ReservaPermissions?.enrichSessionWithOperatorMe) {
+        resolved = await window.ReservaPermissions.enrichSessionWithOperatorMe(resolved);
+      }
+      state.session = resolved;
       mount();
       await loadEvents();
     },

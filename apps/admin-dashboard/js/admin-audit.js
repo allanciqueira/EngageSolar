@@ -11,6 +11,18 @@
 
   const getSession = () => state.session || window.ReservaAiAuth?.getStoredSession?.() || null;
 
+  const resolveTenantId = (session) => {
+    const fromResolver = window.ReservaPermissions?.resolveEffectiveTenantId?.(session);
+    if (fromResolver) return String(fromResolver).trim();
+    return String(
+      session?.activeTenantId
+      || session?.tenantId
+      || session?.tenant?.id
+      || window.ReservaAiAuth?.getPreferredLoginTenantId?.()
+      || '',
+    ).trim();
+  };
+
   const getActorHeaders = () => {
     const session = getSession();
     const headers = {};
@@ -73,6 +85,12 @@
       return;
     }
 
+    const tenantId = resolveTenantId(session);
+    const mergedDetails = { ...(details && typeof details === 'object' ? details : {}) };
+    if (tenantId && !mergedDetails.tenantId) {
+      mergedDetails.tenantId = tenantId;
+    }
+
     pendingEvents.push({
       actorUsername: session.username,
       actorDisplayName: session.displayName,
@@ -81,7 +99,7 @@
       entityType,
       entityId,
       description,
-      details,
+      details: mergedDetails,
     });
 
     void flushPendingEvents();

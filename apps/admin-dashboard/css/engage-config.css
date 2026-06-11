@@ -394,3 +394,38 @@ body[data-es-panel-active="engage-config"] .es-content {
     padding: 1rem;
   }
 }
+
+/* —— Sender profiles —— */
+.ec-sp-table-wrap {
+  max-width: 100%;
+}
+
+.ec-sp-health {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.ec-sp-health-score {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--es-text-muted);
+}
+
+.ec-sp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 220px;
+}
+
+.ec-mc-btn--ghost {
+  color: var(--es-navy);
+  background: #f1f5f9;
+  border: 1px solid var(--es-border);
+}
+
+.ec-mc-btn--ghost:hover:not(:disabled) {
+  background: #e2e8f0;
+}

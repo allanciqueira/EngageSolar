@@ -5,6 +5,10 @@
 (function () {
   let api = null;
 
+  function isAttached() {
+    return Boolean(api && api.dom);
+  }
+
   function getState() {
     return api?.state;
   }
@@ -63,6 +67,7 @@
   }
 
   function resetSpecialDatesForm() {
+    if (!isAttached()) return;
     const state = getState();
     if (!state) return;
     state.specialDatesEditingId = '';
@@ -79,6 +84,7 @@
   }
 
   function applySpecialDatesKindUi() {
+    if (!isAttached()) return;
     const dom = api.dom;
     if (!dom.specialDatesWindowFields) return;
     const isClosed = dom.specialDatesKind?.value === 'closed';
@@ -87,6 +93,7 @@
   }
 
   function updateSpecialDatesSubmitLabel() {
+    if (!isAttached()) return;
     const state = getState();
     const dom = api.dom;
     if (!dom.specialDatesSubmit) return;
@@ -97,6 +104,7 @@
   }
 
   function applySpecialDatesReadonlyState() {
+    if (!isAttached()) return;
     const canManage = api.canManageSelectedTenant?.() !== false;
     const dom = api.dom;
     const controls = [
@@ -123,6 +131,7 @@
   }
 
   function renderSpecialDatesUnitOptions() {
+    if (!isAttached()) return;
     const dom = api.dom;
     if (!dom.specialDatesUnit) return;
     const options = ['<option value="">Empresa inteira (todas as unidades)</option>']
@@ -156,6 +165,7 @@
   }
 
   function renderSpecialDatesYearFilterOptions() {
+    if (!isAttached()) return;
     const dom = api.dom;
     if (!dom.specialDatesYearFilter) return;
     const state = getState();
@@ -170,6 +180,7 @@
   }
 
   function renderSpecialDatesList() {
+    if (!isAttached()) return;
     const dom = api.dom;
     if (!dom.specialDatesList) return;
     const state = getState();
@@ -210,6 +221,7 @@
   }
 
   function fillFormFromRow(row) {
+    if (!isAttached()) return;
     const dom = api.dom;
     const state = getState();
     if (!row || !dom.specialDatesDate) return;
@@ -226,6 +238,7 @@
   }
 
   function collectSpecialDateBody() {
+    if (!isAttached()) return null;
     const dom = api.dom;
     const date = String(dom.specialDatesDate?.value || '').trim();
     const kind = dom.specialDatesKind?.value === 'window' ? 'window' : 'closed';
@@ -263,6 +276,7 @@
   }
 
   async function loadSpecialDates() {
+    if (!isAttached()) return;
     const state = getState();
     if (!state?.selectedTenantId) {
       state.specialDates = [];
@@ -286,6 +300,7 @@
   }
 
   async function saveSpecialDate() {
+    if (!isAttached()) return;
     if (api.canManageSelectedTenant?.() === false) {
       api.setStatus('Apenas administradores podem gerir estas regras.', 'warn');
       return;
@@ -334,6 +349,7 @@
   }
 
   async function deleteSpecialDate(id) {
+    if (!isAttached()) return;
     if (!id || api.canManageSelectedTenant?.() === false) return;
     const state = getState();
     const row = state.specialDates.find((r) => r.id === id);
@@ -417,6 +433,7 @@
     resetForm: resetSpecialDatesForm,
     renderUnitOptions: renderSpecialDatesUnitOptions,
     renderAll() {
+      if (!isAttached()) return;
       renderSpecialDatesUnitOptions();
       renderSpecialDatesYearFilterOptions();
       renderSpecialDatesList();
@@ -425,11 +442,13 @@
       updateSpecialDatesSubmitLabel();
     },
     async onTabActivated() {
+      if (!isAttached()) return;
       renderSpecialDatesUnitOptions();
       applySpecialDatesReadonlyState();
       await loadSpecialDates();
     },
     async onWorkspaceLoaded() {
+      if (!isAttached()) return;
       const state = getState();
       if (state) {
         state.specialDates = [];

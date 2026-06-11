@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="css/engage-solar-config.css" />
     <link rel="stylesheet" href="css/engage-campaigns-reserva.css" />
     <link rel="stylesheet" href="css/engage-replies-center.css" />
+    <link rel="stylesheet" href="css/engage-contact-hub.css" />
     <script src="js/config.js"></script>
     <script src="js/dev-api-check.js"></script>
     <script>
@@ -624,11 +625,44 @@
 
               <div class="ec-body">
                 <section class="ec-tab-panel" data-ec-panel="sender-profiles" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Sender profiles</h2>
-                    <p>Perfis de envio e identidade nas conversas.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
+                  <div class="ec-mc-shell" id="engageSenderProfilesRoot">
+                    <header class="ec-mc-head">
+                      <div class="ec-mc-head-copy">
+                        <h2>Sender profiles</h2>
+                        <p class="ec-mc-lead" id="engageSenderProfilesLead">
+                          Perfil operacional do número WhatsApp Engage.
+                        </p>
+                      </div>
+                    </header>
+                    <div class="ec-mc-feedback" id="engageSenderProfilesFeedback" role="status" hidden></div>
+                    <div class="ec-mc-loading" id="engageSenderProfilesLoading" hidden>Carregando…</div>
+                    <div class="ec-mc-empty" id="engageSenderProfilesEmpty" hidden>
+                      <strong>Nenhum sender profile</strong>
+                      <p>Provisione WhatsApp ou use Meta connections (Sync Now) primeiro.</p>
+                    </div>
+                    <div class="ec-mc-table-wrap ec-sp-table-wrap" id="engageSenderProfilesTableWrap" hidden>
+                      <table class="ec-mc-table ec-sp-table" aria-label="Sender profiles">
+                        <thead>
+                          <tr>
+                            <th scope="col">Número</th>
+                            <th scope="col">Nome</th>
+                            <th scope="col">WABA</th>
+                            <th scope="col">Phone ID</th>
+                            <th scope="col">Conexão</th>
+                            <th scope="col">Qualidade</th>
+                            <th scope="col">Limite (tier)</th>
+                            <th scope="col">Health</th>
+                            <th scope="col">Último sync</th>
+                            <th scope="col">Último webhook</th>
+                            <th scope="col">Fonte Meta</th>
+                            <th scope="col">Outbound</th>
+                            <th scope="col" id="engageSenderProfilesActionsHead">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody id="engageSenderProfilesTableBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
                 </section>
 
                 <section class="ec-tab-panel is-active" data-ec-panel="meta-connections" role="tabpanel" id="engageMetaConnectionsPanel">
@@ -695,11 +729,61 @@
                 </section>
 
                 <section class="ec-tab-panel" data-ec-panel="contact-hub" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Contact hub</h2>
-                    <p>Central de contatos e sincronização.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
+                  <div class="ech-import-modal" id="engageContactImportModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageContactImportTitle">
+                    <div class="ech-import-dialog">
+                      <header class="ech-import-head">
+                        <div>
+                          <h3 id="engageContactImportTitle">Importar CSV</h3>
+                          <nav class="ech-import-steps" id="engageContactImportSteps" aria-label="Passos do import"></nav>
+                        </div>
+                        <button type="button" class="ech-import-close" data-ech-import-close aria-label="Fechar">×</button>
+                      </header>
+                      <p class="ec-mc-feedback" id="engageContactImportError" role="alert" hidden></p>
+                      <div class="ech-import-body" id="engageContactImportBody"></div>
+                      <footer class="ech-import-footer" id="engageContactImportFooter"></footer>
+                    </div>
+                  </div>
+                  <div class="ech-import-modal" id="engageContactAudiencesModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageContactAudiencesTitle">
+                    <div class="ech-import-dialog ech-import-dialog--wide">
+                      <header class="ech-import-head">
+                        <h3 id="engageContactAudiencesTitle">Audiências</h3>
+                        <button type="button" class="ech-import-close" data-ech-audiences-close aria-label="Fechar">×</button>
+                      </header>
+                      <p class="ec-mc-feedback" id="engageContactAudiencesError" role="alert" hidden></p>
+                      <div class="ech-import-body" id="engageContactAudiencesBody"></div>
+                    </div>
+                  </div>
+                  <div class="ec-mc-shell ech-shell" id="engageContactHubRoot">
+                    <header class="ec-mc-head">
+                      <div class="ec-mc-head-copy">
+                        <h2>Contact Hub</h2>
+                        <p class="ec-mc-lead" id="engageContactHubLead">
+                          Contactos permanentes Engage — atributos, importação e base para campanhas WhatsApp.
+                        </p>
+                        <p class="ech-head-links" id="engageContactHubLinks" hidden>
+                          <button type="button" class="ech-head-link" id="engageContactHubImportCsvBtn">Importar CSV</button>
+                          <span aria-hidden="true">·</span>
+                          <button type="button" class="ech-head-link" id="engageContactHubAudiencesBtn">Audiências</button>
+                        </p>
+                      </div>
+                    </header>
+                    <div class="ec-mc-feedback" id="engageContactHubFeedback" role="status" hidden></div>
+                    <div class="ech-crm-banner" id="engageContactHubCrmBanner" hidden></div>
+                    <div id="engageContactHubFilters"></div>
+                    <div class="ec-mc-loading" id="engageContactHubLoading" hidden>Carregando…</div>
+                    <div class="ec-mc-empty" id="engageContactHubEmpty" hidden>
+                      <strong>Nenhum contacto encontrado</strong>
+                      <p>Nenhum contacto encontrado para esta pesquisa.</p>
+                    </div>
+                    <div class="ech-table-wrap" id="engageContactHubTableWrap" hidden>
+                      <table class="ech-table" aria-label="Contact Hub">
+                        <thead id="engageContactHubTableHead"></thead>
+                        <tbody id="engageContactHubTableBody"></tbody>
+                      </table>
+                    </div>
+                    <div class="ech-pagination" id="engageContactHubPagination" hidden></div>
+                    <div id="engageContactHubDetail" hidden></div>
+                  </div>
                 </section>
 
                 <section class="ec-tab-panel" data-ec-panel="crm-sync-health" role="tabpanel" hidden>
@@ -2266,6 +2350,12 @@
     <script src="js/engage-replies-center-api.js"></script>
     <script src="js/engage-replies-center-admin.js"></script>
     <script src="js/engage-meta-api.js"></script>
+    <script src="js/engage-sender-profiles-api.js"></script>
+    <script src="js/engage-sender-profiles-admin.js"></script>
+    <script src="js/engage-contact-hub-api.js"></script>
+    <script src="js/engage-contact-import-admin.js"></script>
+    <script src="js/engage-contact-audiences-admin.js"></script>
+    <script src="js/engage-contact-hub-admin.js"></script>
     <script src="js/engage-meta-connections.js"></script>
     <script src="js/engage-disposition-api.js"></script>
     <script src="js/engage-templates-api.js"></script>
