@@ -1396,7 +1396,7 @@
     }
   }
 
-  async function applyConversationAssign(agentUserId) {
+  async function applyConversationAssign(salesConsultantId) {
     const api = window.EngageDispositionApi;
     const conversation = state.conversations.find((item) => item.id === state.selectedConversationId);
     if (!api || !conversation || state.assignBusy) {
@@ -1412,11 +1412,11 @@
         state.session,
         state.selectedTenantId,
         conversation.id,
-        agentUserId,
+        salesConsultantId,
       );
       state.disposition = {
         ...(state.disposition || {}),
-        assignedAgentId: result?.assignedAgentId ?? null,
+        assignedSalesConsultantId: result?.assignedSalesConsultantId ?? null,
         assignedAgentName: result?.assignedAgentName ?? null,
       };
       state.selectedAssignAgentId = '';
@@ -1430,16 +1430,16 @@
 
   function renderSellerAssignSection(api, ctx, busy) {
     const agents = Array.isArray(state.dispositionAgents) ? state.dispositionAgents : [];
-    const assignedId = String(ctx.assignedAgentId || '').trim();
+    const assignedId = String(ctx.assignedSalesConsultantId || '').trim();
     const assignedName = String(ctx.assignedAgentName || '').trim();
     const assignBusy = state.assignBusy || state.dispositionAgentsLoading;
     const globalBusy = busy || assignBusy;
 
     if (assignedId) {
       const swapOptions = agents
-        .filter((agent) => String(agent.userId || '') !== assignedId)
+        .filter((agent) => api.consultantId(agent) !== assignedId)
         .map((agent) => {
-          const id = String(agent.userId || '');
+          const id = api.consultantId(agent);
           const label = api.agentLabel(agent);
           const selected = state.selectedAssignAgentId === id ? ' selected' : '';
           return `<option value="${escapeHtml(id)}"${selected}>${escapeHtml(label)}</option>`;
@@ -1466,12 +1466,14 @@
         </section>`;
     }
 
-    const options = agents.map((agent) => {
-      const id = String(agent.userId || '');
-      const label = api.agentLabel(agent);
-      const selected = state.selectedAssignAgentId === id ? ' selected' : '';
-      return `<option value="${escapeHtml(id)}"${selected}>${escapeHtml(label)}</option>`;
-    }).join('');
+    const options = agents
+      .filter((agent) => api.consultantId(agent))
+      .map((agent) => {
+        const id = api.consultantId(agent);
+        const label = api.agentLabel(agent);
+        const selected = state.selectedAssignAgentId === id ? ' selected' : '';
+        return `<option value="${escapeHtml(id)}"${selected}>${escapeHtml(label)}</option>`;
+      }).join('');
 
     return `
       <section class="whats-pro-engage-assign" aria-label="Atribuir vendedor">
@@ -1486,7 +1488,7 @@
           <button type="button" class="whats-pro-engage-assign-btn is-primary" data-assign-action="assign" ${globalBusy || !state.selectedAssignAgentId ? 'disabled' : ''}>Atribuir vendedor</button>
         </div>
         ${state.dispositionAgentsLoading ? '<p class="whats-pro-engage-assign-hint">Carregando vendedores…</p>' : ''}
-        ${!state.dispositionAgentsLoading && !agents.length ? '<p class="whats-pro-engage-assign-hint">Nenhum membro activo encontrado.</p>' : ''}
+        ${!state.dispositionAgentsLoading && !agents.length ? '<p class="whats-pro-engage-assign-hint">Nenhum consultor comercial activo encontrado.</p>' : ''}
         ${state.assignError ? `<p class="whats-pro-engage-assign-error">${escapeHtml(state.assignError)}</p>` : ''}
       </section>`;
   }

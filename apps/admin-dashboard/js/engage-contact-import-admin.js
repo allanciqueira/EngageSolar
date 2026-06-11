@@ -12,13 +12,24 @@
     done: 'Concluído',
   };
 
-  const DEFAULT_TARGET_FIELDS = [
-    { key: 'phone', label: 'Telefone', required: true },
-    { key: 'name', label: 'Nome', required: false },
-    { key: 'email', label: 'E-mail', required: false },
-    { key: 'cidade', label: 'Cidade (atributo)', required: false, attribute: true },
-    { key: 'vendedor', label: 'Vendedor (atributo)', required: false, attribute: true },
-    { key: 'empresa', label: 'Empresa (atributo)', required: false, attribute: true },
+  const MAP_TARGET_OPTIONS = [
+    { value: 'ignore', label: '— Ignorar —' },
+    { value: 'phone', label: 'Telefone (phone)' },
+    { value: 'name', label: 'Nome (name)' },
+    { value: 'email', label: 'E-mail (email)' },
+    { value: 'attribute', label: 'Atributo personalizado' },
+  ];
+
+  const STANDARD_COLUMN_RULES = [
+    { target: 'phone', patterns: [/^telefone$/i, /^phone$/i, /^celular$/i, /^whatsapp$/i, /^mobile$/i, /^fone$/i] },
+    { target: 'name', patterns: [/^nome\s+do\s+contato$/i, /^nome\s+do\s+cliente$/i, /^nome\s+completo$/i, /^name$/i, /^nome$/i, /^cliente$/i] },
+    { target: 'email', patterns: [/^e-?mail$/i, /^email$/i, /^mail$/i] },
+  ];
+
+  const KNOWN_ATTRIBUTE_RULES = [
+    { key: 'vendedor', patterns: [/^vendedor$/i, /^consultor$/i, /^seller$/i, /^atribuido$/i, /^atribu[ií]do$/i] },
+    { key: 'cidade', patterns: [/^cidade$/i, /^city$/i, /^municipio$/i, /^munic[ií]pio$/i] },
+    { key: 'empresa', patterns: [/^empresa$/i, /^company$/i, /^organiza[cç][aã]o$/i] },
   ];
 
   let session = null;
@@ -28,8 +39,7 @@
   let error = '';
   let importSession = null;
   let columns = [];
-  let targetFields = [...DEFAULT_TARGET_FIELDS];
-  let mapping = {};
+  let columnMappings = [];
   let preview = null;
   let runResult = null;
   let onComplete = null;
@@ -73,38 +83,121 @@
     return [];
   }
 
-  function normalizeTargetFields(payload) {
-    if (Array.isArray(payload?.targetFields) && payload.targetFields.length) {
-      return payload.targetFields.map((field) => ({
-        key: String(field.key || field.name || ''),
-        label: String(field.label || field.key || field.name || ''),
-        required: Boolean(field.required),
-        attribute: Boolean(field.attribute || field.isAttribute),
-      })).filter((field) => field.key);
-    }
-    return [...DEFAULT_TARGET_FIELDS];
+  function normalizeHeader(header) {
+    return String(header || '').trim();
   }
 
-  function applySuggestedMapping(suggested) {
-    if (!suggested || typeof suggested !== 'object') return;
-    mapping = {};
-    Object.entries(suggested).forEach(([key, col]) => {
-      if (col) mapping[key] = String(col);
+  function slugifyAttributeKey(header) {
+    const base = normalizeHeader(header)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/_+/g, '_');
+    return base || 'campo';
+  }
+
+  function matchStandardTarget(column) {
+    const norm = normalizeHeader(column);
+    for (const rule of STANDARD_COLUMN_RULES) {
+      if (rule.patterns.some((re) => re.test(norm))) {
+        return rule.target;
+      }
+    }
+    return null;
+  }
+
+  function matchKnownAttribute(column) {
+    const norm = normalizeHeader(column);
+    for (const rule of KNOWN_ATTRIBUTE_RULES) {
+      if (rule.patterns.some((re) => re.test(norm))) {
+        return rule.key;
+      }
+    }
+    return slugifyAttributeKey(column);
+  }
+
+  function buildAutoColumnMappings(csvColumns, suggested) {
+    const cols = (csvColumns || []).map(normalizeHeader).filter(Boolean);
+    const usedStandard = new Set();
+    const usedAttrKeys = new Set();
+    const inverse = {};
+
+    if (suggested && typeof suggested === 'object') {
+      Object.entries(suggested).forEach(([key, col]) => {
+        if (!col || key === 'attributes') return;
+        inverse[String(col)] = { targetType: key, attributeKey: '' };
+      });
+      const attrs = suggested.attributes;
+      if (attrs && typeof attrs === 'object') {
+        Object.entries(attrs).forEach(([attrKey, col]) => {
+          if (col) inverse[String(col)] = { targetType: 'attribute', attributeKey: String(attrKey) };
+        });
+      }
+    }
+
+    return cols.map((column) => {
+      let targetType = 'attribute';
+      let attributeKey = matchKnownAttribute(column);
+
+      const fromApi = inverse[column];
+      if (fromApi) {
+        targetType = fromApi.targetType;
+        attributeKey = fromApi.attributeKey || (targetType === 'attribute' ? matchKnownAttribute(column) : '');
+        if (['phone', 'name', 'email'].includes(targetType)) {
+          usedStandard.add(targetType);
+        }
+      } else {
+        const standard = matchStandardTarget(column);
+        if (standard && !usedStandard.has(standard)) {
+          targetType = standard;
+          attributeKey = '';
+          usedStandard.add(standard);
+        }
+      }
+
+      if (targetType === 'attribute') {
+        let key = attributeKey || slugifyAttributeKey(column);
+        while (usedAttrKeys.has(key)) {
+          key = `${key}_2`;
+        }
+        usedAttrKeys.add(key);
+        attributeKey = key;
+      }
+
+      return { column, targetType, attributeKey };
     });
+  }
+
+  function normalizeColumnMappingsFromApi(payload, csvColumns) {
+    if (Array.isArray(payload?.columnMappings) && payload.columnMappings.length) {
+      return payload.columnMappings.map((row) => ({
+        column: normalizeHeader(row.column || row.csvColumn || row.header),
+        targetType: String(row.targetType || row.target || 'attribute'),
+        attributeKey: String(row.attributeKey || row.attrKey || ''),
+      })).filter((row) => row.column);
+    }
+    return buildAutoColumnMappings(csvColumns, payload?.suggestedMapping || payload?.suggestedColumnMapping);
   }
 
   function buildColumnMappingPayload() {
     const columnMapping = {};
     const attributes = {};
-    targetFields.forEach((field) => {
-      const col = mapping[field.key];
-      if (!col) return;
-      if (field.attribute) {
-        attributes[field.key] = col;
-      } else {
-        columnMapping[field.key] = col;
+
+    columnMappings.forEach((row) => {
+      const col = normalizeHeader(row.column);
+      if (!col || row.targetType === 'ignore') return;
+      if (row.targetType === 'phone' || row.targetType === 'name' || row.targetType === 'email') {
+        columnMapping[row.targetType] = col;
+        return;
+      }
+      if (row.targetType === 'attribute') {
+        const key = String(row.attributeKey || '').trim() || slugifyAttributeKey(col);
+        attributes[key] = col;
       }
     });
+
     if (Object.keys(attributes).length) {
       columnMapping.attributes = attributes;
     }
@@ -121,13 +214,11 @@
     };
   }
 
-  function columnOptions(selected) {
-    const opts = ['<option value="">— Ignorar —</option>']
-      .concat(columns.map((col) => {
-        const sel = col === selected ? ' selected' : '';
-        return `<option value="${escapeAttr(col)}"${sel}>${escapeHtml(col)}</option>`;
-      }));
-    return opts.join('');
+  function targetTypeOptions(selected) {
+    return MAP_TARGET_OPTIONS.map((opt) => {
+      const sel = opt.value === selected ? ' selected' : '';
+      return `<option value="${escapeAttr(opt.value)}"${sel}>${escapeHtml(opt.label)}</option>`;
+    }).join('');
   }
 
   function renderStepNav() {
@@ -153,15 +244,43 @@
   }
 
   function renderMapStep() {
-    const rows = targetFields.map((field) => `
-      <label class="ech-import-map-row">
-        <span>${escapeHtml(field.label)}${field.required ? ' <em>*</em>' : ''}</span>
-        <select data-ech-map="${escapeAttr(field.key)}">${columnOptions(mapping[field.key] || '')}</select>
-      </label>`).join('');
+    const rows = columnMappings.map((row, index) => {
+      const isAttr = row.targetType === 'attribute';
+      return `
+        <div class="ech-import-map-row" data-ech-map-index="${index}">
+          <span class="ech-import-map-col" title="${escapeAttr(row.column)}">${escapeHtml(row.column)}</span>
+          <span class="ech-import-map-arrow" aria-hidden="true">→</span>
+          <select class="ech-import-map-target" data-ech-map-target="${index}" aria-label="Destino de ${escapeAttr(row.column)}">
+            ${targetTypeOptions(row.targetType)}
+          </select>
+          <input
+            type="text"
+            class="ech-import-map-attr-key"
+            data-ech-map-attr="${index}"
+            value="${escapeAttr(row.attributeKey || '')}"
+            placeholder="chave do atributo"
+            ${isAttr ? '' : 'disabled'}
+            aria-label="Chave do atributo para ${escapeAttr(row.column)}"
+          />
+        </div>`;
+    }).join('');
+
+    const mappedCount = columnMappings.filter((r) => r.targetType !== 'ignore').length;
+
     return `
       <div class="ech-import-panel">
-        <p class="ech-import-lead">Associe cada campo Engage a uma coluna do CSV.</p>
-        <div class="ech-import-map-grid">${rows}</div>
+        <p class="ech-import-lead">
+          Mapeie cada coluna do CSV para um campo de contacto ou atributo.
+          Atributos usam a chave que você digitar (ex.: <code>vendedor</code>, <code>cidade</code>).
+        </p>
+        <p class="ec-mc-muted ech-import-map-meta">${escapeHtml(String(columns.length))} colunas · ${escapeHtml(String(mappedCount))} mapeadas automaticamente</p>
+        <div class="ech-import-map-head" aria-hidden="true">
+          <span>Coluna CSV</span>
+          <span></span>
+          <span>Campo Engage</span>
+          <span>Chave atributo</span>
+        </div>
+        <div class="ech-import-map-grid ech-import-map-grid--columns">${rows || '<p class="ec-mc-muted">Nenhuma coluna detectada no arquivo.</p>'}</div>
       </div>`;
   }
 
@@ -307,9 +426,28 @@
       drop.dataset.bound = '1';
     }
 
-    document.querySelectorAll('[data-ech-map]').forEach((select) => {
+    document.querySelectorAll('[data-ech-map-target]').forEach((select) => {
       select.addEventListener('change', () => {
-        mapping[select.dataset.echMap] = select.value || '';
+        const index = Number(select.dataset.echMapTarget);
+        const row = columnMappings[index];
+        if (!row) return;
+        row.targetType = select.value || 'ignore';
+        if (row.targetType === 'attribute' && !row.attributeKey) {
+          row.attributeKey = slugifyAttributeKey(row.column);
+        }
+        if (row.targetType !== 'attribute') {
+          row.attributeKey = '';
+        }
+        render();
+      });
+    });
+
+    document.querySelectorAll('[data-ech-map-attr]').forEach((input) => {
+      input.addEventListener('input', () => {
+        const index = Number(input.dataset.echMapAttr);
+        const row = columnMappings[index];
+        if (!row) return;
+        row.attributeKey = input.value;
       });
     });
 
@@ -337,12 +475,7 @@
       const payload = await api().uploadContactImport(session, file);
       importSession = payload;
       columns = normalizeColumns(payload);
-      targetFields = normalizeTargetFields(payload);
-      applySuggestedMapping(payload.suggestedMapping || payload.suggestedColumnMapping);
-      if (!mapping.phone && columns.length) {
-        const phoneCol = columns.find((c) => /telefone|phone|celular|whatsapp/i.test(c));
-        if (phoneCol) mapping.phone = phoneCol;
-      }
+      columnMappings = normalizeColumnMappingsFromApi(payload, columns);
       step = 'map';
     } catch (err) {
       error = api().mapApiError(err).message;
@@ -392,9 +525,9 @@
   }
 
   function validateMapping() {
-    const phoneMapped = Boolean(mapping.phone);
-    if (!phoneMapped) {
-      error = 'Mapeie a coluna Telefone — é obrigatória.';
+    const payload = buildColumnMappingPayload();
+    if (!payload.phone) {
+      error = 'Mapeie pelo menos uma coluna como Telefone (phone) — é obrigatório.';
       render();
       return false;
     }
@@ -440,8 +573,7 @@
     error = '';
     importSession = null;
     columns = [];
-    targetFields = [...DEFAULT_TARGET_FIELDS];
-    mapping = {};
+    columnMappings = [];
     preview = null;
     runResult = null;
   }

@@ -449,26 +449,60 @@ body[data-es-panel-active="engage-config"] #engageContactHubFilters input {
   color: var(--es-text-muted);
 }
 
+.ech-import-map-meta {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+}
+
+.ech-import-map-head {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.2fr) 1.5rem minmax(160px, 1fr) minmax(140px, 1fr);
+  gap: 0.5rem 0.65rem;
+  margin-bottom: 0.45rem;
+  padding: 0 0.1rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--es-text-muted);
+}
+
 .ech-import-map-grid {
   display: grid;
   gap: 0.65rem;
 }
 
+.ech-import-map-grid--columns {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
 .ech-import-map-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(0, 1.4fr);
-  gap: 0.65rem;
+  grid-template-columns: minmax(140px, 1.2fr) 1.5rem minmax(160px, 1fr) minmax(140px, 1fr);
+  gap: 0.5rem 0.65rem;
   align-items: center;
   font-size: 0.8125rem;
   color: var(--es-text);
 }
 
-.ech-import-map-row em {
-  color: #dc2626;
-  font-style: normal;
+.ech-import-map-col {
+  font-weight: 600;
+  color: var(--es-navy);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.ech-import-map-row select {
+.ech-import-map-arrow {
+  text-align: center;
+  color: var(--es-text-muted);
+  font-size: 0.85rem;
+}
+
+.ech-import-map-row select,
+.ech-import-map-row input[type="text"] {
   padding: 0.5rem 0.65rem;
   border-radius: 10px;
   border: 1px solid var(--es-border);
@@ -476,6 +510,13 @@ body[data-es-panel-active="engage-config"] #engageContactHubFilters input {
   color: var(--es-text);
   font-family: var(--es-font);
   font-size: 0.8125rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.ech-import-map-row input[type="text"]:disabled {
+  background: #f1f5f9;
+  color: var(--es-text-muted);
 }
 
 .ech-import-stats {
@@ -569,8 +610,19 @@ body[data-es-panel-active="engage-config"] #engageContactHubFilters input {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .ech-import-map-head {
+    display: none;
+  }
+
   .ech-import-map-row {
     grid-template-columns: 1fr;
+    gap: 0.35rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--es-border);
+  }
+
+  .ech-import-map-arrow {
+    display: none;
   }
   .ech-filters input[type="search"],
   .ech-filters input[type="text"] {
