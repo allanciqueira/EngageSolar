@@ -84,6 +84,11 @@
     dispositionBusy: false,
     dispositionError: '',
     dispositionNote: '',
+    dispositionAgents: [],
+    dispositionAgentsLoading: false,
+    assignBusy: false,
+    assignError: '',
+    selectedAssignAgentId: '',
     dom: {},
   };
 
@@ -1302,6 +1307,11 @@
     state.dispositionBusy = false;
     state.dispositionError = '';
     state.dispositionNote = '';
+    state.dispositionAgents = [];
+    state.dispositionAgentsLoading = false;
+    state.assignBusy = false;
+    state.assignError = '';
+    state.selectedAssignAgentId = '';
     renderDispositionBar();
   }
 
@@ -1341,6 +1351,9 @@
       if (ctx?.dispositionNote) {
         state.dispositionNote = String(ctx.dispositionNote);
       }
+      if (state.dispositionMode !== 'hidden') {
+        void loadDispositionAgents();
+      }
     } catch (error) {
       if (seq !== dispositionRequestSeq) {
         return;
@@ -1357,6 +1370,148 @@
         renderDispositionBar();
       }
     }
+  }
+
+  async function loadDispositionAgents() {
+    const api = window.EngageDispositionApi;
+    const tenantId = state.selectedTenantId;
+    if (!api || !tenantId || state.dispositionMode === 'hidden') {
+      state.dispositionAgents = [];
+      return;
+    }
+    if (state.dispositionAgents.length && !state.dispositionAgentsLoading) {
+      return;
+    }
+
+    state.dispositionAgentsLoading = true;
+    renderDispositionBar();
+    try {
+      state.dispositionAgents = await api.getAgents(state.session, tenantId);
+    } catch (error) {
+      state.dispositionAgents = [];
+      state.assignError = formatUserError(error, 'whatsappInbox');
+    } finally {
+      state.dispositionAgentsLoading = false;
+      renderDispositionBar();
+    }
+  }
+
+  async function applyConversationAssign(agentUserId) {
+    const api = window.EngageDispositionApi;
+    const conversation = state.conversations.find((item) => item.id === state.selectedConversationId);
+    if (!api || !conversation || state.assignBusy) {
+      return;
+    }
+
+    state.assignBusy = true;
+    state.assignError = '';
+    renderDispositionBar();
+
+    try {
+      const result = await api.assignAgent(
+        state.session,
+        state.selectedTenantId,
+        conversation.id,
+        agentUserId,
+      );
+      state.disposition = {
+        ...(state.disposition || {}),
+        assignedAgentId: result?.assignedAgentId ?? null,
+        assignedAgentName: result?.assignedAgentName ?? null,
+      };
+      state.selectedAssignAgentId = '';
+    } catch (error) {
+      state.assignError = formatUserError(error, 'whatsappInbox');
+    } finally {
+      state.assignBusy = false;
+      renderDispositionBar();
+    }
+  }
+
+  function renderSellerAssignSection(api, ctx, busy) {
+    const agents = Array.isArray(state.dispositionAgents) ? state.dispositionAgents : [];
+    const assignedId = String(ctx.assignedAgentId || '').trim();
+    const assignedName = String(ctx.assignedAgentName || '').trim();
+    const assignBusy = state.assignBusy || state.dispositionAgentsLoading;
+    const globalBusy = busy || assignBusy;
+
+    if (assignedId) {
+      const swapOptions = agents
+        .filter((agent) => String(agent.userId || '') !== assignedId)
+        .map((agent) => {
+          const id = String(agent.userId || '');
+          const label = api.agentLabel(agent);
+          const selected = state.selectedAssignAgentId === id ? ' selected' : '';
+          return `<option value="${escapeHtml(id)}"${selected}>${escapeHtml(label)}</option>`;
+        })
+        .join('');
+
+      return `
+        <section class="whats-pro-engage-assign" aria-label="Vendedor atribuído">
+          <div class="whats-pro-engage-assign-head">
+            <span class="whats-pro-engage-assign-label">Vendedor</span>
+            <span class="whats-pro-engage-assign-badge">${escapeHtml(assignedName || 'Atribuído')}</span>
+          </div>
+          <div class="whats-pro-engage-assign-actions">
+            <button type="button" class="whats-pro-engage-assign-btn is-ghost" data-assign-action="remove" ${globalBusy ? 'disabled' : ''}>Remover</button>
+            ${swapOptions ? `
+              <select class="whats-pro-engage-assign-select" id="botInboxAssignSwap" ${globalBusy ? 'disabled' : ''} aria-label="Trocar vendedor">
+                <option value="">Trocar vendedor…</option>
+                ${swapOptions}
+              </select>
+              <button type="button" class="whats-pro-engage-assign-btn is-primary" data-assign-action="swap" ${globalBusy || !state.selectedAssignAgentId ? 'disabled' : ''}>Trocar</button>
+            ` : ''}
+          </div>
+          ${state.assignError ? `<p class="whats-pro-engage-assign-error">${escapeHtml(state.assignError)}</p>` : ''}
+        </section>`;
+    }
+
+    const options = agents.map((agent) => {
+      const id = String(agent.userId || '');
+      const label = api.agentLabel(agent);
+      const selected = state.selectedAssignAgentId === id ? ' selected' : '';
+      return `<option value="${escapeHtml(id)}"${selected}>${escapeHtml(label)}</option>`;
+    }).join('');
+
+    return `
+      <section class="whats-pro-engage-assign" aria-label="Atribuir vendedor">
+        <div class="whats-pro-engage-assign-head">
+          <span class="whats-pro-engage-assign-label">Vendedor</span>
+        </div>
+        <div class="whats-pro-engage-assign-actions">
+          <select class="whats-pro-engage-assign-select" id="botInboxAssignSelect" ${globalBusy ? 'disabled' : ''} aria-label="Selecionar vendedor">
+            <option value="">Selecionar vendedor…</option>
+            ${options}
+          </select>
+          <button type="button" class="whats-pro-engage-assign-btn is-primary" data-assign-action="assign" ${globalBusy || !state.selectedAssignAgentId ? 'disabled' : ''}>Atribuir vendedor</button>
+        </div>
+        ${state.dispositionAgentsLoading ? '<p class="whats-pro-engage-assign-hint">Carregando vendedores…</p>' : ''}
+        ${!state.dispositionAgentsLoading && !agents.length ? '<p class="whats-pro-engage-assign-hint">Nenhum membro activo encontrado.</p>' : ''}
+        ${state.assignError ? `<p class="whats-pro-engage-assign-error">${escapeHtml(state.assignError)}</p>` : ''}
+      </section>`;
+  }
+
+  function bindSellerAssignEvents(el) {
+    el.querySelector('#botInboxAssignSelect')?.addEventListener('change', (event) => {
+      state.selectedAssignAgentId = event.target.value || '';
+      renderDispositionBar();
+    });
+    el.querySelector('#botInboxAssignSwap')?.addEventListener('change', (event) => {
+      state.selectedAssignAgentId = event.target.value || '';
+      renderDispositionBar();
+    });
+    el.querySelectorAll('[data-assign-action]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const action = button.dataset.assignAction;
+        if (action === 'remove') {
+          void applyConversationAssign(null);
+          return;
+        }
+        if ((action === 'assign' || action === 'swap') && state.selectedAssignAgentId) {
+          void applyConversationAssign(state.selectedAssignAgentId);
+        }
+      });
+    });
   }
 
   async function applyCampaignDisposition(kind) {
@@ -1414,17 +1569,24 @@
       : '';
     const reasoning = String(ctx.lossReasoning || '').trim();
 
+    const sellerHtml = api ? renderSellerAssignSection(api, ctx, busy) : '';
+
     if (mode === 'warning') {
       el.innerHTML = `
-        <div class="whats-pro-engage-disposition is-warning">
-          <div class="whats-pro-engage-disposition-head">
-            <span class="whats-pro-engage-disposition-title">Engage — resposta da campanha</span>
+        <div class="whats-pro-engage-bar is-warning">
+          ${sellerHtml}
+          <div class="whats-pro-engage-divider" role="separator" aria-hidden="true"></div>
+          <div class="whats-pro-engage-disposition is-warning">
+            <div class="whats-pro-engage-disposition-head">
+              <span class="whats-pro-engage-disposition-title">Engage — resposta da campanha</span>
+            </div>
+            <p class="whats-pro-engage-disposition-warning">
+              Resposta de campanha detectada, mas sem contacto no Contact Hub para este número. Importe ou sincronize o contacto para classificar.
+            </p>
+            ${state.dispositionError ? `<p class="whats-pro-engage-disposition-error">${escapeHtml(state.dispositionError)}</p>` : ''}
           </div>
-          <p class="whats-pro-engage-disposition-warning">
-            Resposta de campanha detectada, mas sem contacto no Contact Hub para este número. Importe ou sincronize o contacto para classificar.
-          </p>
-          ${state.dispositionError ? `<p class="whats-pro-engage-disposition-error">${escapeHtml(state.dispositionError)}</p>` : ''}
         </div>`;
+      bindSellerAssignEvents(el);
       return;
     }
 
@@ -1434,23 +1596,29 @@
       </button>`).join('');
 
     el.innerHTML = `
-      <div class="whats-pro-engage-disposition ${busy ? 'is-busy' : ''}">
-        <div class="whats-pro-engage-disposition-head">
-          <span class="whats-pro-engage-disposition-title">Engage — resposta da campanha</span>
-          <span class="whats-pro-engage-disposition-badge">${escapeHtml(badgeLabel)}</span>
+      <div class="whats-pro-engage-bar">
+        ${sellerHtml}
+        <div class="whats-pro-engage-divider" role="separator" aria-hidden="true"></div>
+        <div class="whats-pro-engage-disposition ${busy ? 'is-busy' : ''}">
+          <div class="whats-pro-engage-disposition-head">
+            <span class="whats-pro-engage-disposition-title">Engage — resposta da campanha</span>
+            <span class="whats-pro-engage-disposition-badge">${escapeHtml(badgeLabel)}</span>
+          </div>
+          ${returnLine ? `<p class="whats-pro-engage-disposition-meta">${escapeHtml(returnLine)}</p>` : ''}
+          ${reasoning ? `<p class="whats-pro-engage-disposition-reason">${escapeHtml(reasoning)}</p>` : ''}
+          <div class="whats-pro-engage-disposition-actions" role="group" aria-label="Classificar lead da campanha">
+            ${buttons}
+          </div>
+          <label class="whats-pro-engage-disposition-note">
+            <span class="visually-hidden">Nota opcional</span>
+            <input type="text" id="botInboxDispositionNote" maxlength="2000" placeholder="Nota opcional (ex.: pediu retorno após obra)" value="${escapeHtml(state.dispositionNote)}" ${busy ? 'disabled' : ''} autocomplete="off" />
+          </label>
+          ${state.dispositionError ? `<p class="whats-pro-engage-disposition-error">${escapeHtml(state.dispositionError)}</p>` : ''}
+          ${state.dispositionLoading ? '<p class="whats-pro-engage-disposition-loading">Carregando classificação…</p>' : ''}
         </div>
-        ${returnLine ? `<p class="whats-pro-engage-disposition-meta">${escapeHtml(returnLine)}</p>` : ''}
-        ${reasoning ? `<p class="whats-pro-engage-disposition-reason">${escapeHtml(reasoning)}</p>` : ''}
-        <div class="whats-pro-engage-disposition-actions" role="group" aria-label="Classificar lead da campanha">
-          ${buttons}
-        </div>
-        <label class="whats-pro-engage-disposition-note">
-          <span class="visually-hidden">Nota opcional</span>
-          <input type="text" id="botInboxDispositionNote" maxlength="2000" placeholder="Nota opcional (ex.: pediu retorno após obra)" value="${escapeHtml(state.dispositionNote)}" ${busy ? 'disabled' : ''} autocomplete="off" />
-        </label>
-        ${state.dispositionError ? `<p class="whats-pro-engage-disposition-error">${escapeHtml(state.dispositionError)}</p>` : ''}
-        ${state.dispositionLoading ? '<p class="whats-pro-engage-disposition-loading">Carregando classificação…</p>' : ''}
       </div>`;
+
+    bindSellerAssignEvents(el);
 
     el.querySelector('#botInboxDispositionNote')?.addEventListener('input', (event) => {
       state.dispositionNote = event.target.value;
@@ -2513,6 +2681,9 @@
     state.dispositionMode = 'hidden';
     state.dispositionError = '';
     state.dispositionNote = '';
+    state.dispositionAgents = [];
+    state.assignError = '';
+    state.selectedAssignAgentId = '';
     renderDispositionBar();
     renderThreadLoading();
     renderCrm();

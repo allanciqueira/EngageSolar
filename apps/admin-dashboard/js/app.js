@@ -63,6 +63,7 @@
   ];
 
   const PANEL_TITLES = {
+    dashboard: 'Dashboard',
     leads: 'Leads',
     conversas: 'Conversas',
     'central-respostas': 'Central de Respostas',

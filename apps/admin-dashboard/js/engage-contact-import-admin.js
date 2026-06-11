@@ -5,7 +5,7 @@
 (function () {
   const STEPS = ['upload', 'map', 'preview', 'run', 'done'];
   const STEP_LABELS = {
-    upload: 'Ficheiro',
+    upload: 'Arquivo',
     map: 'Mapeamento',
     preview: 'Pré-visualização',
     run: 'Importar',
@@ -142,13 +142,13 @@
   function renderUploadStep() {
     return `
       <div class="ech-import-panel">
-        <p class="ech-import-lead">Seleccione um ficheiro CSV com telefones e atributos dos contactos.</p>
+        <p class="ech-import-lead">Selecione um arquivo CSV com telefones e atributos dos contactos.</p>
         <label class="ech-import-drop" id="echImportDrop">
           <input type="file" id="echImportFile" accept=".csv,text/csv" hidden />
           <strong>Clique ou arraste o CSV</strong>
           <span>Colunas típicas: Telefone, Nome, Cidade, Vendedor</span>
         </label>
-        ${importSession?.fileName ? `<p class="ec-mc-muted">Ficheiro: <strong>${escapeHtml(importSession.fileName)}</strong></p>` : ''}
+        ${importSession?.fileName ? `<p class="ec-mc-muted">Arquivo: <strong>${escapeHtml(importSession.fileName)}</strong></p>` : ''}
       </div>`;
   }
 
@@ -414,7 +414,7 @@
   async function goNext() {
     if (busy) return;
     if (step === 'upload') {
-      error = 'Seleccione um ficheiro CSV para continuar.';
+      error = 'Selecione um arquivo CSV para continuar.';
       render();
       return;
     }

@@ -33,6 +33,30 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.es-brand-collapse {
+  display: none;
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  place-items: center;
+  padding: 0;
+  transition: background 0.15s ease;
+}
+
+.es-brand-collapse:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.es-app[data-sidebar="collapsed"] .es-brand-collapse svg {
+  transform: rotate(180deg);
+}
+
 .es-brand-mark {
   width: 36px;
   height: 36px;
@@ -385,6 +409,50 @@
   min-width: 0;
 }
 
+.es-header-menu-btn,
+.es-header-mobile-title {
+  display: none;
+}
+
+.es-header-menu-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  place-items: center;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.es-header-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.es-header-menu-btn:active {
+  transform: scale(0.96);
+}
+
+.es-header-mobile-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .es-header-search {
   position: relative;
   flex: 1 1 auto;
@@ -608,39 +676,6 @@
   margin-left: 0.1rem;
 }
 
-.es-topbar-mobile {
-  display: none;
-  padding: 0.65rem 1rem;
-  background: var(--es-surface);
-  border-bottom: 1px solid var(--es-border);
-  gap: 0.5rem;
-}
-
-.es-topbar-toggle {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  border: 1px solid var(--es-border);
-  border-radius: 10px;
-  background: var(--es-surface);
-  cursor: pointer;
-  font-size: 1.15rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.es-topbar-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--es-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .es-nav-scrim {
   position: fixed;
   inset: 0;
@@ -755,9 +790,14 @@ body[data-es-panel-active="conversas"] .es-page-heading {
     grid-template-columns: 1fr;
   }
 
+  .es-brand-collapse {
+    display: none;
+  }
+
   /* Header abaixo do drawer — antes ambos tinham z-index 40 e o header ganhava pelo DOM */
   .es-header {
     z-index: 10;
+    padding-top: max(0.75rem, env(safe-area-inset-top));
   }
 
   .es-header-actions {
@@ -790,30 +830,16 @@ body[data-es-panel-active="conversas"] .es-page-heading {
     box-shadow: 8px 0 32px rgba(0, 0, 0, 0.22);
   }
 
-  .es-app[data-mobile-nav="open"] .es-main .es-header,
-  .es-app[data-mobile-nav="open"] .es-topbar-mobile {
+  .es-app[data-mobile-nav="open"] .es-main .es-header {
     pointer-events: none;
-  }
-
-  .es-topbar-mobile {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    padding-top: max(0.65rem, env(safe-area-inset-top));
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
-  }
-
-  .es-topbar-toggle--desktop {
-    display: none;
   }
 
   .es-header {
     min-height: auto;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 1rem 0.85rem;
+    padding-top: max(0.75rem, env(safe-area-inset-top));
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
-    /* z-index definido no bloco acima */
   }
 
   .es-header-inner--toolbar {
@@ -821,25 +847,48 @@ body[data-es-panel-active="conversas"] .es-page-heading {
   }
 
   .es-header-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 0.65rem 0.75rem;
+    align-items: center;
     width: 100%;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  }
+
+  .es-header-menu-btn,
+  .es-header-mobile-title {
+    display: block;
+  }
+
+  .es-header-menu-btn {
+    display: grid;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .es-header-mobile-title {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .es-header-actions {
+    grid-column: 3;
+    grid-row: 1;
+    width: auto;
+    justify-content: flex-end;
+    gap: 0.4rem;
   }
 
   .es-header-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
     max-width: none;
     width: 100%;
-    order: 2;
   }
 
   .es-header-search input {
     font-size: 16px;
-  }
-
-  .es-header-actions {
-    order: 1;
-    width: 100%;
-    justify-content: flex-end;
+    height: 2.5rem;
   }
 
   .es-profile-text {
@@ -848,6 +897,16 @@ body[data-es-panel-active="conversas"] .es-page-heading {
 
   .es-profile-chev {
     display: none;
+  }
+
+  .es-profile-chip {
+    height: 2.5rem;
+    padding: 0 0.35rem 0 0.22rem;
+  }
+
+  .es-icon-btn {
+    width: 2.5rem;
+    height: 2.5rem;
   }
 
   .es-content {
@@ -860,8 +919,13 @@ body[data-es-panel-active="conversas"] .es-page-heading {
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Título já aparece no header gradiente */
   .es-page-heading h1 {
-    font-size: 1.35rem;
+    display: none;
+  }
+
+  .es-page-heading {
+    margin-bottom: 0.5rem;
   }
 
   .es-page-heading p {
@@ -873,6 +937,10 @@ body[data-es-panel-active="conversas"] .es-page-heading {
   .es-nav-scrim {
     display: none !important;
   }
+
+  .es-brand-collapse {
+    display: grid;
+  }
 }
 
 @media (max-width: 640px) {
@@ -880,11 +948,8 @@ body[data-es-panel-active="conversas"] .es-page-heading {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .es-page-heading h1 {
-    font-size: 1.2rem;
-  }
-
-  .es-header-search {
-    order: 3;
+  /* Oculta ícones secundários — mantém notificações e perfil na mesma linha do menu */
+  .es-header-actions .es-icon-btn:not(#esNotifyBtn) {
+    display: none;
   }
 }

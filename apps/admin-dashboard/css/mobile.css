@@ -24,10 +24,10 @@
     min-height: 0;
   }
 
-  /* Altura útil abaixo do topbar mobile + safe-area */
+  /* Altura útil abaixo do header unificado + safe-area */
   .es-main {
     --es-mobile-chrome: calc(
-      3.25rem + max(0.65rem, env(safe-area-inset-top, 0px)) + 0.85rem
+      max(0.75rem, env(safe-area-inset-top, 0px)) + 6.75rem
     );
   }
 
@@ -533,15 +533,6 @@
 
   .es-kpi-card strong {
     font-size: 1.25rem;
-  }
-
-  .es-header-actions .es-icon-btn:not(:last-child) {
-    display: none;
-  }
-
-  .es-header-actions .es-icon-btn#esNotifyBtn,
-  .es-header-actions .es-profile-wrap {
-    display: flex;
   }
 
   .ech-import-stats {
