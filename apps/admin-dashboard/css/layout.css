@@ -144,7 +144,7 @@
   align-items: center;
   gap: 0.65rem;
   width: 100%;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0.45rem 0.75rem;
   border: none;
   border-radius: 8px;
@@ -617,12 +617,55 @@
 }
 
 .es-topbar-toggle {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border: 1px solid var(--es-border);
   border-radius: 10px;
   background: var(--es-surface);
   cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.es-topbar-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--es-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.es-nav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(11, 42, 91, 0.45);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+  animation: es-scrim-in 0.2s ease;
+}
+
+.es-nav-scrim[hidden] {
+  display: none !important;
+}
+
+@keyframes es-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+body.es-mobile-nav-open {
+  overflow: hidden;
+  touch-action: none;
 }
 
 /* Área branca com cantos superiores arredondados (como no mock) */
@@ -712,25 +755,65 @@ body[data-es-panel-active="conversas"] .es-page-heading {
     grid-template-columns: 1fr;
   }
 
+  /* Header abaixo do drawer — antes ambos tinham z-index 40 e o header ganhava pelo DOM */
+  .es-header {
+    z-index: 10;
+  }
+
+  .es-header-actions {
+    z-index: 11;
+  }
+
+  .es-profile-wrap {
+    z-index: 12;
+  }
+
+  .es-nav-scrim {
+    z-index: 90;
+  }
+
   .es-sidebar {
     position: fixed;
-    width: var(--es-sidebar-width);
-    transform: translateX(-100%);
-    transition: transform 0.2s ease;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(var(--es-sidebar-width), 88vw);
+    max-width: 300px;
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    z-index: 100;
+    box-shadow: none;
   }
 
   .es-app[data-mobile-nav="open"] .es-sidebar {
     transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.22);
+  }
+
+  .es-app[data-mobile-nav="open"] .es-main .es-header,
+  .es-app[data-mobile-nav="open"] .es-topbar-mobile {
+    pointer-events: none;
   }
 
   .es-topbar-mobile {
     display: flex;
     align-items: center;
+    gap: 0.65rem;
+    padding-top: max(0.65rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .es-topbar-toggle--desktop {
+    display: none;
   }
 
   .es-header {
     min-height: auto;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    /* z-index definido no bloco acima */
   }
 
   .es-header-inner--toolbar {
@@ -740,6 +823,7 @@ body[data-es-panel-active="conversas"] .es-page-heading {
   .es-header-toolbar {
     width: 100%;
     flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .es-header-search {
@@ -748,14 +832,59 @@ body[data-es-panel-active="conversas"] .es-page-heading {
     order: 2;
   }
 
+  .es-header-search input {
+    font-size: 16px;
+  }
+
   .es-header-actions {
     order: 1;
     width: 100%;
     justify-content: flex-end;
   }
 
+  .es-profile-text {
+    display: none;
+  }
+
+  .es-profile-chev {
+    display: none;
+  }
+
   .es-content {
     padding: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
     border-radius: 1rem 1rem 0 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .es-page-heading h1 {
+    font-size: 1.35rem;
+  }
+
+  .es-page-heading p {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (min-width: 961px) {
+  .es-nav-scrim {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .es-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .es-page-heading h1 {
+    font-size: 1.2rem;
+  }
+
+  .es-header-search {
+    order: 3;
   }
 }

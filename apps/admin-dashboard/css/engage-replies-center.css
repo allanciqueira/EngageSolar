@@ -552,3 +552,15 @@ body[data-es-panel-active="central-respostas"] .es-panel[data-es-panel="central-
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+@media (max-width: 640px) {
+  .erc-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .erc-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+}

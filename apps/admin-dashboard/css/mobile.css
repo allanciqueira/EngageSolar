@@ -1,0 +1,554 @@
+/* Engage Solar — responsividade transversal (carregar por último) */
+
+/* Master-detail → coluna única em tablets (settings pro-page) */
+@media (max-width: 1100px) {
+  .pro-page {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pro-list {
+    max-height: min(42vh, 320px);
+  }
+}
+
+/* ── Tablet / mobile (≤960px) ─────────────────────────────────────────── */
+
+@media (max-width: 960px) {
+  .es-app {
+    min-height: 100dvh;
+    min-height: 100vh;
+  }
+
+  .es-main {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* Altura útil abaixo do topbar mobile + safe-area */
+  .es-main {
+    --es-mobile-chrome: calc(
+      3.25rem + max(0.65rem, env(safe-area-inset-top, 0px)) + 0.85rem
+    );
+  }
+
+  /* ── Tabelas e listas largas ── */
+  .engage-config-table-scroll,
+  .ech-table-wrap,
+  .engage-campaign-table-wrap,
+  .erc-table-wrap,
+  .audit-panel-table-wrap,
+  .security-admin-table-wrap,
+  .ec-mc-table-wrap,
+  .et-table-wrap,
+  .members-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .engage-config-table,
+  .ech-table,
+  .engage-config-table th,
+  .engage-config-table td,
+  .audit-panel-table th,
+  .audit-panel-table td {
+    font-size: 0.78rem;
+  }
+
+  /* ── Dashboard ── */
+  body[data-es-panel-active="dashboard"] .es-dashboard-grid {
+    gap: 0.85rem;
+  }
+
+  body[data-es-panel-active="dashboard"] .es-kpi-grid {
+    gap: 0.75rem;
+  }
+
+  /* ── Conversas (WhatsApp) ── */
+  body[data-es-panel-active="conversas"] .es-content {
+    padding: 0.5rem 0.65rem;
+    padding-left: max(0.65rem, env(safe-area-inset-left));
+    padding-right: max(0.65rem, env(safe-area-inset-right));
+    padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+    flex: 1;
+    min-height: 0;
+  }
+
+  body[data-es-panel-active="conversas"] .es-panel--conversas .whats-pro-card {
+    height: calc(100dvh - var(--es-mobile-chrome));
+    max-height: calc(100dvh - var(--es-mobile-chrome));
+  }
+
+  /* ── Central de Respostas ── */
+  .erc-shell {
+    padding: 14px 12px 20px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+
+  .erc-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .erc-main-grid,
+  .erc-main-col {
+    grid-template-columns: 1fr;
+  }
+
+  .erc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .erc-toolbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .erc-field {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .erc-table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .erc-table-tools {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .erc-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .erc-side-col {
+    order: 2;
+  }
+
+  /* ── Campanhas ── */
+  .engage-campaign-shell {
+    padding: 14px 12px 24px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+
+  .engage-campaign-visual-row {
+    grid-template-columns: 1fr;
+  }
+
+  .engage-campaign-health-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .engage-campaign-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .engage-campaign-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .engage-campaign-field {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .engage-campaign-field select {
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .engage-config-tabs-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .engage-config-tabs {
+    flex-wrap: nowrap;
+    min-width: min-content;
+  }
+
+  /* ── Clientes ── */
+  .clients-pro-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clients-pro-toolbar-main {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .clients-pro-tenant,
+  .clients-pro-date-field,
+  .clients-pro-date {
+    width: 100%;
+  }
+
+  .clients-pro-tenant select,
+  .clients-pro-date-field select,
+  .clients-pro-date input {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .pro-page,
+  .clients-pro-shell {
+    min-width: 0;
+  }
+
+  .pro-list-panel,
+  .pro-detail-panel {
+    min-width: 0;
+  }
+
+  /* ── Engage Config ── */
+  body[data-es-panel-active="engage-config"] .es-content {
+    margin-top: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .ec-body {
+    padding: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .ec-subnav {
+    padding: 0.6rem 0.85rem;
+    padding-left: max(0.85rem, env(safe-area-inset-left));
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ec-subnav-tab {
+    font-size: 0.75rem;
+    padding: 0.45rem 0.7rem;
+    flex-shrink: 0;
+  }
+
+  .ec-mc-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ec-mc-head-actions,
+  .ech-crm-actions {
+    width: 100%;
+  }
+
+  .ec-mc-head-actions .ec-mc-btn,
+  .ech-crm-actions .ec-mc-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  /* Templates Meta */
+  .et-shell {
+    padding: 1rem 0.85rem 1.5rem;
+    padding-left: max(0.85rem, env(safe-area-inset-left));
+    padding-right: max(0.85rem, env(safe-area-inset-right));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  .et-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .et-head-actions {
+    width: 100%;
+  }
+
+  .et-head-actions .et-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .et-wizard-grid,
+  .et-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .et-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Contact Hub */
+  .ech-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ech-filters input[type="search"],
+  .ech-filters input[type="text"],
+  #engageContactHubFilters input {
+    max-width: none;
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .ech-filters .ec-mc-btn {
+    width: 100%;
+  }
+
+  /* Modais import / audiências */
+  .ech-import-modal {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .ech-import-dialog {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 1rem 1rem 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .ech-import-map-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Configurações (settings) ── */
+  body.es-mode-settings .config-operador-pro-shell,
+  body.es-mode-settings .services-pro-shell,
+  body.es-mode-settings .plano-uso-shell,
+  body.es-mode-settings .tenant-kb-pro-shell,
+  body.es-mode-settings .wa-api-pro-page,
+  body.es-mode-settings .members-page,
+  body.es-mode-settings .audit-panel-shell,
+  body.es-mode-settings .operator-config-shell {
+    min-height: min(100%, calc(100dvh - var(--es-mobile-chrome)));
+  }
+
+  body.es-mode-settings[data-es-panel-active="profissionais"] .es-panel--settings[data-es-panel="profissionais"],
+  body.es-mode-settings[data-es-panel-active="usuarios"] .es-panel--settings[data-es-panel="usuarios"] {
+    padding: 12px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  .operator-config-toolbar,
+  .audit-panel-toolbar,
+  .security-admin-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .operator-config-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .operator-config-actions {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .operator-config-toolbar-buttons {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .operator-config-toolbar-buttons .btn {
+    flex: 1 1 auto;
+  }
+
+  .security-admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .security-admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .security-admin-field-span-2,
+  .audit-panel-field-search {
+    grid-column: auto;
+  }
+
+  .audit-panel-filters {
+    width: 100%;
+  }
+
+  .audit-panel-filter-actions {
+    width: 100%;
+  }
+
+  .audit-panel-filter-actions .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+
+  body[data-es-panel-active="informacoes-adicionais"] .tenant-kb-pro-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body[data-es-panel-active="informacoes-adicionais"] .tenant-kb-pro-head-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  body[data-es-panel-active="informacoes-adicionais"] .operator-config-form-grid,
+  body[data-es-panel-active="informacoes-adicionais"] .tenant-kb-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plano-uso-head,
+  .plano-uso-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .plano-uso-head-actions {
+    width: 100%;
+  }
+
+  /* ── Placeholders (Leads, Automação, etc.) ── */
+  .es-placeholder {
+    padding: 2rem 1rem;
+    margin: 0.5rem;
+  }
+
+  /* ── Botões tácteis ── */
+  .ec-mc-btn,
+  .engage-config-btn,
+  .erc-tab,
+  .engage-campaign-link,
+  .et-btn,
+  .erc-btn {
+    min-height: 44px;
+  }
+
+  .ec-mc-btn--ghost,
+  .engage-config-btn {
+    min-height: 40px;
+  }
+
+  /* Inputs iOS — evita zoom ao focar */
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="password"],
+  input[type="date"],
+  input[type="datetime-local"],
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* ── Telefone (≤640px) ────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .es-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+
+  .engage-campaign-kpi-grid,
+  .erc-kpi-grid,
+  .operator-config-kpis,
+  .security-admin-kpis,
+  .audit-panel-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-panel-kpi strong,
+  .security-admin-kpi strong {
+    font-size: 1.5rem;
+  }
+
+  .ech-import-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .engage-campaign-funnel-step {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .engage-campaign-funnel-step strong {
+    text-align: left;
+  }
+
+  .engage-campaign-donut-wrap {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .et-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .erc-list-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .erc-list-item-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .erc-list-item-actions .erc-btn {
+    flex: 1 1 auto;
+  }
+
+  .members-page-head-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sales-consultants-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ── Telefone pequeno (≤480px) ─────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .es-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .es-kpi-card strong {
+    font-size: 1.25rem;
+  }
+
+  .es-header-actions .es-icon-btn:not(:last-child) {
+    display: none;
+  }
+
+  .es-header-actions .es-icon-btn#esNotifyBtn,
+  .es-header-actions .es-profile-wrap {
+    display: flex;
+  }
+
+  .ech-import-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .engage-campaign-hourly-chart {
+    grid-template-columns: repeat(24, 24px);
+  }
+}

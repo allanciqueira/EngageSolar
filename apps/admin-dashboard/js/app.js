@@ -214,9 +214,44 @@
     });
   }
 
+  function isMobileViewport() {
+    return window.matchMedia('(max-width: 960px)').matches;
+  }
+
+  function setMobileNav(open) {
+    const app = qs('.es-app');
+    const scrim = qs('#esNavScrim');
+    const toggle = qs('#esMobileToggle');
+    if (!app) return;
+    const next = open ? 'open' : 'closed';
+    app.dataset.mobileNav = next;
+    document.body.classList.toggle('es-mobile-nav-open', open && isMobileViewport());
+    if (scrim) scrim.hidden = !open || !isMobileViewport();
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+    }
+  }
+
+  function closeMobileNav() {
+    setMobileNav(false);
+  }
+
+  function openMobileNav() {
+    if (isMobileViewport()) setMobileNav(true);
+  }
+
+  function updateMobileTitle(panelId) {
+    const title = qs('#esMobileTitle');
+    if (!title) return;
+    title.textContent = PANEL_TITLES[panelId] || panelId || 'Engage Solar';
+  }
+
   function activatePanel(panelId) {
     state.panel = panelId;
     document.body.dataset.esPanelActive = panelId;
+    updateMobileTitle(panelId);
+    closeMobileNav();
     document.body.classList.toggle('es-mode-settings', isSettingsPanel(panelId));
     renderNav();
 
@@ -497,7 +532,17 @@
     qs('#esMobileToggle')?.addEventListener('click', () => {
       const app = qs('.es-app');
       if (!app) return;
-      app.dataset.mobileNav = app.dataset.mobileNav === 'open' ? 'closed' : 'open';
+      setMobileNav(app.dataset.mobileNav !== 'open');
+    });
+
+    qs('#esNavScrim')?.addEventListener('click', closeMobileNav);
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeMobileNav();
+    });
+
+    window.addEventListener('resize', () => {
+      if (!isMobileViewport()) closeMobileNav();
     });
   }
 
