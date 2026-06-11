@@ -494,6 +494,16 @@
         importSessionId: resolveImportSessionId(importSession),
         columnMapping: buildColumnMappingPayload(),
       });
+      const totalRows = Number(preview?.totalRows ?? preview?.total ?? 0) || 0;
+      const validRows = Number(preview?.validRows ?? preview?.valid ?? 0) || 0;
+      if (totalRows <= 0) {
+        error = 'Nenhuma linha de dados encontrada no CSV. Volte ao passo Arquivo, envie o CSV de novo e confirme que Telefone está mapeado para a coluna correta.';
+        return;
+      }
+      if (validRows <= 0) {
+        error = 'Nenhum contacto válido na pré-visualização. Confirme o mapeamento da coluna Telefone (phone).';
+        return;
+      }
       step = 'preview';
     } catch (err) {
       error = api().mapApiError(err).message;

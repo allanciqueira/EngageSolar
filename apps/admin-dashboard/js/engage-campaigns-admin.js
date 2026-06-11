@@ -457,28 +457,68 @@
     buckets[hour][field] += 1;
   }
 
-  function collectDashboardAttempts(dash) {
+  function recordIdentity(record) {
+    return String(
+      record?.id
+      || record?.attemptId
+      || record?.messageId
+      || `${record?.attemptNo || ''}-${record?.metaMessageId || record?.meta_message_id || ''}-${sentTimestampForAttempt(record) || record?.updatedAt || ''}`,
+    ).trim();
+  }
+
+  function collectCampaignSendRecords(dash, hourlyPayload) {
     const map = new Map();
+    const summary = dash?.summary && typeof dash.summary === 'object' ? dash.summary : {};
     const lists = [
+      hourlyPayload?.attempts,
+      hourlyPayload?.messages,
+      hourlyPayload?.items,
       dash?.hourlyActivity?.attempts,
+      dash?.hourlyActivity?.messages,
+      dash?.messages,
+      dash?.campaignMessages,
+      dash?.outboundMessages,
+      dash?.sentMessages,
       dash?.attemptsInWindow,
       dash?.windowAttempts,
       dash?.recentAttempts,
       dash?.attempts,
+      summary.attemptsInWindow,
+      summary.windowAttempts,
+      summary.recentAttempts,
+      summary.attempts,
+      summary.messages,
     ];
     lists.forEach((list) => {
       if (!Array.isArray(list)) return;
-      list.forEach((attempt) => {
-        const id = String(attempt?.id || `${attempt?.attemptNo || ''}-${attempt?.metaMessageId || ''}-${attempt?.updatedAt || ''}`).trim();
+      list.forEach((record) => {
+        const id = recordIdentity(record);
         if (!id) return;
-        if (!map.has(id)) map.set(id, attempt);
+        if (!map.has(id)) map.set(id, record);
       });
     });
     return [...map.values()];
   }
 
   function sentTimestampForAttempt(attempt) {
-    return attempt?.acceptedAt || attempt?.deliveredAt || attempt?.sentAt || null;
+    return attempt?.sentAt || attempt?.sent_at
+      || attempt?.acceptedAt || attempt?.accepted_at
+      || attempt?.deliveredAt || attempt?.delivered_at
+      || attempt?.queuedAt || attempt?.queued_at
+      || attempt?.startedAt || attempt?.started_at
+      || attempt?.createdAt || attempt?.created_at
+      || attempt?.timestamp || null;
+  }
+
+  function readTimestampForAttempt(attempt) {
+    return attempt?.readAt || attempt?.read_at || null;
+  }
+
+  function isMockHourlyPayload(payload) {
+    if (!payload || typeof payload !== 'object') return false;
+    if (payload.mock === true || payload.isMock === true || payload.synthetic === true) return true;
+    const source = String(payload.source || payload.dataSource || '').trim().toLowerCase();
+    return source === 'mock' || source === 'demo' || source === 'synthetic';
   }
 
   function normalizeHourlyBuckets(rawBuckets) {
@@ -511,22 +551,14 @@
     return buckets.some((row) => row.sent > 0 || row.read > 0 || row.replied > 0);
   }
 
-  function buildHourlyActivityFromDash(dash, replyDispositions) {
-    const fromApi = dash?.hourlyActivity || dash?.activityByHour || dash?.summary?.hourlyActivity;
-    if (fromApi) {
-      const buckets = normalizeHourlyBuckets(fromApi.buckets || fromApi);
-      return {
-        buckets,
-        timezone: fromApi.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        source: 'dashboard',
-        partial: false,
-      };
-    }
+  function buildHourlyActivityFromMessages(dash, replyDispositions, hourlyPayload) {
+    const records = collectCampaignSendRecords(dash, hourlyPayload);
+    if (!records.length) return null;
 
     const buckets = createEmptyHourlyBuckets();
-    collectDashboardAttempts(dash).forEach((attempt) => {
-      bumpHourlyBucket(buckets, hourFromIso(sentTimestampForAttempt(attempt)), 'sent');
-      bumpHourlyBucket(buckets, hourFromIso(attempt?.readAt), 'read');
+    records.forEach((record) => {
+      bumpHourlyBucket(buckets, hourFromIso(sentTimestampForAttempt(record)), 'sent');
+      bumpHourlyBucket(buckets, hourFromIso(readTimestampForAttempt(record)), 'read');
     });
 
     const replyItems = Array.isArray(replyDispositions?.items) ? replyDispositions.items : [];
@@ -534,23 +566,40 @@
       bumpHourlyBucket(buckets, hourFromIso(item?.lastReplyAt || item?.repliedAt), 'replied');
     });
 
-    const hasAttempts = collectDashboardAttempts(dash).length > 0;
+    if (!hourlyBucketsHaveData(buckets)) return null;
+
+    const sentTotal = Number(dash?.summary?.outbound?.messagesSentLive ?? dash?.summary?.outbound?.messagesSent ?? 0) || 0;
+    const sentWithTimestamp = records.filter((record) => sentTimestampForAttempt(record)).length;
+
     return {
       buckets,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      source: 'estimated',
-      partial: hasAttempts && (dash?.summary?.outbound?.messagesSentLive || 0) > collectDashboardAttempts(dash).length,
+      timezone: hourlyPayload?.timezone
+        || dash?.hourlyActivity?.timezone
+        || dash?.window?.timezone
+        || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      source: 'messages',
+      partial: sentTotal > 0 && sentWithTimestamp < sentTotal,
+      peaks: hourlyPayload?.peaks || dash?.hourlyActivity?.peaks || null,
     };
   }
 
-  function normalizeHourlyActivityPayload(payload) {
-    if (!payload || typeof payload !== 'object') return null;
+  function isTrustedHourlyBucketsPayload(payload) {
+    if (!payload || typeof payload !== 'object' || isMockHourlyPayload(payload)) return false;
+    const source = String(payload.source || '').trim().toLowerCase();
+    if (source === 'campaign-dashboard' || source === 'messages' || source === 'api') {
+      return true;
+    }
+    return Array.isArray(payload.attempts) && payload.attempts.length > 0;
+  }
+
+  function buildHourlyActivityFromAggregatedBuckets(payload, sourceLabel) {
+    if (!isTrustedHourlyBucketsPayload(payload)) return null;
     const buckets = normalizeHourlyBuckets(payload.buckets || payload);
     if (!hourlyBucketsHaveData(buckets)) return null;
     return {
       buckets,
       timezone: payload.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      source: 'api',
+      source: payload.source || sourceLabel,
       partial: Boolean(payload.partial),
       peaks: payload.peaks || null,
     };
@@ -623,7 +672,7 @@
     ].filter(Boolean);
 
     const partialNote = activity.partial
-      ? '<p class="engage-campaign-help">Envios/leituras parciais (amostra recente). Respostas usam o relatório classificado da campanha.</p>'
+      ? '<p class="engage-campaign-help">Distribuição parcial: nem todas as mensagens do período têm horário disponível na amostra carregada.</p>'
       : '';
 
     return `
@@ -1293,22 +1342,28 @@
     state.hourlyActivity = null;
     state.hourlyActivitySource = 'none';
 
+    let hourlyPayload = null;
     try {
-      const payload = await apiGet(buildHourlyActivityPaths());
-      const normalized = normalizeHourlyActivityPayload(payload);
-      if (normalized) {
-        state.hourlyActivity = normalized;
-        state.hourlyActivitySource = 'api';
-        return;
-      }
+      hourlyPayload = await apiGet(buildHourlyActivityPaths());
     } catch (_) {
-      /* fallback abaixo */
+      /* usa apenas dados do dashboard */
     }
 
-    const estimated = buildHourlyActivityFromDash(state.dashboard, state.replyDispositions);
-    if (hourlyBucketsHaveData(estimated.buckets)) {
-      state.hourlyActivity = estimated;
-      state.hourlyActivitySource = estimated.source;
+    const fromMessages = buildHourlyActivityFromMessages(
+      state.dashboard,
+      state.replyDispositions,
+      hourlyPayload,
+    );
+    if (fromMessages) {
+      state.hourlyActivity = fromMessages;
+      state.hourlyActivitySource = fromMessages.source;
+      return;
+    }
+
+    const aggregated = buildHourlyActivityFromAggregatedBuckets(hourlyPayload, 'api');
+    if (aggregated) {
+      state.hourlyActivity = aggregated;
+      state.hourlyActivitySource = aggregated.source;
     }
   }
 
