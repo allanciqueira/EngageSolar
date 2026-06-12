@@ -121,11 +121,23 @@
     return apiRequest(buildCrmPaths(session, '/stats'), { method: 'GET', session });
   }
 
-  async function importCrm(session) {
+  async function getCrmSyncHealth(session) {
+    return apiRequest(buildCrmPaths(session, '/health'), { method: 'GET', session });
+  }
+
+  async function importCrm(session, payload) {
     return apiRequest(buildCrmPaths(session, '/import'), {
       method: 'POST',
       session,
-      body: JSON.stringify({}),
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async function reconcileCrm(session, payload) {
+    return apiRequest(buildCrmPaths(session, '/reconcile'), {
+      method: 'POST',
+      session,
+      body: JSON.stringify(payload || {}),
     });
   }
 
@@ -255,7 +267,9 @@
     getCampaignHistory,
     promoteToCustomer,
     getCrmSyncStats,
+    getCrmSyncHealth,
     importCrm,
+    reconcileCrm,
     uploadContactImport,
     previewContactImport,
     runContactImport,

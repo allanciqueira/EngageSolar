@@ -81,14 +81,55 @@
     return item?.phone || item?.normalizedPhone || '—';
   }
 
-  function attrValue(item, key) {
+  function rawAttrValue(item, key) {
     const attrs = item?.attributes;
-    if (!attrs || !key) return '—';
+    if (!attrs || !key) return '';
     if (Array.isArray(attrs)) {
       const row = attrs.find((a) => a?.key === key);
-      return formatAttrDisplay(key, row?.value);
+      return String(row?.value ?? '').trim();
     }
-    return formatAttrDisplay(key, attrs[key]);
+    return String(attrs[key] ?? '').trim();
+  }
+
+  function attrValue(item, key) {
+    const value = rawAttrValue(item, key);
+    if (!value) return '—';
+    return formatAttrDisplay(key, value);
+  }
+
+  function contactMatchesFilters(item, { q, city }) {
+    const cityNeedle = String(city || '').trim().toLowerCase();
+    if (cityNeedle) {
+      const itemCity = (rawAttrValue(item, 'cidade') || rawAttrValue(item, 'city')).toLowerCase();
+      if (!itemCity.includes(cityNeedle)) return false;
+    }
+    const query = String(q || '').trim().toLowerCase();
+    if (!query) return true;
+    const tokens = query.split(/\s+/).filter(Boolean);
+    const haystack = [
+      item?.name,
+      item?.phone,
+      item?.normalizedPhone,
+      item?.email,
+    ].map((v) => String(v || '').toLowerCase()).join(' ');
+    return tokens.every((token) => haystack.includes(token));
+  }
+
+  function applyListFilters(payload, activeFilters, activePage) {
+    const hasFilter = Boolean(String(activeFilters.q || '').trim() || String(activeFilters.city || '').trim());
+    if (!hasFilter) return payload;
+    const allItems = Array.isArray(payload?.items) ? payload.items : [];
+    const filtered = allItems.filter((item) => contactMatchesFilters(item, activeFilters));
+    const total = filtered.length;
+    const start = Math.max(0, (activePage - 1) * PAGE_SIZE);
+    const items = filtered.slice(start, start + PAGE_SIZE);
+    return {
+      ...payload,
+      items,
+      total,
+      page: activePage,
+      limit: PAGE_SIZE,
+    };
   }
 
   function formatAttrDisplay(key, value) {
@@ -152,9 +193,13 @@
       <p class="ech-crm-stats">${text}</p>
       <div class="ech-crm-actions">
         ${csvBtn}
+        <button type="button" class="ec-mc-btn ec-mc-btn--ghost" id="engageContactHubCrmHealthBtn">Ver saúde da sincronização</button>
         <button type="button" class="ec-mc-btn ec-mc-btn--primary" id="engageContactHubImportBtn"${importDisabled}>Importar do CRM</button>
       </div>`;
     el.querySelector('#engageContactHubImportBtn')?.addEventListener('click', onImportCrm);
+    el.querySelector('#engageContactHubCrmHealthBtn')?.addEventListener('click', () => {
+      window.EngageConfig?.setActiveTab?.('crm-sync-health');
+    });
     el.querySelector('#engageContactHubImportCsvBannerBtn')?.addEventListener('click', () => {
       if (!canManage() || busy) return;
       window.EngageContactImport?.open?.(session, {
@@ -181,13 +226,6 @@
         <button type="button" class="ec-mc-btn ec-mc-btn--primary" id="engageContactHubSearchBtn">Pesquisar</button>
       </div>
       <p class="ech-count" id="engageContactHubCount">${escapeHtml(String(listPayload.total ?? 0))} contacto(s)</p>`;
-    el.querySelector('#engageContactHubSearchBtn')?.addEventListener('click', onSearch);
-    el.querySelector('#engageContactHubSearch')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') onSearch();
-    });
-    el.querySelector('#engageContactHubCity')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') onSearch();
-    });
   }
 
   function renderListTable() {
@@ -442,10 +480,15 @@
     setLoading(true);
     error = '';
     try {
-      const params = { page, limit: PAGE_SIZE };
+      const hasFilter = Boolean(filters.q.trim() || filters.city.trim());
+      const params = {
+        page: hasFilter ? 1 : page,
+        limit: hasFilter ? 200 : PAGE_SIZE,
+      };
       if (filters.q.trim()) params.q = filters.q.trim();
       if (filters.city.trim()) params.city = filters.city.trim();
-      listPayload = await api().listContacts(session, params);
+      const payload = await api().listContacts(session, params);
+      listPayload = applyListFilters(payload, filters, page);
       if (!Array.isArray(listPayload.items)) listPayload.items = [];
     } catch (err) {
       listPayload = { items: [], total: 0, page: 1, attributeKeys: [] };
@@ -561,6 +604,23 @@
     root.dataset.echHeadBound = '1';
   }
 
+  function bindFilterEvents() {
+    const filtersRoot = $('engageContactHubFilters');
+    if (!filtersRoot || filtersRoot.dataset.echFilterBound === '1') return;
+    filtersRoot.addEventListener('click', (event) => {
+      if (event.target.closest('#engageContactHubSearchBtn')) {
+        void onSearch();
+      }
+    });
+    filtersRoot.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      if (event.target.id === 'engageContactHubSearch' || event.target.id === 'engageContactHubCity') {
+        void onSearch();
+      }
+    });
+    filtersRoot.dataset.echFilterBound = '1';
+  }
+
   function bindTableEvents() {
     const root = $('engageContactHubRoot');
     if (!root || root.dataset.echBound === '1') return;
@@ -597,6 +657,7 @@
     error = '';
     setFeedback('');
     bindTableEvents();
+    bindFilterEvents();
     bindHeadActions();
     const lead = $('engageContactHubLead');
     if (lead) {

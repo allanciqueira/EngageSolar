@@ -30,6 +30,12 @@
     { key: 'vendedor', patterns: [/^vendedor$/i, /^consultor$/i, /^seller$/i, /^atribuido$/i, /^atribu[ií]do$/i] },
     { key: 'cidade', patterns: [/^cidade$/i, /^city$/i, /^municipio$/i, /^munic[ií]pio$/i] },
     { key: 'empresa', patterns: [/^empresa$/i, /^company$/i, /^organiza[cç][aã]o$/i] },
+    { key: 'pipeline', patterns: [/^pipeline$/i] },
+    { key: 'fase', patterns: [/^fase$/i, /^etapa$/i] },
+    { key: 'fonte', patterns: [/^fonte$/i, /^origem$/i, /^source$/i] },
+    { key: 'tags', patterns: [/^tags$/i] },
+    { key: 'consumo', patterns: [/^consumo$/i] },
+    { key: 'interesse', patterns: [/^interesse$/i] },
   ];
 
   let session = null;
@@ -115,7 +121,7 @@
         return rule.key;
       }
     }
-    return slugifyAttributeKey(column);
+    return '';
   }
 
   function buildAutoColumnMappings(csvColumns, suggested) {
@@ -138,8 +144,8 @@
     }
 
     return cols.map((column) => {
-      let targetType = 'attribute';
-      let attributeKey = matchKnownAttribute(column);
+      let targetType = 'ignore';
+      let attributeKey = '';
 
       const fromApi = inverse[column];
       if (fromApi) {
@@ -154,6 +160,12 @@
           targetType = standard;
           attributeKey = '';
           usedStandard.add(standard);
+        } else {
+          const knownAttr = matchKnownAttribute(column);
+          if (knownAttr) {
+            targetType = 'attribute';
+            attributeKey = knownAttr;
+          }
         }
       }
 
@@ -164,6 +176,9 @@
         }
         usedAttrKeys.add(key);
         attributeKey = key;
+      } else if (targetType !== 'phone' && targetType !== 'name' && targetType !== 'email') {
+        targetType = 'ignore';
+        attributeKey = '';
       }
 
       return { column, targetType, attributeKey };

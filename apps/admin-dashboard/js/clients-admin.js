@@ -4,6 +4,23 @@
 (function () {
   const CLIENTS_PAGE_SIZE = 40;
 
+  const SOLAR_PIPELINE_STAGE_LABELS = {
+    NEW: 'Novo',
+    QUALIFIED: 'Qualificado',
+    SIMULATED: 'Simulado',
+    PROPOSAL_SENT: 'Proposta enviada',
+    NEGOTIATION: 'Em negociação',
+    WON: 'Fechado',
+    LOST: 'Perdido',
+    DEFERRED: 'Adiado',
+  };
+
+  const LIFECYCLE_STATUS_LABELS = {
+    LEAD: 'Lead',
+    CLIENT: 'Cliente',
+    INACTIVE: 'Inativo',
+  };
+
   const state = {
     mounted: false,
     active: false,
@@ -16,7 +33,7 @@
     dateFrom: '',
     dateTo: '',
     sortBy: 'updatedAt',
-    sortDir: 'asc',
+    sortDir: 'desc',
     loading: false,
     loadingMore: false,
     error: '',
@@ -26,7 +43,7 @@
     dashboardData: null,
     dashboardLoading: false,
     dashboardError: '',
-    dashboardTab: 'appointments',
+    dashboardTab: 'simulations',
     shellView: 'lista',
     avatarById: {},
     avatarHydrationInFlight: new Set(),
@@ -250,6 +267,64 @@
       : 'R$ 0,00';
   };
 
+  const formatClientsCurrencyOptional = (value) => {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return '—';
+    return amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const formatKwh = (value) => {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return '—';
+    return `${amount.toLocaleString('pt-BR')} kWh`;
+  };
+
+  const formatClientsDateTime = (value) => {
+    if (!value) return '—';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(parsed);
+  };
+
+  const formatLifecycleLabel = (status) => {
+    const key = String(status || '').trim().toUpperCase();
+    return LIFECYCLE_STATUS_LABELS[key] || (key || '—');
+  };
+
+  const formatPipelineStageLabel = (stage, fallbackLabel) => {
+    const label = String(fallbackLabel || '').trim();
+    if (label) return label;
+    const key = String(stage || '').trim().toUpperCase();
+    return SOLAR_PIPELINE_STAGE_LABELS[key] || (key || '—');
+  };
+
+  const buildSolarFallbackDashboard = (customer) => ({
+    profile: 'solar',
+    pendingSolarApi: true,
+    customer: customer && typeof customer === 'object' ? customer : {},
+    summary: {
+      avgConsumptionKwh: null,
+      avgBillAmount: null,
+      simulationsTotal: 0,
+      pipelineStage: null,
+      pipelineStageLabel: null,
+      lastConversationAt: customer?.lastSeenAt || null,
+      proposalValue: null,
+    },
+    tabs: {
+      simulations: { items: [], total: 0 },
+      conversations: { items: [], total: 0 },
+      about: {
+        internalNote: customer?.notes || null,
+        tags: customer?.lifecycleStatus ? [String(customer.lifecycleStatus)] : [],
+      },
+    },
+  });
+
+  const openClientInbox = () => {
+    document.querySelector('[data-es-nav="conversas"]')?.click();
+  };
+
   const buildQuery = ({ cursor = '' } = {}) => {
     const tenantId = resolveTenantId();
     if (!tenantId) return '';
@@ -261,7 +336,7 @@
     if (state.dateFrom) params.set('dateFrom', state.dateFrom);
     if (state.dateTo) params.set('dateTo', state.dateTo);
     params.set('sortBy', state.sortBy || 'updatedAt');
-    params.set('sortDir', state.sortDir || 'asc');
+    params.set('sortDir', state.sortDir || 'desc');
     params.set('limit', String(CLIENTS_PAGE_SIZE));
     if (cursor) params.set('cursor', cursor);
     return params.toString();
@@ -314,7 +389,14 @@
       const name = pickCustomerDisplayName(client);
       const phone = String(client?.phone || '').trim();
       const email = String(client?.email || '').trim();
-      const subtitle = phone || email || '—';
+      const cityLine = [client?.city, client?.state].filter(Boolean).join('/');
+      const lifecycleLabel = formatLifecycleLabel(client?.lifecycleStatus);
+      const subtitleParts = [];
+      if (cityLine) subtitleParts.push(cityLine);
+      else if (phone) subtitleParts.push(phone);
+      else if (email) subtitleParts.push(email);
+      if (lifecycleLabel && lifecycleLabel !== '—') subtitleParts.push(lifecycleLabel);
+      const subtitle = subtitleParts.length ? subtitleParts.join(' · ') : '—';
       const source = String(client?.source || '').trim().toUpperCase();
       const whatsappTag = source === 'WHATSAPP'
         ? '<span class="clients-source-whatsapp" title="Origem WhatsApp"><span class="clients-source-whatsapp-icon" aria-hidden="true"></span>WhatsApp</span>'
@@ -346,74 +428,132 @@
     list.innerHTML = itemsHtml + footer;
   };
 
-  const renderAppointmentList = (items, emptyText) => {
+  const renderSimulationsTab = (simulationsTab) => {
+    if (state.dashboardData?.pendingSolarApi) {
+      return '<div class="clients-pro-content-empty">Aguardando API solar dashboard.</div>';
+    }
+    const items = Array.isArray(simulationsTab?.items) ? simulationsTab.items : [];
     if (!items.length) {
-      return `<p class="clients-pro-muted">${emptyText}</p>`;
+      return '<p class="clients-pro-muted">Sem simulações registadas. O cliente pode simular pelo WhatsApp (conta, kWh ou valor em R$).</p>';
     }
-    return `<div class="clients-pro-list-rows">${items.map((item) => `
-      <div class="clients-pro-list-row">
-        <span class="clients-pro-list-row-date">${escapeHtml(formatClientsDate(item?.startAt))}</span>
-        <strong class="clients-pro-list-row-title">${escapeHtml(String(item?.servico || item?.serviceName || 'Serviço'))}</strong>
-      </div>
-    `).join('')}</div>`;
-  };
-
-  const pickPaymentAmount = (item) => {
-    const candidates = [item?.amount, item?.value, item?.totalAmount, item?.approvedAmount];
-    for (const value of candidates) {
-      const num = Number(value);
-      if (Number.isFinite(num)) return num;
-    }
-    return 0;
-  };
-
-  const renderPaymentsTab = (paymentsTab) => {
-    const items = Array.isArray(paymentsTab?.items) ? paymentsTab.items : [];
-    const total = Number(paymentsTab?.totalApprovedAmount ?? paymentsTab?.total_approved_amount ?? 0);
-    const computedTotal = Number.isFinite(total) && total > 0
-      ? total
-      : items.reduce((sum, item) => {
-        const amount = pickPaymentAmount(item);
-        return amount > 0 ? sum + amount : sum;
-      }, 0);
-    const paymentsHtml = items.length
-      ? `<div class="clients-pro-payment-rows">${items.slice(0, 20).map((item) => {
-        const dateValue = item?.createdAt || item?.paidAt || item?.updatedAt || '';
-        const title = String(item?.description || item?.summary || item?.serviceName || 'Pagamento').trim();
-        const subtitle = String(item?.paymentMethod || item?.method || '').trim();
-        const amount = pickPaymentAmount(item);
-        return `
-          <div class="clients-pro-payment-row">
-            <div class="clients-pro-payment-row-main">
-              <span class="clients-pro-payment-row-date">${escapeHtml(formatClientsDate(dateValue))}</span>
-              <div class="clients-pro-payment-row-copy">
-                <strong class="clients-pro-payment-row-title">${escapeHtml(title)}</strong>
-                ${subtitle ? `<span class="clients-pro-payment-row-subtitle">${escapeHtml(subtitle)}</span>` : ''}
-              </div>
-            </div>
-            <div class="clients-pro-payment-row-side">
-              <span class="clients-pro-payment-row-kind" data-tone="service">Pagamento</span>
-              <strong class="clients-pro-payment-row-amount">${escapeHtml(formatClientsCurrency(amount))}</strong>
-            </div>
-          </div>
-        `;
-      }).join('')}</div>`
-      : '<p class="clients-pro-muted">Sem pagamentos registrados.</p>';
+    const rows = items.map((item) => {
+      const payback = Number(item?.paybackAnos);
+      const paybackText = Number.isFinite(payback) ? `${payback.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} anos` : '—';
+      const kwp = Number(item?.sistemaKwp);
+      const kwpText = Number.isFinite(kwp) ? `${kwp.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kWp` : '—';
+      return `
+        <tr>
+          <td>${escapeHtml(String(item?.mes || '—'))}</td>
+          <td>${escapeHtml(formatKwh(item?.consumoKwh))}</td>
+          <td>${escapeHtml(formatClientsCurrencyOptional(item?.valor))}</td>
+          <td>${escapeHtml(kwpText)}</td>
+          <td>${escapeHtml(formatClientsCurrencyOptional(item?.investimento))}</td>
+          <td>${escapeHtml(paybackText)}</td>
+        </tr>
+      `;
+    }).join('');
     return `
-      <div class="clients-pro-grid clients-pro-grid-2">
-        <section class="clients-pro-section clients-pro-section-highlight">
-          <header class="clients-pro-section-head"><strong>Total aprovado</strong></header>
-          <p class="clients-pro-section-value">${escapeHtml(formatClientsCurrency(computedTotal))}</p>
-          <p class="clients-pro-muted clients-pro-payment-total-hint">Inclui atendimentos, produtos e compras de pacote.</p>
-        </section>
-        <section class="clients-pro-section">
-          <header class="clients-pro-section-head">
-            <strong>Pagamentos recentes</strong>
-            <span class="clients-pro-section-tag">${items.length}</span>
-          </header>
-          ${paymentsHtml}
-        </section>
+      <div class="clients-pro-sim-table-wrap">
+        <table class="clients-pro-sim-table">
+          <thead>
+            <tr>
+              <th>Mês ref.</th>
+              <th>Consumo</th>
+              <th>Conta</th>
+              <th>Sistema</th>
+              <th>Investimento</th>
+              <th>Payback</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
       </div>
+    `;
+  };
+
+  const renderConversationsTab = (conversationsTab) => {
+    const items = Array.isArray(conversationsTab?.items) ? conversationsTab.items : [];
+    if (!items.length) {
+      return `
+        <div class="clients-pro-conversations-empty">
+          <p class="clients-pro-muted">Sem conversas.</p>
+          <button type="button" class="clients-pro-secondary-action" data-clients-open-inbox>Abrir inbox</button>
+        </div>
+      `;
+    }
+    const rows = items.map((item) => {
+      const phone = String(item?.phone || '').trim();
+      const lastAt = formatClientsDateTime(item?.lastMessageAt || item?.createdAt);
+      const convId = String(item?.id || '').trim();
+      const inboxBtn = convId
+        ? `<button type="button" class="clients-pro-secondary-action" data-clients-open-inbox="${escapeAttr(convId)}">Abrir inbox</button>`
+        : '';
+      return `
+        <div class="clients-pro-list-row clients-pro-conversation-row">
+          <div class="clients-pro-conversation-main">
+            <strong class="clients-pro-list-row-title">${escapeHtml(phone || 'Conversa')}</strong>
+            <span class="clients-pro-muted">Última mensagem: ${escapeHtml(lastAt)}</span>
+          </div>
+          ${inboxBtn}
+        </div>
+      `;
+    }).join('');
+    return `<div class="clients-pro-list-rows clients-pro-conversation-rows">${rows}</div>`;
+  };
+
+  const renderAboutTab = (customer, about, summary) => {
+    const facts = [
+      { label: 'Documento', value: customer?.document || '—' },
+      { label: 'Nascimento', value: customer?.birthDate ? formatClientsDate(customer.birthDate) : '—' },
+      { label: 'Gênero', value: customer?.gender || '—' },
+      { label: 'Origem', value: customer?.source || '—' },
+      { label: 'Estado CRM', value: formatLifecycleLabel(customer?.lifecycleStatus) },
+      { label: 'E-mail', value: customer?.email || '—' },
+      { label: 'Telefone', value: customer?.phone || '—' },
+      { label: 'Empresa', value: customer?.companyName || '—' },
+      { label: 'CNPJ', value: customer?.cnpj || '—' },
+      { label: 'Site', value: customer?.website || '—' },
+    ];
+    const addressLine = [
+      [customer?.street, customer?.number].filter(Boolean).join(', '),
+      customer?.complement,
+      customer?.neighborhood,
+      [customer?.city, customer?.state].filter(Boolean).join('/'),
+      customer?.zipCode ? `CEP ${customer.zipCode}` : '',
+    ].filter(Boolean).join(' · ');
+    if (addressLine) {
+      facts.push({ label: 'Endereço', value: addressLine });
+    }
+    if (summary?.utilityCompany) {
+      facts.push({ label: 'Concessionária', value: summary.utilityCompany });
+    }
+    if (summary?.installationType) {
+      facts.push({ label: 'Tipo instalação', value: summary.installationType });
+    }
+    if (summary?.salesConsultant?.name || summary?.salesConsultant?.displayName) {
+      facts.push({
+        label: 'Consultor',
+        value: summary.salesConsultant.displayName || summary.salesConsultant.name,
+      });
+    }
+    const factsHtml = facts.map((fact) => `
+      <div class="clients-pro-fact">
+        <span class="clients-pro-fact-label">${escapeHtml(fact.label)}</span>
+        <strong class="clients-pro-fact-value">${escapeHtml(String(fact.value))}</strong>
+      </div>
+    `).join('');
+    const note = String(about?.internalNote || customer?.notes || '').trim();
+    const tags = Array.isArray(about?.tags) ? about.tags.filter(Boolean) : [];
+    const tagsHtml = tags.length
+      ? `<div class="clients-pro-about-tags">${tags.map((tag) => `<span class="clients-pro-section-tag">${escapeHtml(String(tag))}</span>`).join('')}</div>`
+      : '';
+    return `
+      <div class="clients-pro-fact-grid">${factsHtml}</div>
+      ${tagsHtml}
+      <section class="clients-pro-section">
+        <header class="clients-pro-section-head"><strong>Observações</strong></header>
+        <p class="clients-pro-note">${note ? escapeHtml(note) : '<span class="clients-pro-muted">Nenhuma observação cadastrada.</span>'}</p>
+      </section>
     `;
   };
 
@@ -434,60 +574,28 @@
     }
 
     const tabs = state.dashboardData?.tabs || {};
-    if (state.dashboardTab === 'appointments') {
-      const upcoming = Array.isArray(tabs?.appointments?.upcoming) ? tabs.appointments.upcoming : [];
-      const history = Array.isArray(tabs?.appointments?.history) ? tabs.appointments.history : [];
-      content.innerHTML = `
-        <div class="clients-pro-grid clients-pro-grid-2">
-          <section class="clients-pro-section">
-            <header class="clients-pro-section-head">
-              <strong>Próximos agendamentos</strong>
-              <span class="clients-pro-section-tag">${upcoming.length}</span>
-            </header>
-            ${renderAppointmentList(upcoming, 'Sem próximos agendamentos.')}
-          </section>
-          <section class="clients-pro-section">
-            <header class="clients-pro-section-head">
-              <strong>Histórico</strong>
-              <span class="clients-pro-section-tag">${history.length}</span>
-            </header>
-            ${renderAppointmentList(history.slice(0, 20), 'Sem histórico.')}
-          </section>
-        </div>
-      `;
+    const summary = state.dashboardData?.summary || {};
+
+    if (state.dashboardTab === 'simulations') {
+      content.innerHTML = renderSimulationsTab(tabs?.simulations || {});
+      content.querySelectorAll('[data-clients-open-inbox]').forEach((btn) => {
+        btn.addEventListener('click', () => openClientInbox());
+      });
       return;
     }
 
-    if (state.dashboardTab === 'payments') {
-      content.innerHTML = renderPaymentsTab(tabs?.payments || {});
+    if (state.dashboardTab === 'conversations') {
+      content.innerHTML = renderConversationsTab(tabs?.conversations || {});
+      content.querySelectorAll('[data-clients-open-inbox]').forEach((btn) => {
+        btn.addEventListener('click', () => openClientInbox());
+      });
       return;
     }
 
     if (state.dashboardTab === 'about') {
       const customer = state.dashboardData?.customer || {};
       const about = tabs?.about || {};
-      const facts = [
-        { label: 'Documento', value: customer?.document || '—' },
-        { label: 'Nascimento', value: customer?.birthDate || '—' },
-        { label: 'Gênero', value: customer?.gender || '—' },
-        { label: 'Origem', value: customer?.source || '—' },
-        { label: 'Email', value: customer?.email || '—' },
-        { label: 'Telefone', value: customer?.phone || '—' },
-      ];
-      const factsHtml = facts.map((fact) => `
-        <div class="clients-pro-fact">
-          <span class="clients-pro-fact-label">${escapeHtml(fact.label)}</span>
-          <strong class="clients-pro-fact-value">${escapeHtml(String(fact.value))}</strong>
-        </div>
-      `).join('');
-      const note = String(about?.internalNote || customer?.notes || '').trim();
-      content.innerHTML = `
-        <div class="clients-pro-fact-grid">${factsHtml}</div>
-        <section class="clients-pro-section">
-          <header class="clients-pro-section-head"><strong>Observações</strong></header>
-          <p class="clients-pro-note">${note ? escapeHtml(note) : '<span class="clients-pro-muted">Nenhuma observação cadastrada.</span>'}</p>
-        </section>
-      `;
+      content.innerHTML = renderAboutTab(customer, about, summary);
       return;
     }
 
@@ -506,6 +614,7 @@
       state.dom.dashboardName.textContent = 'Selecione um cliente';
       state.dom.dashboardMeta.innerHTML = '<span class="clients-pro-muted">Clique em um cliente na lista para ver os dados.</span>';
       state.dom.dashboardKpis.innerHTML = '';
+      if (state.dom.dashboardBadges) state.dom.dashboardBadges.innerHTML = '';
       if (state.dom.dashboardContent) {
         state.dom.dashboardContent.innerHTML = '<div class="clients-pro-content-empty">Nenhum cliente selecionado.</div>';
       }
@@ -545,13 +654,25 @@
     state.dom.dashboardMeta.innerHTML = bits.length
       ? bits.join('')
       : '<span class="clients-pro-muted">Sem contatos cadastrados</span>';
+    if (state.dom.dashboardBadges) {
+      const lifecycle = formatLifecycleLabel(customer?.lifecycleStatus);
+      const pipeline = formatPipelineStageLabel(summary?.pipelineStage, summary?.pipelineStageLabel);
+      const badgeBits = [];
+      if (lifecycle && lifecycle !== '—') {
+        badgeBits.push(`<span class="clients-pro-badge clients-pro-badge--lifecycle">${escapeHtml(lifecycle)}</span>`);
+      }
+      if (pipeline && pipeline !== '—') {
+        badgeBits.push(`<span class="clients-pro-badge clients-pro-badge--pipeline">${escapeHtml(pipeline)}</span>`);
+      }
+      state.dom.dashboardBadges.innerHTML = badgeBits.join('');
+    }
     const kpis = [
-      { label: 'Agendamentos', value: String(summary?.appointmentsTotal ?? '—') },
-      { label: 'No-show', value: String(summary?.noShowTotal ?? '—') },
-      { label: 'Cancelamentos', value: String(summary?.cancelledTotal ?? '—') },
-      { label: 'Última visita', value: formatClientsDate(summary?.lastVisitAt) },
-      { label: 'Próxima visita', value: formatClientsDate(summary?.nextVisitAt) },
-      { label: 'Receita total', value: formatClientsCurrency(summary?.revenueTotal || 0) },
+      { label: 'Consumo médio', value: formatKwh(summary?.avgConsumptionKwh) },
+      { label: 'Conta média', value: formatClientsCurrencyOptional(summary?.avgBillAmount) },
+      { label: 'Simulações', value: String(summary?.simulationsTotal ?? '—') },
+      { label: 'Estágio no funil', value: formatPipelineStageLabel(summary?.pipelineStage, summary?.pipelineStageLabel) },
+      { label: 'Última conversa', value: formatClientsDateTime(summary?.lastConversationAt) },
+      { label: 'Valor proposta', value: formatClientsCurrencyOptional(summary?.proposalValue) },
     ];
     state.dom.dashboardKpis.innerHTML = kpis.map((kpi) => `
       <article class="clients-pro-kpi">
@@ -583,9 +704,9 @@
     renderDashboard();
     try {
       const query = new URLSearchParams({
-        historyLimit: '20',
-        upcomingLimit: '20',
-        paymentsLimit: '20',
+        profile: 'solar',
+        simulationsLimit: '20',
+        conversationsLimit: '10',
       }).toString();
       state.dashboardData = await api.request(`/api/operator/customers/${encodeURIComponent(customerId)}/dashboard?${query}`);
       const customer = unwrapCustomerDetailPayload(state.dashboardData)
@@ -598,8 +719,22 @@
       }
       state.dashboardError = '';
     } catch (error) {
-      state.dashboardData = null;
-      state.dashboardError = String(error?.message || 'Não foi possível carregar os detalhes do cliente.');
+      const status = Number(error?.statusCode || error?.status || 0);
+      if (status === 404) {
+        try {
+          const detail = await api.request(`/api/operator/customers/${encodeURIComponent(customerId)}?tenantId=${encodeURIComponent(tenantId)}`);
+          const customer = unwrapCustomerDetailPayload(detail) || detail;
+          state.dashboardData = buildSolarFallbackDashboard(customer);
+          if (customer) cacheCustomerAvatar(customerId, customer);
+          state.dashboardError = '';
+        } catch (detailError) {
+          state.dashboardData = null;
+          state.dashboardError = String(detailError?.message || 'Não foi possível carregar os detalhes do cliente.');
+        }
+      } else {
+        state.dashboardData = null;
+        state.dashboardError = String(error?.message || 'Não foi possível carregar os detalhes do cliente.');
+      }
     } finally {
       state.dashboardLoading = false;
       renderRows();
@@ -736,7 +871,17 @@
       if (state.dom.editorBirthDate) state.dom.editorBirthDate.value = String(customer.birthDate || '').slice(0, 10);
       if (state.dom.editorGender) state.dom.editorGender.value = String(customer.gender || '');
       if (state.dom.editorSource) state.dom.editorSource.value = String(customer.source || '');
+      if (state.dom.editorLifecycle) state.dom.editorLifecycle.value = String(customer.lifecycleStatus || 'LEAD');
+      if (state.dom.editorZipCode) state.dom.editorZipCode.value = String(customer.zipCode || '');
+      if (state.dom.editorCity) state.dom.editorCity.value = String(customer.city || '');
+      if (state.dom.editorState) state.dom.editorState.value = String(customer.state || '');
+      if (state.dom.editorStreet) state.dom.editorStreet.value = String(customer.street || '');
+      if (state.dom.editorNumber) state.dom.editorNumber.value = String(customer.number || '');
+      if (state.dom.editorComplement) state.dom.editorComplement.value = String(customer.complement || '');
+      if (state.dom.editorNeighborhood) state.dom.editorNeighborhood.value = String(customer.neighborhood || '');
       if (state.dom.editorNotes) state.dom.editorNotes.value = String(customer.notes || '');
+    } else if (state.dom.editorLifecycle) {
+      state.dom.editorLifecycle.value = 'LEAD';
     }
     if (state.dom.editorBackdrop) {
       state.dom.editorBackdrop.hidden = false;
@@ -745,7 +890,9 @@
   };
 
   const buildCustomerPayloadFromEditor = async () => {
-    const lifecycleStatus = String(state.editorOriginal?.lifecycleStatus || 'CLIENT').trim() || 'CLIENT';
+    const lifecycleStatus = state.editorMode === 'create'
+      ? String(state.dom.editorLifecycle?.value || 'LEAD').trim() || 'LEAD'
+      : String(state.dom.editorLifecycle?.value || state.editorOriginal?.lifecycleStatus || 'LEAD').trim() || 'LEAD';
     const payload = {
       fullName: String(state.dom.editorFullName?.value || '').trim(),
       preferredName: String(state.dom.editorPreferredName?.value || '').trim() || undefined,
@@ -760,6 +907,13 @@
       lgpdConsent: state.editorOriginal?.lgpdConsent === true,
       whatsappOptIn: state.editorOriginal?.whatsappOptIn === true,
       isActive: state.editorOriginal?.isActive !== false,
+      zipCode: String(state.dom.editorZipCode?.value || '').trim() || undefined,
+      street: String(state.dom.editorStreet?.value || '').trim() || undefined,
+      number: String(state.dom.editorNumber?.value || '').trim() || undefined,
+      complement: String(state.dom.editorComplement?.value || '').trim() || undefined,
+      neighborhood: String(state.dom.editorNeighborhood?.value || '').trim() || undefined,
+      city: String(state.dom.editorCity?.value || '').trim() || undefined,
+      state: String(state.dom.editorState?.value || '').trim().toUpperCase().slice(0, 2) || undefined,
       notes: String(state.dom.editorNotes?.value || '').trim() || undefined,
     };
     const avatarFile = state.dom.editorAvatar?.files?.[0];
@@ -774,7 +928,11 @@
   const buildCustomerPatchPayload = (payload) => {
     if (!state.editorOriginal || typeof state.editorOriginal !== 'object') return payload;
     const nextPayload = {};
-    const keys = ['fullName', 'preferredName', 'phone', 'email', 'document', 'birthDate', 'gender', 'source', 'sourceNote', 'lifecycleStatus', 'notes'];
+    const keys = [
+      'fullName', 'preferredName', 'phone', 'email', 'document', 'birthDate', 'gender',
+      'source', 'sourceNote', 'lifecycleStatus', 'notes',
+      'zipCode', 'street', 'number', 'complement', 'neighborhood', 'city', 'state',
+    ];
     keys.forEach((key) => {
       if (!(key in payload)) return;
       const nextValue = payload[key];
@@ -943,7 +1101,7 @@
     state.dom.dashboardTabs?.addEventListener('click', (event) => {
       const tab = event.target.closest('[data-customer-tab]');
       if (!tab) return;
-      state.dashboardTab = tab.getAttribute('data-customer-tab') || 'appointments';
+      state.dashboardTab = tab.getAttribute('data-customer-tab') || 'simulations';
       state.dom.dashboardTabs?.querySelectorAll('[data-customer-tab]').forEach((btn) => {
         btn.classList.toggle('is-active', btn.getAttribute('data-customer-tab') === state.dashboardTab);
       });
@@ -977,6 +1135,7 @@
     state.dom.dashboardAvatar = qs('#adminClientsDashboardAvatar');
     state.dom.dashboardName = qs('#adminClientsDashboardName');
     state.dom.dashboardMeta = qs('#adminClientsDashboardMeta');
+    state.dom.dashboardBadges = qs('#adminClientsDashboardBadges');
     state.dom.dashboardKpis = qs('#adminClientsDashboardKpis');
     state.dom.dashboardTabs = qs('#adminClientsDashboardTabs');
     state.dom.dashboardContent = qs('#adminClientsDashboardContent');
@@ -1002,6 +1161,14 @@
     state.dom.editorBirthDate = qs('#adminClientsEditorBirthDate');
     state.dom.editorGender = qs('#adminClientsEditorGender');
     state.dom.editorSource = qs('#adminClientsEditorSource');
+    state.dom.editorLifecycle = qs('#adminClientsEditorLifecycle');
+    state.dom.editorZipCode = qs('#adminClientsEditorZipCode');
+    state.dom.editorCity = qs('#adminClientsEditorCity');
+    state.dom.editorState = qs('#adminClientsEditorState');
+    state.dom.editorStreet = qs('#adminClientsEditorStreet');
+    state.dom.editorNumber = qs('#adminClientsEditorNumber');
+    state.dom.editorComplement = qs('#adminClientsEditorComplement');
+    state.dom.editorNeighborhood = qs('#adminClientsEditorNeighborhood');
     state.dom.editorNotes = qs('#adminClientsEditorNotes');
     state.dom.editorAvatar = qs('#adminClientsEditorAvatar');
     if (!state.dom.root || !state.dom.list) return false;

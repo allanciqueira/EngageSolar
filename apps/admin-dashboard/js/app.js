@@ -897,9 +897,6 @@
     if (inbox && auth && state.session) {
       inbox.init({ authService: auth, session: state.session });
       state.botInboxReady = true;
-      if (inbox.refreshUnreadBadge) {
-        void inbox.refreshUnreadBadge();
-      }
     }
 
     if (SETTINGS && state.session) {

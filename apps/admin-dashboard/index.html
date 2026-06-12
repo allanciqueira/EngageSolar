@@ -16,6 +16,10 @@
     <link rel="stylesheet" href="css/dashboard.css" />
     <link rel="stylesheet" href="css/whatsapp.css" />
     <link rel="stylesheet" href="css/engage-config.css" />
+    <link rel="stylesheet" href="css/engage-crm-sync-health.css" />
+    <link rel="stylesheet" href="css/engage-tenant-settings.css" />
+    <link rel="stylesheet" href="css/engage-lead-recovery.css" />
+    <link rel="stylesheet" href="css/engage-campaign-timeline.css" />
     <link rel="stylesheet" href="css/engage-templates.css" />
     <link rel="stylesheet" href="css/settings-nav.css" />
     <link rel="stylesheet" href="css/settings-reserva.css" />
@@ -524,6 +528,7 @@
                             <div class="pro-hero-headlines">
                               <div class="pro-hero-title-row">
                                 <h2 class="pro-hero-title" id="adminClientsDashboardName">Selecione um cliente</h2>
+                                <div class="clients-pro-badges" id="adminClientsDashboardBadges"></div>
                               </div>
                               <div class="pro-hero-contacts" id="adminClientsDashboardMeta">Clique em um cliente na lista para ver os dados.</div>
                             </div>
@@ -540,9 +545,9 @@
                         <div class="clients-pro-kpi-strip" id="adminClientsDashboardKpis"></div>
 
                         <div class="pro-tabs clients-pro-tabs" id="adminClientsDashboardTabs">
-                          <button type="button" class="pro-tab is-active" data-customer-tab="appointments">Agendamentos</button>
-                          <button type="button" class="pro-tab" data-customer-tab="payments">Pagamentos</button>
+                          <button type="button" class="pro-tab is-active" data-customer-tab="simulations">Simulações</button>
                           <button type="button" class="pro-tab" data-customer-tab="about">Sobre o cliente</button>
+                          <button type="button" class="pro-tab" data-customer-tab="conversations">Conversas</button>
                         </div>
 
                         <div class="clients-pro-content" id="adminClientsDashboardContent"></div>
@@ -597,7 +602,50 @@
                 </label>
                 <label class="clients-editor-field">
                   <span>Origem</span>
-                  <input id="adminClientsEditorSource" type="text" />
+                  <select id="adminClientsEditorSource">
+                    <option value="">—</option>
+                    <option value="MANUAL">Manual</option>
+                    <option value="WHATSAPP">WhatsApp</option>
+                    <option value="WEB">Web</option>
+                    <option value="IMPORT">Importação</option>
+                    <option value="API">API</option>
+                  </select>
+                </label>
+                <label class="clients-editor-field">
+                  <span>Estado CRM</span>
+                  <select id="adminClientsEditorLifecycle">
+                    <option value="LEAD">Lead</option>
+                    <option value="CLIENT">Cliente</option>
+                    <option value="INACTIVE">Inativo</option>
+                  </select>
+                </label>
+                <label class="clients-editor-field">
+                  <span>CEP</span>
+                  <input id="adminClientsEditorZipCode" type="text" />
+                </label>
+                <label class="clients-editor-field">
+                  <span>Cidade</span>
+                  <input id="adminClientsEditorCity" type="text" />
+                </label>
+                <label class="clients-editor-field">
+                  <span>UF</span>
+                  <input id="adminClientsEditorState" type="text" maxlength="2" />
+                </label>
+                <label class="clients-editor-field clients-editor-field-span-2">
+                  <span>Rua</span>
+                  <input id="adminClientsEditorStreet" type="text" />
+                </label>
+                <label class="clients-editor-field">
+                  <span>Número</span>
+                  <input id="adminClientsEditorNumber" type="text" />
+                </label>
+                <label class="clients-editor-field">
+                  <span>Complemento</span>
+                  <input id="adminClientsEditorComplement" type="text" />
+                </label>
+                <label class="clients-editor-field clients-editor-field-span-2">
+                  <span>Bairro</span>
+                  <input id="adminClientsEditorNeighborhood" type="text" />
                 </label>
                 <label class="clients-editor-field clients-editor-field-span-2">
                   <span>Observações</span>
@@ -628,13 +676,12 @@
                 <button type="button" class="ec-subnav-tab is-active" role="tab" data-ec-tab="meta-connections" aria-selected="true">Meta connections</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="templates" aria-selected="false" tabindex="-1">Templates WhatsApp</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="sender-profiles" aria-selected="false" tabindex="-1">Sender profiles</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="queues" aria-selected="false" tabindex="-1">Queues</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="controls" aria-selected="false" tabindex="-1">Controls</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="contact-hub" aria-selected="false" tabindex="-1">Contact hub</button>
-                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="crm-sync-health" aria-selected="false" tabindex="-1">CRM Sync Health</button>
+                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="crm-sync-health" aria-selected="false" tabindex="-1">Saúde CRM</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="lead-recovery-intelligence" aria-selected="false" tabindex="-1">Lead Recovery Intelligence</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="campaign-builder" aria-selected="false" tabindex="-1">Campaign builder</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="timelines" aria-selected="false" tabindex="-1">Timelines</button>
+                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="engage-settings" aria-selected="false" tabindex="-1">Limites de envio</button>
               </nav>
 
               <div class="ec-body">
@@ -726,22 +773,6 @@
                   <div id="engageTemplatesRoot" class="et-shell" aria-live="polite"></div>
                 </section>
 
-                <section class="ec-tab-panel" data-ec-panel="queues" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Queues</h2>
-                    <p>Filas de atendimento e roteamento.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-
-                <section class="ec-tab-panel" data-ec-panel="controls" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Controls</h2>
-                    <p>Controles operacionais e limites da plataforma.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
-                </section>
-
                 <section class="ec-tab-panel" data-ec-panel="contact-hub" role="tabpanel" hidden>
                   <div class="ech-import-modal" id="engageContactImportModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageContactImportTitle">
                     <div class="ech-import-dialog">
@@ -801,19 +832,67 @@
                 </section>
 
                 <section class="ec-tab-panel" data-ec-panel="crm-sync-health" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>CRM Sync Health</h2>
-                    <p>Saúde da sincronização com o CRM.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
+                  <div class="ecsh-shell" id="engageCrmSyncHealthRoot">
+                    <header class="ec-mc-head">
+                      <div class="ec-mc-head-copy">
+                        <h2>Saúde da sincronização CRM</h2>
+                        <p class="ec-mc-lead">
+                          Cadastro de clientes ↔ Contact Hub — ligação automática por telefone.
+                        </p>
+                        <div id="engageCrmSyncStatus" hidden></div>
+                      </div>
+                    </header>
+                    <div class="ec-mc-feedback" id="engageCrmSyncFeedback" role="status" hidden></div>
+                    <p class="ec-mc-feedback" id="engageCrmSyncError" role="alert" data-tone="danger" hidden></p>
+                    <div class="ecsh-actions" id="engageCrmSyncActions"></div>
+                    <div class="ec-mc-loading" id="engageCrmSyncLoading" hidden>Carregando…</div>
+                    <div class="ec-mc-empty" id="engageCrmSyncEmpty" hidden>
+                      <strong>Nenhum cliente no CRM</strong>
+                      <p>Cadastre clientes primeiro na área Clientes.</p>
+                    </div>
+                    <p class="ecsh-summary" id="engageCrmSyncSummary" hidden></p>
+                    <p class="ecsh-hint" id="engageCrmSyncHint" hidden></p>
+                    <div class="ecsh-metrics" id="engageCrmSyncMetrics" aria-label="Métricas de sincronização CRM"></div>
+                    <div class="ecsh-activity" id="engageCrmSyncActivity" hidden></div>
+                  </div>
                 </section>
 
                 <section class="ec-tab-panel" data-ec-panel="lead-recovery-intelligence" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Lead Recovery Intelligence</h2>
-                    <p>Recuperação inteligente de leads inativos.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
+                  <div class="elri-shell" id="engageLeadRecoveryRoot">
+                    <header class="ec-mc-head">
+                      <div class="ec-mc-head-copy">
+                        <h2>Lead Recovery Intelligence</h2>
+                        <p class="ec-mc-lead">Inteligência de recuperação sobre leads perdidos — priorização, insights e reprocessamento controlado.</p>
+                      </div>
+                      <div class="ec-mc-head-actions" id="engageLeadRecoveryActions"></div>
+                    </header>
+                    <nav class="elri-view-tabs" id="engageLeadRecoveryViewTabs" role="tablist" aria-label="Vistas Lead Recovery"></nav>
+                    <div class="ec-mc-feedback" id="engageLeadRecoveryFeedback" role="status" hidden></div>
+                    <div class="ec-mc-loading" id="engageLeadRecoveryLoading" hidden>Carregando…</div>
+                    <div id="engageLeadRecoveryContent"></div>
+                  </div>
+                  <div class="elri-modal" id="engageLeadRecoveryReclassifyModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageLeadRecoveryReclassifyTitle">
+                    <div class="elri-modal-dialog">
+                      <header class="elri-modal-head">
+                        <h3 id="engageLeadRecoveryReclassifyTitle">Reprocessar leads</h3>
+                        <button type="button" class="elri-modal-close" data-elri-reclassify-close aria-label="Fechar">×</button>
+                      </header>
+                      <div class="elri-modal-body" id="engageLeadRecoveryReclassifyBody"></div>
+                      <footer class="elri-modal-foot" id="engageLeadRecoveryReclassifyFooter"></footer>
+                    </div>
+                  </div>
+                  <div class="elri-modal" id="engageLeadRecoveryAuditModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageLeadRecoveryAuditTitle">
+                    <div class="elri-modal-dialog elri-modal-dialog--wide">
+                      <header class="elri-modal-head">
+                        <h3 id="engageLeadRecoveryAuditTitle">Auditoria do lead</h3>
+                        <button type="button" class="elri-modal-close" data-elri-audit-close aria-label="Fechar">×</button>
+                      </header>
+                      <div class="elri-modal-body" id="engageLeadRecoveryAuditBody"></div>
+                      <footer class="elri-modal-foot">
+                        <button type="button" class="ec-mc-btn ec-mc-btn--primary" data-elri-audit-close>Fechar</button>
+                      </footer>
+                    </div>
+                  </div>
                 </section>
 
                 <section class="ec-tab-panel" data-ec-panel="campaign-builder" role="tabpanel" hidden>
@@ -825,11 +904,40 @@
                 </section>
 
                 <section class="ec-tab-panel" data-ec-panel="timelines" role="tabpanel" hidden>
-                  <header class="ec-panel-head">
-                    <h2>Timelines</h2>
-                    <p>Linhas do tempo e jornadas do lead.</p>
-                  </header>
-                  <div class="ec-panel-placeholder">Conteúdo em construção.</div>
+                  <div class="ectl-shell" id="engageCampaignTimelineRoot">
+                    <header class="ec-mc-head" id="engageCampaignTimelineListHead">
+                      <div class="ec-mc-head-copy">
+                        <h2>Timeline de campanha</h2>
+                        <p class="ec-mc-lead">
+                          Linha do tempo operacional — criação, import, batches, rate limit, cooldown e respostas.
+                        </p>
+                      </div>
+                    </header>
+                    <header class="ec-mc-head ectl-head-actions-wrap" id="engageCampaignTimelineHead" hidden></header>
+                    <div class="ectl-head-actions" id="engageCampaignTimelineActions"></div>
+                    <div class="ec-mc-feedback" id="engageCampaignTimelineFeedback" role="status" hidden></div>
+                    <p class="ectl-meta" id="engageCampaignTimelineMeta"></p>
+                    <div class="ectl-legend" id="engageCampaignTimelineLegend" hidden aria-label="Legenda de eventos"></div>
+                    <div id="engageCampaignTimelineContent"></div>
+                  </div>
+                </section>
+
+                <section class="ec-tab-panel" data-ec-panel="engage-settings" role="tabpanel" hidden>
+                  <div class="ests-shell" id="engageTenantSettingsRoot">
+                    <header class="ec-mc-head">
+                      <div class="ec-mc-head-copy">
+                        <h2>Configurações de envio Engage</h2>
+                        <p class="ec-mc-lead">
+                          Limites de throughput e ritmo de orquestração das campanhas WhatsApp. Campos vazios usam o padrão do ambiente.
+                        </p>
+                      </div>
+                    </header>
+                    <div class="ec-mc-feedback" id="engageTenantSettingsFeedback" role="status" hidden></div>
+                    <p class="ec-mc-feedback" id="engageTenantSettingsError" role="alert" data-tone="danger" hidden></p>
+                    <div class="ec-mc-loading" id="engageTenantSettingsLoading" hidden>Carregando…</div>
+                    <div id="engageTenantSettingsForm"></div>
+                    <div class="ests-summary" id="engageTenantSettingsSummary"></div>
+                  </div>
                 </section>
               </div>
             </div>
@@ -2370,6 +2478,13 @@
     <script src="js/engage-contact-import-admin.js"></script>
     <script src="js/engage-contact-audiences-admin.js"></script>
     <script src="js/engage-contact-hub-admin.js"></script>
+    <script src="js/engage-crm-sync-health-admin.js"></script>
+    <script src="js/engage-tenant-settings-api.js"></script>
+    <script src="js/engage-tenant-settings-admin.js"></script>
+    <script src="js/engage-campaign-timeline-api.js"></script>
+    <script src="js/engage-campaign-timeline-admin.js"></script>
+    <script src="js/engage-lead-recovery-api.js"></script>
+    <script src="js/engage-lead-recovery-admin.js"></script>
     <script src="js/engage-meta-connections.js"></script>
     <script src="js/engage-disposition-api.js"></script>
     <script src="js/engage-templates-api.js"></script>

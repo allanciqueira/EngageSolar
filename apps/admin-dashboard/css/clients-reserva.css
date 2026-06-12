@@ -1867,6 +1867,102 @@ body[data-es-panel-active="clientes"] .clients-feedback[data-tone="success"] {
   }
 }
 
+.clients-pro-hero .pro-hero-title-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.clients-pro-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.clients-pro-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--ra-border);
+  background: #F8FBFF;
+  color: var(--ra-text-soft);
+}
+
+.clients-pro-badge--lifecycle {
+  color: #1D4ED8;
+  border-color: rgba(29, 78, 216, 0.2);
+  background: rgba(29, 78, 216, 0.08);
+}
+
+.clients-pro-badge--pipeline {
+  color: #0F766E;
+  border-color: rgba(15, 118, 110, 0.2);
+  background: rgba(15, 118, 110, 0.08);
+}
+
+.clients-pro-sim-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--ra-border);
+  border-radius: var(--ra-radius-md);
+  background: var(--ra-surface);
+}
+
+.clients-pro-sim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.clients-pro-sim-table th,
+.clients-pro-sim-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--ra-border);
+}
+
+.clients-pro-sim-table th {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ra-text-soft);
+  background: #F8FBFF;
+}
+
+.clients-pro-sim-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.clients-pro-conversation-rows .clients-pro-conversation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.clients-pro-conversation-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.clients-pro-conversations-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.clients-pro-about-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 /* Compatibilidade com WebView/Capacitor */
 body[data-es-panel-active="clientes"] .pro-list-panel,
 body[data-es-panel-active="clientes"] .pro-detail-panel {

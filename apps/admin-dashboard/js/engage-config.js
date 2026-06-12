@@ -115,6 +115,30 @@
     } else {
       window.EngageContactHub?.deactivate?.();
     }
+
+    if (tabId === 'crm-sync-health') {
+      window.EngageCrmSyncHealth?.activate?.(session);
+    } else {
+      window.EngageCrmSyncHealth?.deactivate?.();
+    }
+
+    if (tabId === 'engage-settings') {
+      window.EngageTenantSettings?.activate?.(session);
+    } else {
+      window.EngageTenantSettings?.deactivate?.();
+    }
+
+    if (tabId === 'timelines') {
+      window.EngageCampaignTimeline?.activate?.(session);
+    } else {
+      window.EngageCampaignTimeline?.deactivate?.();
+    }
+
+    if (tabId === 'lead-recovery-intelligence') {
+      window.EngageLeadRecovery?.activate?.(session);
+    } else {
+      window.EngageLeadRecovery?.deactivate?.();
+    }
   }
 
   function activate(session) {
@@ -131,6 +155,10 @@
     window.EngageSenderProfiles?.deactivate?.();
     window.EngageTemplatesAdmin?.deactivate?.();
     window.EngageContactHub?.deactivate?.();
+    window.EngageCrmSyncHealth?.deactivate?.();
+    window.EngageTenantSettings?.deactivate?.();
+    window.EngageCampaignTimeline?.deactivate?.();
+    window.EngageLeadRecovery?.deactivate?.();
   }
 
   window.EngageConfig = {

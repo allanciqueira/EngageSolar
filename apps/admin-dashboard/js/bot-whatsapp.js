@@ -17,7 +17,6 @@
   const WINDOW_CLOSING_THRESHOLD_MS = 2 * 60 * 60 * 1000;
   const WINDOW_LIST_HINT_THRESHOLD_MS = 12 * 60 * 60 * 1000;
   const POLL_MS = 5000;
-  const BADGE_POLL_MS = 30000;
 
   const FILE_MAX_BYTES = 15 * 1024 * 1024;
   const AUDIO_MAX_BYTES = 10 * 1024 * 1024;
@@ -150,16 +149,21 @@
   function resolveInitialMessagingTenantId(session, tenantOptions) {
     const options = Array.isArray(tenantOptions) ? tenantOptions : [];
     const ids = new Set(options.map((tenant) => String(tenant?.id || '').trim()).filter(Boolean));
-    const pick = (candidate) => {
+    const sessionId = resolveSessionTenantId(session);
+    const pickFromOptions = (candidate) => {
       const id = String(candidate || '').trim();
-      if (!id) return '';
-      if (!ids.size) return id;
+      if (!id || !ids.size) return '';
       return ids.has(id) ? id : '';
     };
-    return pick(resolveSessionTenantId(session))
-      || pick(readPreferredLoginTenantId())
-      || pick(readStorage(TENANT_STORAGE_KEY))
-      || pick(options[0]?.id);
+
+    if (sessionId && (!ids.size || ids.has(sessionId))) {
+      return sessionId;
+    }
+
+    return pickFromOptions(readPreferredLoginTenantId())
+      || pickFromOptions(readStorage(TENANT_STORAGE_KEY))
+      || pickFromOptions(options[0]?.id)
+      || sessionId;
   }
 
   function syncSelectedTenantFromSession(session, options = {}) {
@@ -2039,39 +2043,15 @@
     }
   }
 
-  async function refreshInboxBadgeSilently() {
-    if (state.active) {
-      return;
-    }
-    syncSelectedTenantFromSession(state.session, { persist: false, render: false });
-    if (!state.selectedTenantId) {
-      state.conversations = [];
-      emitInboxStats();
-      return;
-    }
-    try {
-      const payload = await requestExternal(`/conversations?tenantId=${encodeURIComponent(state.selectedTenantId)}`);
-      state.conversations = Array.isArray(payload) ? payload : [];
-    } catch (error) {
-      // Mantém conversas anteriores se refresh leve falhar.
-    } finally {
-      emitInboxStats();
-    }
-  }
-
   function bindVisibilityRefresh() {
     if (state.visibilityHandler || typeof document === 'undefined') {
       return;
     }
     state.visibilityHandler = () => {
-      if (document.visibilityState !== 'visible') {
+      if (document.visibilityState !== 'visible' || !state.active) {
         return;
       }
-      if (state.active) {
-        void pollInboxSilently();
-        return;
-      }
-      void refreshInboxBadgeSilently();
+      void pollInboxSilently();
     };
     document.addEventListener('visibilitychange', state.visibilityHandler);
   }
@@ -2093,18 +2073,6 @@
     state.pollerId = window.setInterval(() => {
       void pollInboxSilently();
     }, POLL_MS);
-  }
-
-  function startBadgePolling() {
-    stopBadgePolling();
-    if (state.active) {
-      return;
-    }
-    bindVisibilityRefresh();
-    void refreshInboxBadgeSilently();
-    state.badgePollerId = window.setInterval(() => {
-      void refreshInboxBadgeSilently();
-    }, BADGE_POLL_MS);
   }
 
   function stopBadgePolling() {
@@ -2380,6 +2348,7 @@
       window.clearInterval(state.pollerId);
       state.pollerId = null;
     }
+    unbindVisibilityRefresh();
   }
 
   function applyQuickAction(action) {
@@ -2756,7 +2725,8 @@
   function deactivate() {
     state.active = false;
     stopPolling();
-    startBadgePolling();
+    stopBadgePolling();
+    unbindVisibilityRefresh();
     stopWindowTicker();
     void stopAudioRecording();
     clearPendingFile();
@@ -2772,14 +2742,6 @@
     state.session = context?.session || state.session;
     mount();
     updateLiveBadge();
-    syncSelectedTenantFromSession(state.session, { persist: true, render: false });
-    if (!state.active) {
-      startBadgePolling();
-    }
-  }
-
-  async function refreshUnreadBadge() {
-    await refreshInboxBadgeSilently();
   }
 
   window.ReservaAiBotInbox = {
@@ -2790,6 +2752,5 @@
     selectConversation,
     isActive: () => state.active,
     getUnreadTotal: totalUnreadCount,
-    refreshUnreadBadge,
   };
 })();
