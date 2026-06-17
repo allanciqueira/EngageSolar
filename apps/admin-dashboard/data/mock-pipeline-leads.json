@@ -1,0 +1,171 @@
+{
+  "mock": true,
+  "source": "mock",
+  "summary": {
+    "tenantId": "mock-tenant",
+    "activeLeads": 127,
+    "unassigned": 18,
+    "inProgress": 84,
+    "waitingCustomer": 15,
+    "followUp": 15,
+    "closed": 10,
+    "fetchedAt": "2026-05-30T12:00:00.000Z"
+  },
+  "kanban": {
+    "tenantId": "mock-tenant",
+    "cardsPerColumn": 50,
+    "fetchedAt": "2026-05-30T12:00:00.000Z",
+    "columns": [
+      {
+        "key": "NEW",
+        "label": "Novos Leads",
+        "total": 18,
+        "cards": [
+          {
+            "id": "mock-lead-1",
+            "conversationId": "mock-conv-1",
+            "contactId": "mock-contact-1",
+            "name": "João Silva",
+            "phone": "+5511999999999",
+            "title": "Quero uma simulação de sistema 8kWp",
+            "lastMessage": "Gostaria de saber mais sobre financiamento",
+            "lastMessageDirection": "inbound",
+            "sourceCampaignId": "mock-camp-1",
+            "sourceCampaignName": "Promoção Junho",
+            "sourceAudienceId": null,
+            "sourceAudienceName": null,
+            "replyIntent": "SIMULATION",
+            "leadScore": 92,
+            "leadGrade": "A+",
+            "leadTemperature": "HOT",
+            "commercialPriority": "ALTA",
+            "temperatureSource": "AUTO",
+            "assignedSalesConsultantId": null,
+            "assignedAgentName": null,
+            "lastInteractionAt": "2026-05-30T11:48:00.000Z",
+            "nextContactAt": null,
+            "status": "NEW",
+            "kanbanColumn": "NEW",
+            "source": "AI"
+          },
+          {
+            "id": "mock-lead-2",
+            "conversationId": "mock-conv-2",
+            "contactId": "mock-contact-2",
+            "name": "Maria Santos",
+            "phone": "+5511988887777",
+            "title": "Tenho interesse no kit residencial",
+            "lastMessage": "Qual o valor do investimento?",
+            "lastMessageDirection": "inbound",
+            "sourceCampaignId": "mock-camp-1",
+            "sourceCampaignName": "Promoção Junho",
+            "replyIntent": "GENERAL_INTEREST",
+            "leadScore": 78,
+            "leadGrade": "B",
+            "leadTemperature": "WARM",
+            "commercialPriority": "MEDIA",
+            "temperatureSource": "AUTO",
+            "assignedSalesConsultantId": null,
+            "assignedAgentName": null,
+            "lastInteractionAt": "2026-05-30T10:30:00.000Z",
+            "status": "NEW",
+            "kanbanColumn": "NEW",
+            "source": "AI"
+          }
+        ]
+      },
+      {
+        "key": "IN_PROGRESS",
+        "label": "Em Atendimento",
+        "total": 84,
+        "cards": [
+          {
+            "id": "mock-lead-3",
+            "conversationId": "mock-conv-3",
+            "contactId": "mock-contact-3",
+            "name": "Carlos Eduardo",
+            "phone": "+5511977776666",
+            "title": "Orçamento para comércio",
+            "lastMessage": "Enviei a conta de luz",
+            "lastMessageDirection": "inbound",
+            "sourceCampaignName": "Promax WhatsApp",
+            "replyIntent": "BUDGET",
+            "leadScore": 85,
+            "leadGrade": "A",
+            "leadTemperature": "HOT",
+            "commercialPriority": "ALTA",
+            "temperatureSource": "MANUAL",
+            "assignedSalesConsultantId": "mock-agent-1",
+            "assignedAgentName": "Carlos Eduardo",
+            "lastInteractionAt": "2026-05-30T09:15:00.000Z",
+            "status": "IN_PROGRESS",
+            "kanbanColumn": "IN_PROGRESS",
+            "source": "MANUAL"
+          }
+        ]
+      },
+      {
+        "key": "WAITING_CUSTOMER",
+        "label": "Aguardando Cliente",
+        "total": 15,
+        "cards": []
+      },
+      {
+        "key": "FOLLOW_UP",
+        "label": "Retorno Futuro",
+        "total": 15,
+        "cards": [
+          {
+            "id": "mock-lead-4",
+            "conversationId": "mock-conv-4",
+            "contactId": "mock-contact-4",
+            "name": "Ana Paula",
+            "phone": "+5511966665555",
+            "title": "Retorno em junho",
+            "lastMessage": "Me liga mês que vem",
+            "sourceCampaignName": "Promoção Junho",
+            "leadScore": 55,
+            "leadGrade": "C",
+            "leadTemperature": "WARM",
+            "commercialPriority": "BAIXA",
+            "temperatureSource": "AUTO",
+            "assignedAgentName": "Glauco Barbosa",
+            "lastInteractionAt": "2026-05-28T14:00:00.000Z",
+            "nextContactAt": "2026-06-15T00:00:00.000Z",
+            "status": "FOLLOW_UP",
+            "kanbanColumn": "FOLLOW_UP",
+            "source": "AI"
+          }
+        ]
+      },
+      {
+        "key": "CLOSED",
+        "label": "Recuperados / Fechados",
+        "total": 10,
+        "cards": [
+          {
+            "id": "mock-lead-5",
+            "conversationId": "mock-conv-5",
+            "contactId": "mock-contact-5",
+            "name": "Roberto Lima",
+            "phone": "+5511955554444",
+            "title": "Fechado — kit 5kWp",
+            "lastMessage": "Fechado, obrigado!",
+            "sourceCampaignName": "Promoção Maio",
+            "leadScore": 100,
+            "leadTemperature": "HOT",
+            "assignedAgentName": "Glauco Barbosa",
+            "lastInteractionAt": "2026-05-25T16:00:00.000Z",
+            "status": "CLOSED",
+            "kanbanColumn": "CLOSED",
+            "source": "RECOVERY"
+          }
+        ]
+      }
+    ]
+  },
+  "agents": [
+    { "salesConsultantId": "mock-agent-1", "displayName": "Carlos Eduardo", "name": "Carlos Eduardo" },
+    { "salesConsultantId": "mock-agent-2", "displayName": "Glauco Barbosa", "name": "Glauco Barbosa" }
+  ]
+}

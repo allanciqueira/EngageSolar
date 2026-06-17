@@ -532,6 +532,74 @@
   text-transform: uppercase;
 }
 
+.whats-pro-chat-tag.is-paused {
+  background: rgba(234, 179, 8, 0.22);
+  color: #a16207;
+}
+
+.whats-pro-thread-ai-pause-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background: rgba(234, 179, 8, 0.2);
+  color: #92400e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.whats-pro-thread-ai-pause-badge[hidden],
+.whats-pro-conversation-ai-hint[hidden] {
+  display: none !important;
+}
+
+.whats-pro-conversation-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 0.85rem;
+  margin-right: 0.25rem;
+  border: none;
+  border-radius: 999px;
+  background: #f0f2f5;
+  color: #3b4a54;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.whats-pro-conversation-ai-btn[data-mode="resume"] {
+  background: #25d366;
+  color: #fff;
+}
+
+.whats-pro-conversation-ai-btn[data-mode="resume"]:hover:not(:disabled) {
+  background: #1ebe57;
+}
+
+.whats-pro-conversation-ai-btn:hover:not(:disabled) {
+  background: #e9edef;
+}
+
+.whats-pro-conversation-ai-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.whats-pro-conversation-ai-hint {
+  margin: 0;
+  padding: 0.45rem 0.85rem;
+  background: rgba(234, 179, 8, 0.08);
+  border-bottom: 1px solid rgba(234, 179, 8, 0.18);
+  color: #6b7280;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
 /* Center thread */
 .whats-pro-thread {
   position: relative;
@@ -770,6 +838,18 @@
   color: var(--whats-green-deep);
 }
 
+.whats-pro-engage-disposition-badge.is-contact-made {
+  background: rgba(37, 211, 102, 0.18);
+  color: #0d6e63;
+  border-color: rgba(18, 140, 126, 0.35);
+}
+
+.whats-pro-engage-disposition-badge.is-opt-out {
+  background: rgba(199, 78, 78, 0.12);
+  color: #8f3131;
+  border-color: rgba(199, 78, 78, 0.35);
+}
+
 .whats-pro-engage-disposition-badge {
   display: inline-flex;
   align-items: center;
@@ -817,6 +897,18 @@
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
+.whats-pro-engage-disposition-btn.is-contact-made {
+  border: 1px solid #128c7e;
+  background: linear-gradient(180deg, #25d366 0%, #1ebe57 100%);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(11, 20, 26, 0.12);
+}
+
+.whats-pro-engage-disposition-btn.is-contact-made:hover:not(:disabled) {
+  background: linear-gradient(180deg, #2ee06f 0%, #22c55e 100%);
+  border-color: #0d6e63;
+}
+
 .whats-pro-engage-disposition-btn.is-defer {
   border: 1px solid rgba(18, 140, 126, 0.25);
   background: #ffffff;
@@ -838,6 +930,18 @@
 .whats-pro-engage-disposition-btn.is-lost:hover:not(:disabled) {
   background: rgba(199, 78, 78, 0.08);
   border-color: rgba(199, 78, 78, 0.5);
+}
+
+.whats-pro-engage-disposition-btn.is-opt-out {
+  border: 1px solid rgba(185, 28, 28, 0.45);
+  background: #ffffff;
+  color: #b91c1c;
+}
+
+.whats-pro-engage-disposition-btn.is-opt-out:hover:not(:disabled) {
+  background: rgba(185, 28, 28, 0.1);
+  border-color: rgba(185, 28, 28, 0.65);
+  color: #991b1b;
 }
 
 .whats-pro-engage-disposition-btn:disabled {
@@ -1347,7 +1451,7 @@
 .whats-pro-composer {
   display: grid;
   grid-template-columns: auto auto auto minmax(0, 1fr) auto auto;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.35rem;
   padding: 0.55rem 0.85rem 0.7rem;
   background: #f0f2f5;
@@ -1376,15 +1480,23 @@
 
 .whats-pro-composer-input {
   width: 100%;
+  min-height: 40px;
+  max-height: 132px;
   height: 40px;
-  padding: 0 0.95rem;
+  padding: 0.55rem 0.95rem;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 20px;
   background: #ffffff;
   color: var(--whats-text);
   font: inherit;
   font-size: 0.92rem;
+  line-height: 1.35;
   box-shadow: 0 1px 1px rgba(11, 20, 26, 0.05);
+  resize: none;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  field-sizing: content;
 }
 
 .whats-pro-composer-input:focus {
@@ -1629,6 +1741,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.whats-pro-bubble-media .whats-pro-media-doc-actions {
+  padding: 0.2rem 0.1rem 0;
 }
 
 .whats-pro-media-doc-link {

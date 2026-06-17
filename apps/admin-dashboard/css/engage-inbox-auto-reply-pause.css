@@ -1,0 +1,144 @@
+/* Engage — Política de auto-pausa da IA por conversa (Inbox) */
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-config-lead,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-config-lead {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ra-text-soft, #64748b);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle input,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle input {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--ra-primary, #2563eb);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle-copy,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle-copy {
+  display: grid;
+  gap: 4px;
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle-copy strong,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle-copy strong {
+  font-size: 14px;
+  color: var(--ra-text, #0f172a);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle-copy small,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-config-toggle-copy small {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ra-text-soft, #64748b);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-triggers,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-triggers {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ra-border, #e2e8f0);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-triggers--dimmed,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-triggers--dimmed {
+  opacity: 0.55;
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-triggers-lead,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-triggers-lead {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ra-text-soft, #64748b);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-check,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--ra-text, #0f172a);
+  cursor: pointer;
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-check input,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-check input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--ra-primary, #2563eb);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-field,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-field {
+  display: grid;
+  gap: 6px;
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-field span,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ra-text, #0f172a);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-field input[type="text"],
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-field input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ra-border, #e2e8f0);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-hint,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ra-text-soft, #64748b);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-footnote,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-footnote {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ra-text-soft, #64748b);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-actions,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-actions .btn-primary,
+body[data-es-panel-active="configuracoes-operador"] .engage-inbox-pause-actions .pro-btn-primary,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-actions .btn-primary,
+.admin-page[data-admin-panel-active="configuracoes-operador"] .engage-inbox-pause-actions .pro-btn-primary {
+  min-width: 120px;
+}

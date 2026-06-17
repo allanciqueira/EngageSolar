@@ -30,20 +30,22 @@
 
 
 
+  const DISPOSITION_KIND_LABELS = {
+    CONTACT_MADE: 'Contato efetuado',
+    OPT_OUT: 'Removido do cadastro',
+  };
+
+  const OPT_OUT_CONFIRM_MESSAGE = 'Remover este contato do cadastro? Ele sai de todas as campanhas futuras (opt-out). O histórico é mantido.';
+
   const DISPOSITION_BUTTONS = [
-
+    { label: 'Contato efetuado', kind: 'CONTACT_MADE', tone: 'contact-made' },
     { label: 'Adiar 15 dias', kind: 'DEFER_15', tone: 'defer' },
-
     { label: '7 dias', kind: 'DEFER_7', tone: 'defer' },
-
     { label: '30 dias', kind: 'DEFER_30', tone: 'defer' },
-
     { label: '6 meses', kind: 'DEFER_180', tone: 'defer' },
-
     { label: 'Perdido — concorrência', kind: 'LOST_COMPETITOR', tone: 'lost' },
-
     { label: 'Sem interesse', kind: 'NO_INTEREST', tone: 'lost' },
-
+    { label: 'Remover do cadastro', kind: 'OPT_OUT', tone: 'opt-out' },
   ];
 
 
@@ -207,11 +209,16 @@
 
 
   function lossLabel(category) {
-
     const key = String(category || '').trim().toUpperCase();
-
     return LOSS_LABELS[key] || (key ? key.replace(/_/g, ' ') : 'Sem classificação');
+  }
 
+  function dispositionBadge(ctx) {
+    const kind = String(ctx?.dispositionKind || '').trim().toUpperCase();
+    if (kind === 'CONTACT_MADE') return DISPOSITION_KIND_LABELS.CONTACT_MADE;
+    if (kind === 'OPT_OUT') return DISPOSITION_KIND_LABELS.OPT_OUT;
+    if (ctx?.lossCategory) return lossLabel(ctx.lossCategory);
+    return 'Sem classificação';
   }
 
 
@@ -337,13 +344,12 @@
 
 
   window.EngageDispositionApi = {
-
     LOSS_LABELS,
-
+    DISPOSITION_KIND_LABELS,
     DISPOSITION_BUTTONS,
-
+    OPT_OUT_CONFIRM_MESSAGE,
     lossLabel,
-
+    dispositionBadge,
     shouldShowBar,
 
     normalizeAgents,

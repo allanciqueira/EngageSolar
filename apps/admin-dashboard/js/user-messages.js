@@ -46,6 +46,7 @@
     user_not_found: 'Este e-mail não está cadastrado. Solicite acesso ao administrador.',
     token_expired: 'Sua sessão expirou. Faça login novamente.',
     token_invalid: 'Link ou token inválido. Solicite novamente.',
+    invalid_disposition_kind: 'Esta classificação ainda não está disponível no servidor Engage. Peça a atualização do api-engage (commit eea3cead ou posterior).',
   };
 
   const EXACT_MESSAGES = {
@@ -62,6 +63,7 @@
     'Unauthorized': CONTEXT_DEFAULTS.session,
     'NetworkError when attempting to fetch resource.': CONTEXT_DEFAULTS.network,
     'Failed to fetch': CONTEXT_DEFAULTS.network,
+    invalid_disposition_kind: 'Esta classificação ainda não está disponível no servidor Engage. Peça a atualização do api-engage (commit eea3cead ou posterior).',
   };
 
   const TECHNICAL_PATTERNS = [
@@ -173,7 +175,7 @@
     const fallback = options.fallback || CONTEXT_DEFAULTS[context] || CONTEXT_DEFAULTS.default;
     const { message, statusCode, code } = extractErrorShape(input);
 
-    const byCode = resolveByCode(code);
+    const byCode = resolveByCode(code) || resolveByCode(message);
     if (byCode) return byCode;
 
     const normalized = applyAccentFixes(message);

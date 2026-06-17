@@ -415,14 +415,79 @@ body[data-es-panel-active="campanhas"] .es-content {
   background: #f59e0b;
 }
 
+.engage-campaign-hourly-chart-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.4rem 0.55rem;
+  align-items: end;
+  padding: 0.35rem 0.15rem 0;
+  border-top: 1px solid var(--ra-border, #e2e8f0);
+}
+
+.engage-campaign-hourly-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-self: stretch;
+  height: calc(148px + 0.95rem + 6px);
+  padding-bottom: calc(0.95rem + 6px);
+  min-width: 1.85rem;
+}
+
+.engage-campaign-hourly-y-tick {
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ra-text-soft, #64748b);
+  text-align: right;
+}
+
+.engage-campaign-hourly-plot {
+  position: relative;
+  min-width: 0;
+}
+
+.engage-campaign-hourly-grid-lines {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: calc(0.95rem + 6px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.engage-campaign-hourly-grid-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(226, 232, 240, 0.95);
+}
+
 .engage-campaign-hourly-chart {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(24, minmax(0, 1fr));
   gap: 4px;
   align-items: end;
   min-height: 180px;
-  padding: 0.35rem 0.15rem 0;
-  border-top: 1px solid var(--ra-border, #e2e8f0);
+  padding: 0;
+}
+
+.engage-campaign-hourly-chart.is-daily {
+  grid-template-columns: repeat(var(--daily-cols, 7), minmax(36px, 1fr));
+  min-width: max(100%, calc(var(--daily-cols, 7) * 40px));
+}
+
+.engage-campaign-hourly-chart.is-daily .engage-campaign-hourly-label {
+  font-size: 0.62rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  transform: rotate(-35deg);
+  transform-origin: top center;
+  margin-top: 0.35rem;
 }
 
 .engage-campaign-hourly-col {
@@ -1028,8 +1093,15 @@ body[data-es-panel-active="campanhas"] .es-content {
 }
 
 @media (max-width: 720px) {
-  .engage-campaign-hourly-chart {
+  .engage-campaign-hourly-chart-wrap {
     overflow-x: auto;
+  }
+
+  .engage-campaign-hourly-plot {
+    min-width: 672px;
+  }
+
+  .engage-campaign-hourly-chart {
     grid-template-columns: repeat(24, 28px);
     padding-bottom: 0.25rem;
   }
@@ -1084,6 +1156,17 @@ body[data-es-panel-active="campanhas"] .es-content {
 
 .engage-campaign-list.is-info {
   color: #1e5aa8;
+}
+
+.engage-campaign-reconciliation-formula {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.engage-campaign-reconciliation[data-balanced="0"] .engage-campaign-reconciliation-formula {
+  color: var(--engage-warn-fg, #b45309);
 }
 
 .engage-campaign-footer {

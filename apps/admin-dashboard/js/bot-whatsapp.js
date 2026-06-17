@@ -88,6 +88,7 @@
     assignBusy: false,
     assignError: '',
     selectedAssignAgentId: '',
+    conversationPauseBusy: false,
     dom: {},
   };
 
@@ -223,6 +224,31 @@
     return raw;
   }
 
+  function phoneDigitKey(phone) {
+    const raw = String(phone || '').trim().toLowerCase();
+    if (!raw || raw.startsWith('lid:')) return raw;
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.length >= 10 && !digits.startsWith('55')) {
+      return `55${digits}`;
+    }
+    return digits;
+  }
+
+  function findConversationIdByPhone(phone) {
+    const target = phoneDigitKey(phone);
+    if (!target) return '';
+    for (const conversation of state.conversations) {
+      const candidate = phoneDigitKey(conversation?.phone);
+      if (!candidate) continue;
+      if (candidate === target) return String(conversation.id || '').trim();
+      if (candidate.endsWith(target.slice(-11)) || target.endsWith(candidate.slice(-11))) {
+        return String(conversation.id || '').trim();
+      }
+    }
+    return '';
+  }
+
   function hashHue(input) {
     let hash = 0;
     for (let index = 0; index < input.length; index += 1) {
@@ -238,6 +264,79 @@
 
   function conversationTitle(conversation) {
     return conversation.contactProfileName?.trim() || formatPhone(conversation.phone);
+  }
+
+  function isConversationAiPaused(conversation) {
+    const value = conversation?.agentAutoReplyPausedAt;
+    return value != null && String(value).trim() !== '';
+  }
+
+  function mergeConversationRecord(updated) {
+    if (!updated || typeof updated !== 'object' || !updated.id) return;
+    const index = state.conversations.findIndex((item) => item.id === updated.id);
+    if (index >= 0) {
+      state.conversations[index] = { ...state.conversations[index], ...updated };
+    }
+  }
+
+  async function patchConversationAutoReplyPause(conversationId, paused) {
+    const body = paused
+      ? { paused: true, reason: 'manual' }
+      : { paused: false };
+    return requestExternal(
+      `/conversations/${encodeURIComponent(conversationId)}/auto-reply-pause?tenantId=${encodeURIComponent(state.selectedTenantId)}`,
+      { method: 'PATCH', body: JSON.stringify(body) },
+    );
+  }
+
+  async function toggleConversationAutoReplyPause() {
+    const conversation = getSelectedConversation();
+    if (!conversation || state.conversationPauseBusy) return;
+
+    const shouldPause = !isConversationAiPaused(conversation);
+    state.conversationPauseBusy = true;
+    renderConversationAutoReplyControls();
+    setError('');
+
+    try {
+      const updated = await patchConversationAutoReplyPause(conversation.id, shouldPause);
+      mergeConversationRecord(updated);
+      renderConversations();
+      highlightSelectedConversation();
+      renderThread();
+    } catch (error) {
+      setError(error?.message || 'Não foi possível atualizar a pausa da IA nesta conversa.');
+      renderConversationAutoReplyControls();
+    } finally {
+      state.conversationPauseBusy = false;
+      renderConversationAutoReplyControls();
+    }
+  }
+
+  function renderConversationAutoReplyControls() {
+    const conversation = getSelectedConversation();
+    const paused = isConversationAiPaused(conversation);
+    const hasSelection = Boolean(conversation);
+
+    if (state.dom.conversationAiBadge) {
+      state.dom.conversationAiBadge.hidden = !hasSelection || !paused;
+    }
+    if (state.dom.conversationAiHint) {
+      state.dom.conversationAiHint.hidden = !hasSelection;
+    }
+    if (state.dom.conversationAiPauseBtn) {
+      if (!hasSelection) {
+        state.dom.conversationAiPauseBtn.hidden = true;
+        return;
+      }
+      state.dom.conversationAiPauseBtn.hidden = false;
+      state.dom.conversationAiPauseBtn.disabled = state.conversationPauseBusy;
+      state.dom.conversationAiPauseBtn.textContent = paused ? 'Retomar IA' : 'Pausar IA';
+      state.dom.conversationAiPauseBtn.dataset.mode = paused ? 'resume' : 'pause';
+      state.dom.conversationAiPauseBtn.title = paused
+        ? 'Retomar respostas automáticas da IA nesta conversa'
+        : 'Pausar respostas automáticas da IA nesta conversa';
+    }
   }
 
   function conversationInitials(conversation) {
@@ -651,6 +750,104 @@
     return `<div class="whats-pro-react-bar" role="toolbar" aria-label="Reagir à mensagem">${buttons}</div>`;
   }
 
+  function renderMediaActions(openLabel = 'Abrir') {
+    return `
+      <div class="whats-pro-media-doc-actions">
+        <a class="whats-pro-media-doc-link" href="#" data-media-open>${escapeHtml(openLabel)}</a>
+        <a class="whats-pro-media-doc-link" href="#" data-media-download>Descarregar</a>
+      </div>`;
+  }
+
+  function inferMediaDownloadName(slot, kind) {
+    const fromDataset = String(slot?.dataset?.mediaFileName || '').trim();
+    if (fromDataset && fromDataset !== 'arquivo') return fromDataset;
+    if (kind === 'image') return 'imagem.jpg';
+    if (kind === 'video') return 'video.mp4';
+    if (kind === 'audio') return 'audio.webm';
+    return 'arquivo';
+  }
+
+  function wireMediaActionLinks(slot, objectUrl, kind) {
+    if (!slot || !objectUrl) return;
+    const fileName = inferMediaDownloadName(slot, kind);
+    const openLink = slot.querySelector('[data-media-open]');
+    if (openLink) {
+      openLink.href = objectUrl;
+      openLink.target = '_blank';
+      openLink.rel = 'noopener noreferrer';
+      openLink.removeAttribute('aria-disabled');
+    }
+    const downloadLink = slot.querySelector('[data-media-download]');
+    if (downloadLink) {
+      downloadLink.href = objectUrl;
+      downloadLink.download = fileName;
+      downloadLink.removeAttribute('aria-disabled');
+    }
+    const img = slot.querySelector('.whats-pro-media-image');
+    if (img) {
+      img.style.cursor = 'pointer';
+      img.title = 'Clique para abrir a imagem';
+    }
+  }
+
+  async function resolveMediaObjectUrl(messageId) {
+    if (state.mediaObjectUrls[messageId]) {
+      return state.mediaObjectUrls[messageId];
+    }
+    const blob = await loadMessageMediaBlob(messageId);
+    const objectUrl = URL.createObjectURL(blob);
+    state.mediaObjectUrls[messageId] = objectUrl;
+    return objectUrl;
+  }
+
+  function bindMediaSlots() {
+    if (!state.dom.messages) return;
+
+    state.dom.messages.querySelectorAll('[data-media-message-id]').forEach((slot) => {
+      const messageId = slot.dataset.mediaMessageId;
+      const kind = slot.dataset.mediaKind;
+      if (!messageId || !kind) return;
+
+      slot.querySelectorAll('[data-media-open], [data-media-download]').forEach((link) => {
+        if (link.dataset.boundMediaAction === '1') return;
+        link.dataset.boundMediaAction = '1';
+        link.addEventListener('click', async (event) => {
+          event.preventDefault();
+          try {
+            const objectUrl = await resolveMediaObjectUrl(messageId);
+            wireMediaActionLinks(slot, objectUrl, kind);
+            if (link.hasAttribute('data-media-download')) {
+              const anchor = document.createElement('a');
+              anchor.href = objectUrl;
+              anchor.download = inferMediaDownloadName(slot, kind);
+              anchor.click();
+              return;
+            }
+            window.open(objectUrl, '_blank', 'noopener,noreferrer');
+          } catch (_error) {
+            const loading = slot.querySelector('.whats-pro-media-loading');
+            if (loading) loading.textContent = 'Não foi possível carregar a mídia.';
+          }
+        });
+      });
+
+      const img = slot.querySelector('.whats-pro-media-image');
+      if (img && img.dataset.boundMediaOpen !== '1') {
+        img.dataset.boundMediaOpen = '1';
+        img.addEventListener('click', async () => {
+          try {
+            const objectUrl = await resolveMediaObjectUrl(messageId);
+            wireMediaActionLinks(slot, objectUrl, kind);
+            window.open(objectUrl, '_blank', 'noopener,noreferrer');
+          } catch (_error) {
+            const loading = slot.querySelector('.whats-pro-media-loading');
+            if (loading) loading.textContent = 'Não foi possível carregar a mídia.';
+          }
+        });
+      }
+    });
+  }
+
   function renderMessageBody(message) {
     const text = messageDisplayText(message);
     const safeText = escapeHtml(text).replace(/\n/g, '<br />');
@@ -677,11 +874,14 @@
     const rawFileName = String(message.mediaFileName || 'arquivo').trim() || 'arquivo';
     let mediaInner = `<span class="whats-pro-media-loading">Carregando mídia…</span>`;
     if (kind === 'image') {
-      mediaInner = `<img class="whats-pro-media-image" alt="${fileName}" loading="lazy" />`;
+      mediaInner = `
+        <img class="whats-pro-media-image" alt="${fileName}" loading="lazy" />
+        ${renderMediaActions('Abrir imagem')}`;
     } else if (kind === 'video') {
       mediaInner = `
         <video class="whats-pro-media-video" controls preload="metadata"></video>
-        <span class="whats-pro-media-file-name">${fileName}</span>`;
+        <span class="whats-pro-media-file-name">${fileName}</span>
+        ${renderMediaActions('Abrir vídeo')}`;
     } else if (kind === 'audio') {
       mediaInner = `<audio class="whats-pro-media-audio" controls preload="metadata"></audio>`;
     } else {
@@ -690,10 +890,7 @@
         <div class="whats-pro-media-doc">
           <span class="whats-pro-media-doc-icon" aria-hidden="true">${isPdfMedia(message) ? '📄' : '📁'}</span>
           <span class="whats-pro-media-doc-name">${fileName}</span>
-          <div class="whats-pro-media-doc-actions">
-            <a class="whats-pro-media-doc-link" href="#" data-media-open>${openLabel}</a>
-            <a class="whats-pro-media-doc-link" href="#" data-media-download>Descarregar</a>
-          </div>
+          ${renderMediaActions(openLabel)}
         </div>`;
     }
 
@@ -717,50 +914,33 @@
         img = document.createElement('img');
         img.className = 'whats-pro-media-image';
         img.loading = 'lazy';
-        slot.appendChild(img);
+        slot.insertBefore(img, slot.firstChild);
       }
       img.src = objectUrl;
-      img.alt = slot.closest('.whats-pro-bubble')?.querySelector('.whats-pro-media-doc-name')?.textContent || 'Imagem';
-      return;
-    }
-
-    if (kind === 'video') {
+      img.alt = inferMediaDownloadName(slot, kind);
+    } else if (kind === 'video') {
       let video = slot.querySelector('.whats-pro-media-video');
       if (!video) {
         video = document.createElement('video');
         video.className = 'whats-pro-media-video';
         video.controls = true;
         video.preload = 'metadata';
-        slot.appendChild(video);
+        slot.insertBefore(video, slot.firstChild);
       }
       video.src = objectUrl;
-      return;
-    }
-
-    if (kind === 'audio') {
+    } else if (kind === 'audio') {
       let audio = slot.querySelector('.whats-pro-media-audio');
       if (!audio) {
         audio = document.createElement('audio');
         audio.className = 'whats-pro-media-audio';
         audio.controls = true;
         audio.preload = 'metadata';
-        slot.appendChild(audio);
+        slot.insertBefore(audio, slot.firstChild);
       }
       audio.src = objectUrl;
-      return;
     }
 
-    const link = slot.querySelector('[data-media-open]');
-    if (link) {
-      link.href = objectUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-    }
-    const downloadLink = slot.querySelector('[data-media-download]');
-    if (downloadLink) {
-      downloadLink.href = objectUrl;
-      downloadLink.download = slot.dataset.mediaFileName || 'arquivo';
-    }
+    wireMediaActionLinks(slot, objectUrl, kind);
   }
 
   async function hydrateMessageMedia() {
@@ -785,16 +965,17 @@
       } catch (error) {
         const loading = slot.querySelector('.whats-pro-media-loading');
         if (loading) {
-          loading.textContent = 'Pré-visualização indisponível';
+          loading.textContent = 'Pré-visualização indisponível — use Abrir ou Descarregar.';
         }
-        const actions = slot.querySelector('.whats-pro-media-doc-actions');
-        if (actions) actions.hidden = true;
       }
     }));
+    bindMediaSlots();
   }
 
   function bindMessageInteractions() {
     if (!state.dom.messages) return;
+
+    bindMediaSlots();
 
     state.dom.messages.querySelectorAll('[data-react-message-id]').forEach((button) => {
       if (button.dataset.boundReact === '1') return;
@@ -894,6 +1075,14 @@
       </div>`;
     state.dom.attachPreview.hidden = false;
     state.dom.attachCaption?.focus();
+  }
+
+  function resizeComposerInput() {
+    const el = state.dom.composerInput;
+    if (!el || el.tagName !== 'TEXTAREA') return;
+    el.style.height = 'auto';
+    const next = Math.min(Math.max(el.scrollHeight, 40), 132);
+    el.style.height = `${next}px`;
   }
 
   function updateComposerControls() {
@@ -1132,7 +1321,11 @@
 
         const tagsHtml = isGroupConversation(conversation)
           ? '<span class="whats-pro-chat-tag">grupo</span>'
-          : (state.botEnabled && windowStatus.tone !== 'closed' ? '<span class="whats-pro-chat-tag">IA</span>' : '');
+          : [
+            isConversationAiPaused(conversation)
+              ? '<span class="whats-pro-chat-tag is-paused">IA pausada</span>'
+              : (state.botEnabled && windowStatus.tone !== 'closed' ? '<span class="whats-pro-chat-tag">IA</span>' : ''),
+          ].filter(Boolean).join('');
 
         const onlineClass = windowStatus.isOpen ? 'is-online' : '';
 
@@ -1527,6 +1720,14 @@
       return;
     }
 
+    const normalizedKind = String(kind || '').trim().toUpperCase();
+    if (normalizedKind === 'OPT_OUT') {
+      const confirmed = window.confirm(api.OPT_OUT_CONFIRM_MESSAGE || 'Remover este contato do cadastro?');
+      if (!confirmed) {
+        return;
+      }
+    }
+
     state.dispositionBusy = true;
     state.dispositionError = '';
     renderDispositionBar();
@@ -1569,7 +1770,10 @@
     const api = window.EngageDispositionApi;
     const ctx = state.disposition || {};
     const busy = state.dispositionBusy || state.dispositionLoading;
-    const badgeLabel = api?.lossLabel(ctx.lossCategory) || 'Sem classificação';
+    const badgeLabel = api?.dispositionBadge?.(ctx) || 'Sem classificação';
+    const isContactMade = String(ctx.dispositionKind || '').trim().toUpperCase() === 'CONTACT_MADE';
+    const isOptOut = String(ctx.dispositionKind || '').trim().toUpperCase() === 'OPT_OUT';
+    const badgeToneClass = isContactMade ? ' is-contact-made' : (isOptOut ? ' is-opt-out' : '');
     const returnLine = ctx.nextContactAt
       ? `Retorno: ${formatDispositionDate(ctx.nextContactAt)}`
       : '';
@@ -1596,10 +1800,15 @@
       return;
     }
 
-    const buttons = (api?.DISPOSITION_BUTTONS || []).map((btn) => `
-      <button type="button" class="whats-pro-engage-disposition-btn is-${btn.tone}" data-disposition-kind="${escapeHtml(btn.kind)}" ${busy ? 'disabled' : ''}>
+    const buttons = (api?.DISPOSITION_BUTTONS || []).map((btn) => {
+      const alreadyContactMade = btn.kind === 'CONTACT_MADE' && isContactMade;
+      const alreadyOptOut = btn.kind === 'OPT_OUT' && isOptOut;
+      const disabled = busy || alreadyContactMade || alreadyOptOut;
+      return `
+      <button type="button" class="whats-pro-engage-disposition-btn is-${btn.tone}" data-disposition-kind="${escapeHtml(btn.kind)}"${disabled ? ' disabled' : ''}>
         ${escapeHtml(btn.label)}
-      </button>`).join('');
+      </button>`;
+    }).join('');
 
     el.innerHTML = `
       <div class="whats-pro-engage-bar">
@@ -1608,7 +1817,7 @@
         <div class="whats-pro-engage-disposition ${busy ? 'is-busy' : ''}">
           <div class="whats-pro-engage-disposition-head">
             <span class="whats-pro-engage-disposition-title">Engage — resposta da campanha</span>
-            <span class="whats-pro-engage-disposition-badge">${escapeHtml(badgeLabel)}</span>
+            <span class="whats-pro-engage-disposition-badge${badgeToneClass}">${escapeHtml(badgeLabel)}</span>
           </div>
           ${returnLine ? `<p class="whats-pro-engage-disposition-meta">${escapeHtml(returnLine)}</p>` : ''}
           ${reasoning ? `<p class="whats-pro-engage-disposition-reason">${escapeHtml(reasoning)}</p>` : ''}
@@ -1667,6 +1876,7 @@
     if (!hasSelection) {
       resetDispositionState();
       applyWindowState();
+      renderConversationAutoReplyControls();
       updateDebug('Nenhuma conversa selecionada.');
       return;
     }
@@ -1679,11 +1889,22 @@
     state.dom.avatar.classList.toggle('is-online', open);
 
     if (state.dom.threadStatus) {
-      const txt = state.botEnabled ? 'IA ativa' : 'IA pausada';
-      state.dom.threadStatus.dataset.tone = state.botEnabled ? 'neutral' : 'warn';
+      const globallyPaused = !state.botEnabled;
+      const locallyPaused = isConversationAiPaused(selectedConversation);
+      let txt = 'IA ativa';
+      let tone = 'neutral';
+      if (locallyPaused) {
+        txt = 'IA pausada nesta conversa';
+        tone = 'warn';
+      } else if (globallyPaused) {
+        txt = 'IA pausada (tenant)';
+        tone = 'warn';
+      }
+      state.dom.threadStatus.dataset.tone = tone;
       state.dom.threadStatus.querySelector('span:last-child').textContent = txt;
     }
 
+    renderConversationAutoReplyControls();
     applyWindowState();
     renderMessages();
     updateDebug();
@@ -1958,6 +2179,7 @@
         content,
       });
       state.dom.composerInput.value = '';
+      resizeComposerInput();
       updateComposerControls();
       await loadMessages(false);
       await loadConversationsSilently();
@@ -2358,6 +2580,7 @@
     }
     state.dom.composerInput.value = template;
     state.dom.composerInput.focus();
+    resizeComposerInput();
     updateComposerSendIcon();
   }
 
@@ -2366,12 +2589,20 @@
       return;
     }
     const conversation = state.conversations.find((c) => c.id === state.selectedConversationId);
+    const title = conversation ? conversationTitle(conversation) : '';
+    const profileName = String(conversation?.contactProfileName || '').trim();
     const detail = {
       action,
       conversationId: state.selectedConversationId,
       tenantId: state.selectedTenantId,
+      customerId: conversation?.customerId || conversation?.customer?.id || '',
       contact: conversation
-        ? { phone: conversation.phone, name: conversationTitle(conversation) }
+        ? {
+          phone: conversation.phone,
+          name: title,
+          email: profileName.includes('@') ? profileName : (conversation.email || ''),
+          customerId: conversation.customerId || conversation.customer?.id || '',
+        }
         : null,
     };
     window.dispatchEvent(new CustomEvent('reserva:whatsapp-crm-action', { detail }));
@@ -2420,6 +2651,7 @@
     });
 
     state.dom.composerInput?.addEventListener('input', () => {
+      resizeComposerInput();
       updateComposerSendIcon();
     });
 
@@ -2440,6 +2672,10 @@
 
     state.dom.toggleOff?.addEventListener('click', () => {
       void toggleBot(false);
+    });
+
+    state.dom.conversationAiPauseBtn?.addEventListener('click', () => {
+      void toggleConversationAutoReplyPause();
     });
 
     state.dom.quickActions?.querySelectorAll('[data-quick-action]').forEach((button) => {
@@ -2566,6 +2802,9 @@
       threadStatus: qs('#botInboxThreadStatus'),
       threadWindow: qs('#botInboxThreadWindow'),
       threadBack: root.querySelector('[data-whats-back]'),
+      conversationAiBadge: qs('#botInboxConversationAiBadge'),
+      conversationAiPauseBtn: qs('#botInboxConversationAiPauseBtn'),
+      conversationAiHint: qs('#botInboxConversationAiHint'),
       debug: qs('#botInboxDebug'),
       headerName: qs('#botInboxHeaderName'),
       headerMeta: qs('#botInboxHeaderMeta'),
@@ -2692,6 +2931,31 @@
     return true;
   }
 
+  async function selectConversationByPhone(phone, session) {
+    const rawPhone = String(phone || '').trim();
+    if (!rawPhone) return false;
+    if (session) state.session = session;
+
+    const onConversas = document.querySelector('[data-es-nav="conversas"]')?.classList.contains('is-active');
+    if (!onConversas) {
+      document.querySelector('[data-es-nav="conversas"]')?.click();
+    }
+
+    if (!state.active) {
+      await activate(state.session);
+    } else if (!state.initialized) {
+      await bootstrap();
+    }
+
+    if (!state.conversations.length) {
+      await loadConversations();
+    }
+
+    const id = findConversationIdByPhone(rawPhone);
+    if (!id) return false;
+    return selectConversation(id, state.session);
+  }
+
   async function activate(session) {
     if (!mount()) {
       return;
@@ -2750,6 +3014,7 @@
     deactivate,
     prepareConversation,
     selectConversation,
+    selectConversationByPhone,
     isActive: () => state.active,
     getUnreadTotal: totalUnreadCount,
   };

@@ -51,6 +51,7 @@
     editorCustomerId: '',
     editorOriginal: null,
     editorGlobalBound: false,
+    whatsappCrmBound: false,
     dom: {},
   };
 
@@ -321,8 +322,149 @@
     },
   });
 
-  const openClientInbox = () => {
-    document.querySelector('[data-es-nav="conversas"]')?.click();
+  const phoneDigits = (value) => String(value || '').replace(/\D/g, '');
+
+  const phonesMatch = (a, b) => {
+    const da = phoneDigits(a);
+    const db = phoneDigits(b);
+    if (!da || !db) return false;
+    if (da === db) return true;
+    const tail = (digits) => (digits.length >= 10 ? digits.slice(-11) : digits);
+    return tail(da) === tail(db);
+  };
+
+  async function findCustomerByContact({ phone, email, name } = {}) {
+    const api = getApi();
+    const tenantId = resolveTenantId();
+    if (!api || !tenantId) return null;
+
+    const terms = [];
+    if (phone) terms.push(String(phone).trim());
+    if (email) terms.push(String(email).trim());
+    if (name && !String(name).includes('@')) terms.push(String(name).trim());
+
+    for (const term of terms) {
+      if (!term) continue;
+      try {
+        const params = new URLSearchParams({
+          tenantId,
+          search: term,
+          limit: '15',
+        });
+        const payload = await api.request(`/api/operator/customers?${params.toString()}`);
+        const rows = unwrapArray(payload);
+        if (phone) {
+          const byPhone = rows.find((row) => phonesMatch(row?.phone, phone));
+          if (byPhone) return byPhone;
+        }
+        if (email) {
+          const normalizedEmail = String(email).trim().toLowerCase();
+          const byEmail = rows.find((row) => String(row?.email || '').trim().toLowerCase() === normalizedEmail);
+          if (byEmail) return byEmail;
+        }
+        if (rows.length === 1) return rows[0];
+      } catch (_err) {
+        /* tenta próximo termo */
+      }
+    }
+    return null;
+  }
+
+  async function openCustomerFromInbox({ customerId, phone, email, name, session } = {}) {
+    if (session) state.session = session;
+
+    const nav = document.querySelector('[data-es-nav="clientes"]');
+    const onClientes = nav?.classList.contains('is-active');
+    if (!onClientes) nav?.click();
+
+    if (!state.active) {
+      await window.ReservaAiClientsAdmin.activate(state.session);
+    } else {
+      setShellView('lista');
+    }
+
+    const resolvedEmail = String(email || '').trim()
+      || (String(name || '').includes('@') ? String(name).trim() : '');
+
+    let targetId = String(customerId || '').trim();
+    if (!targetId) {
+      const found = await findCustomerByContact({ phone, email: resolvedEmail, name });
+      targetId = String(found?.id || '').trim();
+    }
+
+    if (targetId) {
+      state.selectedCustomerId = targetId;
+      closeClientsEditor();
+      await loadCustomerDashboard(targetId);
+      return;
+    }
+
+    openClientsEditor({
+      mode: 'create',
+      customer: {
+        phone: String(phone || '').trim(),
+        email: resolvedEmail,
+        fullName: name && !String(name).includes('@') ? String(name).trim() : '',
+      },
+    });
+  }
+
+  function bindWhatsappCrmListener() {
+    if (state.whatsappCrmBound) return;
+    state.whatsappCrmBound = true;
+    window.addEventListener('reserva:whatsapp-crm-action', (event) => {
+      const detail = event.detail || {};
+      if (detail.action !== 'open-customer') return;
+      const contact = detail.contact || {};
+      void openCustomerFromInbox({
+        customerId: detail.customerId || contact.customerId,
+        phone: contact.phone,
+        email: contact.email,
+        name: contact.name,
+        session: state.session,
+      });
+    });
+  }
+
+  const openClientInbox = async (conversationId, phone) => {
+    const inbox = window.ReservaAiBotInbox;
+    let id = String(conversationId || '').trim();
+
+    if (!id) {
+      const items = state.dashboardData?.tabs?.conversations?.items;
+      if (Array.isArray(items) && items.length) {
+        id = String(items[0]?.id || items[0]?.conversationId || '').trim();
+      }
+    }
+
+    if (!inbox) {
+      document.querySelector('[data-es-nav="conversas"]')?.click();
+      return;
+    }
+
+    if (id) {
+      inbox.prepareConversation?.(id);
+    }
+
+    const onConversas = document.querySelector('[data-es-nav="conversas"]')?.classList.contains('is-active');
+    if (!onConversas) {
+      document.querySelector('[data-es-nav="conversas"]')?.click();
+    }
+
+    if (!inbox.isActive?.()) {
+      await inbox.activate(state.session);
+      return;
+    }
+
+    if (id) {
+      await inbox.selectConversation(id, state.session);
+      return;
+    }
+
+    const fallbackPhone = String(phone || state.dashboardData?.customer?.phone || '').trim();
+    if (fallbackPhone && inbox.selectConversationByPhone) {
+      await inbox.selectConversationByPhone(fallbackPhone, state.session);
+    }
   };
 
   const buildQuery = ({ cursor = '' } = {}) => {
@@ -471,23 +613,22 @@
     `;
   };
 
-  const renderConversationsTab = (conversationsTab) => {
+  const renderConversationsTab = (conversationsTab, customerPhone) => {
     const items = Array.isArray(conversationsTab?.items) ? conversationsTab.items : [];
+    const fallbackPhone = String(customerPhone || '').trim();
     if (!items.length) {
       return `
         <div class="clients-pro-conversations-empty">
           <p class="clients-pro-muted">Sem conversas.</p>
-          <button type="button" class="clients-pro-secondary-action" data-clients-open-inbox>Abrir inbox</button>
+          <button type="button" class="clients-pro-secondary-action" data-clients-open-inbox data-clients-phone="${escapeAttr(fallbackPhone)}">Abrir inbox</button>
         </div>
       `;
     }
     const rows = items.map((item) => {
-      const phone = String(item?.phone || '').trim();
+      const phone = String(item?.phone || fallbackPhone || '').trim();
       const lastAt = formatClientsDateTime(item?.lastMessageAt || item?.createdAt);
-      const convId = String(item?.id || '').trim();
-      const inboxBtn = convId
-        ? `<button type="button" class="clients-pro-secondary-action" data-clients-open-inbox="${escapeAttr(convId)}">Abrir inbox</button>`
-        : '';
+      const convId = String(item?.id || item?.conversationId || '').trim();
+      const inboxBtn = `<button type="button" class="clients-pro-secondary-action" data-clients-open-inbox="${escapeAttr(convId)}" data-clients-phone="${escapeAttr(phone)}">Abrir inbox</button>`;
       return `
         <div class="clients-pro-list-row clients-pro-conversation-row">
           <div class="clients-pro-conversation-main">
@@ -499,6 +640,16 @@
       `;
     }).join('');
     return `<div class="clients-pro-list-rows clients-pro-conversation-rows">${rows}</div>`;
+  };
+
+  const bindOpenInboxButtons = (root) => {
+    root?.querySelectorAll('[data-clients-open-inbox]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const convId = String(btn.dataset.clientsOpenInbox || '').trim();
+        const phone = String(btn.dataset.clientsPhone || '').trim();
+        void openClientInbox(convId, phone);
+      });
+    });
   };
 
   const renderAboutTab = (customer, about, summary) => {
@@ -578,17 +729,13 @@
 
     if (state.dashboardTab === 'simulations') {
       content.innerHTML = renderSimulationsTab(tabs?.simulations || {});
-      content.querySelectorAll('[data-clients-open-inbox]').forEach((btn) => {
-        btn.addEventListener('click', () => openClientInbox());
-      });
       return;
     }
 
     if (state.dashboardTab === 'conversations') {
-      content.innerHTML = renderConversationsTab(tabs?.conversations || {});
-      content.querySelectorAll('[data-clients-open-inbox]').forEach((btn) => {
-        btn.addEventListener('click', () => openClientInbox());
-      });
+      const customer = state.dashboardData?.customer || {};
+      content.innerHTML = renderConversationsTab(tabs?.conversations || {}, customer.phone);
+      bindOpenInboxButtons(content);
       return;
     }
 
@@ -1119,6 +1266,7 @@
       void deleteSelectedCustomer();
     });
     bindEditorEvents();
+    bindWhatsappCrmListener();
     state.mounted = true;
   }
 
@@ -1198,5 +1346,8 @@
       state.active = false;
       closeClientsEditor();
     },
+    openCustomerFromInbox,
   };
+
+  bindWhatsappCrmListener();
 }());

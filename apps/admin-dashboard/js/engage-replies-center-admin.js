@@ -5,7 +5,7 @@
   const api = () => window.EngageRepliesCenterApi;
   const REFRESH_MS = 30 * 1000;
   const WINDOW_OPTIONS = [
-    { key: '1d', label: 'Último dia' },
+    { key: '1d', label: 'Hoje' },
     { key: '7d', label: 'Última semana' },
     { key: '15d', label: 'Últimos 15 dias' },
     { key: '30d', label: 'Último mês' },
@@ -34,6 +34,39 @@
     NAO_CLASSIFICADO: 'neutral',
   };
 
+  const KPI_ACCENTS = [
+    { accent: '#2563eb', iconBg: '#eff6ff' },
+    { accent: '#16a34a', iconBg: '#ecfdf5' },
+    { accent: '#059669', iconBg: '#ecfdf5' },
+    { accent: '#dc2626', iconBg: '#fef2f2' },
+    { accent: '#ea580c', iconBg: '#fff7ed' },
+    { accent: '#64748b', iconBg: '#f1f5f9' },
+  ];
+
+  const INTEREST_ICONS = {
+    BUDGET: '📋',
+    VISIT: '🏠',
+    SIMULATION: '⚡',
+    FINANCING: '💳',
+    GENERAL_INTEREST: '✨',
+  };
+
+  const ICONS = {
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    export: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    wa: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>',
+    spark: '✨',
+    campaigns: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>',
+    sent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16v12H5.17L4 17.17V4z"/><polyline points="22 6 12 13 2 6"/></svg>',
+    replies: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>',
+    action: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    unknown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  };
+
   const state = {
     mounted: false,
     active: false,
@@ -45,6 +78,7 @@
     searchTerm: '',
     data: null,
     refreshTimerId: null,
+    scrollToTable: false,
     dom: {},
   };
 
@@ -91,6 +125,22 @@
     return `há ${days} dia${days === 1 ? '' : 's'}`;
   }
 
+  function timeUrgency(iso) {
+    if (!iso) return 'low';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return 'low';
+    const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+    if (mins < 60) return 'high';
+    if (mins < 360) return 'medium';
+    return 'low';
+  }
+
+  function renderTimeBadge(iso) {
+    const label = formatRelativeTime(iso);
+    const urgency = timeUrgency(iso);
+    return `<span class="erc-time-badge" data-urgency="${urgency}">${escapeHtml(label)}</span>`;
+  }
+
   function formatDateShort(iso) {
     if (!iso) return '—';
     const date = new Date(iso);
@@ -128,17 +178,32 @@
 
   function sparklineSvg(values, color) {
     const data = Array.isArray(values) && values.length ? values : [4, 6, 5, 7, 6, 8, 7];
-    const w = 120;
-    const h = 36;
+    const w = 240;
+    const h = 48;
     const max = Math.max(...data, 1);
     const min = Math.min(...data, 0);
     const range = Math.max(max - min, 1);
     const points = data.map((v, i) => {
       const x = (i / Math.max(data.length - 1, 1)) * w;
-      const y = h - ((v - min) / range) * (h - 4) - 2;
+      const y = h - ((v - min) / range) * (h - 6) - 3;
       return `${x},${y}`;
     }).join(' ');
-    return `<svg class="erc-sparkline" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline fill="none" stroke="${color}" stroke-width="2" points="${points}"/></svg>`;
+    return `<div class="erc-sparkline-wrap"><svg class="erc-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${points}"/></svg></div>`;
+  }
+
+  function aiToneForKey(key) {
+    const normalized = String(key || '').trim().toUpperCase();
+    return CLASS_TONES[normalized] || 'neutral';
+  }
+
+  function interestIcon(key) {
+    return INTEREST_ICONS[String(key || '').trim().toUpperCase()] || '📌';
+  }
+
+  function renderCampaignLink(item) {
+    const name = item.campaignName || '—';
+    if (!item.campaignId) return escapeHtml(name);
+    return `<button type="button" class="erc-campaign-link" data-open-campaign="${escapeAttr(item.campaignId)}">${escapeHtml(name)}</button>`;
   }
 
   function renderAvatar(item) {
@@ -154,28 +219,58 @@
     return `<span class="erc-chip" data-tone="${tone}">${escapeHtml(label)}</span>`;
   }
 
+  function focusTab(tabKey, { scroll = true } = {}) {
+    const next = String(tabKey || '').trim();
+    if (!next || next === state.activeTab) {
+      if (scroll) scrollToConversations();
+      return;
+    }
+    state.activeTab = next;
+    state.scrollToTable = scroll;
+    loadData();
+  }
+
+  function scrollToConversations() {
+    requestAnimationFrame(() => {
+      const section = state.dom.root?.querySelector('#ercTableSection');
+      section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   function renderKpiCards(summary) {
     const s = summary || {};
     const cards = [
-      { label: 'Campanhas ativas', value: formatNumber(s.activeCampaigns), delta: '', link: 'campanhas', linkLabel: 'Ver campanhas →' },
-      { label: 'Mensagens enviadas', value: formatNumber(s.messagesSent), delta: formatDelta(s.messagesSentDeltaPct) },
-      { label: 'Respostas recebidas', value: formatNumber(s.repliesReceived), delta: formatDelta(s.repliesDeltaPct) },
-      { label: 'Precisam de ação', value: formatNumber(s.needAction), delta: formatDelta(s.needActionDeltaPct) },
-      { label: 'Pediram retorno', value: formatNumber(s.scheduledReturn), delta: formatDelta(s.scheduledReturnDeltaPct) },
-      { label: 'Sem classificação', value: formatNumber(s.unclassified), delta: '' },
+      { label: 'Campanhas ativas', value: formatNumber(s.activeCampaigns), delta: '', icon: ICONS.campaigns, link: 'campanhas', linkLabel: 'Ver campanhas →' },
+      { label: 'Mensagens enviadas', value: formatNumber(s.messagesSent), delta: formatDelta(s.messagesSentDeltaPct), icon: ICONS.sent, tab: 'all', hint: 'Ver todas as respostas' },
+      { label: 'Respostas recebidas', value: formatNumber(s.repliesReceived), delta: formatDelta(s.repliesDeltaPct), icon: ICONS.replies, tab: 'all', hint: 'Ver conversas' },
+      { label: 'Precisam de ação', value: formatNumber(s.needAction), delta: formatDelta(s.needActionDeltaPct), icon: ICONS.action, tab: 'action', hint: 'Ver quem precisa de você' },
+      { label: 'Pediram retorno', value: formatNumber(s.scheduledReturn), delta: formatDelta(s.scheduledReturnDeltaPct), icon: ICONS.clock, tab: 'defer', hint: 'Ver pedidos de retorno' },
+      { label: 'Sem classificação', value: formatNumber(s.unclassified), delta: '', icon: ICONS.unknown, tab: 'unclassified', hint: 'Classificar agora' },
     ];
-    return `<div class="erc-kpi-grid">${cards.map((card) => `
-      <article class="erc-kpi-card">
+    return `<div class="erc-kpi-grid">${cards.map((card, index) => {
+      const accent = KPI_ACCENTS[index] || KPI_ACCENTS[0];
+      const isActive = card.tab && state.activeTab === card.tab;
+      const clickable = !!card.tab;
+      const activeClass = isActive ? ' is-active' : '';
+      const clickClass = clickable ? ' erc-kpi-card--clickable' : '';
+      const tabAttr = card.tab ? ` data-erc-kpi-tab="${escapeAttr(card.tab)}" role="button" tabindex="0" aria-pressed="${isActive ? 'true' : 'false'}"` : '';
+      return `
+      <article class="erc-kpi-card${clickClass}${activeClass}" style="--erc-kpi-accent:${accent.accent};--erc-kpi-icon-bg:${accent.iconBg}"${tabAttr}>
+        <div class="erc-kpi-card-head">
+          <span class="erc-kpi-icon" aria-hidden="true">${card.icon}</span>
+        </div>
         <span class="erc-kpi-label">${escapeHtml(card.label)}</span>
         <strong class="erc-kpi-value">${escapeHtml(card.value)}</strong>
         ${card.delta ? `<div class="erc-kpi-delta">${card.delta}</div>` : ''}
+        ${card.hint ? `<span class="erc-kpi-hint">${escapeHtml(card.hint)}</span>` : ''}
         ${card.link ? `<button type="button" class="erc-kpi-link" data-es-nav-jump="${escapeHtml(card.link)}">${escapeHtml(card.linkLabel)}</button>` : ''}
-      </article>
-    `).join('')}</div>`;
+      </article>`;
+    }).join('')}</div>`;
   }
 
-  function renderActionList(title, count, items, mode) {
+  function renderActionList(title, count, items, mode, focusTab) {
     const rows = Array.isArray(items) ? items : [];
+    const badgeTone = mode === 'action' ? 'danger' : 'warn';
     const body = rows.length
       ? rows.map((item) => `
         <article class="erc-list-item">
@@ -186,8 +281,8 @@
               ${item.phone ? `<small class="erc-phone">${escapeHtml(item.phone)}</small>` : ''}
               <p>${escapeHtml(item.messagePreview || '—')}</p>
               <div class="erc-list-item-meta">
-                <span>${escapeHtml(item.campaignName)}</span>
-                <span>${formatRelativeTime(item.receivedAt)}</span>
+                ${renderCampaignLink(item)}
+                ${renderTimeBadge(item.receivedAt)}
               </div>
             </div>
           </div>
@@ -195,22 +290,29 @@
             ? `<span class="erc-return-badge">Retorno em ${formatDateShort(item.nextContactAt)}</span>`
             : ''}
           <div class="erc-list-item-actions">
-            <button type="button" class="erc-btn erc-btn--ghost" data-open-conversation="${escapeAttr(item.conversationId || item.id)}">
+            <button type="button" class="erc-btn erc-btn--wa" title="Abrir WhatsApp" data-open-conversation="${escapeAttr(item.conversationId || item.id)}">${ICONS.wa}</button>
+            <button type="button" class="erc-btn erc-btn--primary" data-open-conversation="${escapeAttr(item.conversationId || item.id)}">
               ${mode === 'scheduled' ? 'Ver conversa' : 'Abrir conversa'}
             </button>
             ${mode === 'action' && item.needsSeller !== false
-              ? '<button type="button" class="erc-btn erc-btn--outline" disabled title="Em breve">Atribuir vendedor</button>'
+              ? '<button type="button" class="erc-btn erc-btn--ghost" disabled title="Em breve">Atribuir vendedor</button>'
               : ''}
           </div>
         </article>
       `).join('')
-      : '<p class="erc-muted">Nenhuma resposta nesta categoria.</p>';
+      : `<div class="erc-empty-state">Nenhuma resposta nesta categoria.${focusTab && count > 0 ? ` <button type="button" class="erc-empty-link" data-erc-focus-tab="${escapeAttr(focusTab)}">Ver na lista completa (${formatNumber(count)})</button>` : ''}</div>`;
     return `
-      <section class="erc-panel-card">
+      <section class="erc-panel-card${focusTab ? ' erc-panel-card--clickable' : ''}"${focusTab ? ` data-erc-focus-tab="${escapeAttr(focusTab)}" role="button" tabindex="0"` : ''}>
         <header class="erc-panel-card-head">
-          <h3>${escapeHtml(title)} <span class="erc-count">(${formatNumber(count)})</span></h3>
+          <h3>${escapeHtml(title)}</h3>
+          <div class="erc-panel-card-head-actions">
+            ${focusTab ? `<button type="button" class="erc-panel-see-all" data-erc-focus-tab="${escapeAttr(focusTab)}">Ver todas (${formatNumber(count)})</button>` : ''}
+            <span class="erc-panel-badge" data-tone="${badgeTone}">${formatNumber(count)}</span>
+          </div>
         </header>
-        <div class="erc-list">${body}</div>
+        <div class="erc-panel-card-body">
+          <div class="erc-list">${body}</div>
+        </div>
       </section>
     `;
   }
@@ -220,17 +322,26 @@
     const body = rows.length
       ? rows.map((row) => `
         <div class="erc-interest-row">
-          <span>${escapeHtml(row.label)}</span>
+          <span class="erc-interest-row-left">
+            <span class="erc-interest-icon" aria-hidden="true">${interestIcon(row.key)}</span>
+            <span>${escapeHtml(row.label)}</span>
+          </span>
           <strong>${formatNumber(row.count)}</strong>
         </div>
       `).join('')
-      : '<p class="erc-muted">Sem interesses classificados no período.</p>';
+      : `<div class="erc-empty-state">Sem interesses classificados no período.${totalInterested > 0 ? ` <button type="button" class="erc-empty-link" data-erc-focus-tab="interested">Ver interessados (${formatNumber(totalInterested)})</button>` : ''}</div>`;
     return `
-      <section class="erc-panel-card">
+      <section class="erc-panel-card erc-panel-card--clickable" data-erc-focus-tab="interested" role="button" tabindex="0">
         <header class="erc-panel-card-head">
-          <h3>Interessados <span class="erc-count">(${formatNumber(totalInterested)})</span></h3>
+          <h3>Interessados</h3>
+          <div class="erc-panel-card-head-actions">
+            <button type="button" class="erc-panel-see-all" data-erc-focus-tab="interested">Ver todas (${formatNumber(totalInterested)})</button>
+            <span class="erc-panel-badge" data-tone="ok">${formatNumber(totalInterested)}</span>
+          </div>
         </header>
-        <div class="erc-interest-list">${body}</div>
+        <div class="erc-panel-card-body">
+          <div class="erc-interest-list">${body}</div>
+        </div>
       </section>
     `;
   }
@@ -242,33 +353,63 @@
         <header class="erc-panel-card-head">
           <h3>Tempo médio de resposta</h3>
         </header>
-        <div class="erc-response-time">
-          <strong>${escapeHtml(label)}</strong>
-          ${sparklineSvg(series, '#2563eb')}
+        <div class="erc-panel-card-body">
+          <div class="erc-response-time">
+            <strong>${escapeHtml(label)}</strong>
+            <p class="erc-response-time-label">Média no período selecionado</p>
+            ${sparklineSvg(series, '#2563eb')}
+          </div>
         </div>
       </section>
     `;
   }
 
+  function aiTabForKey(key) {
+    const normalized = String(key || '').trim().toUpperCase().replace(/\s+/g, '_');
+    const map = {
+      INTERESTED: 'interested',
+      INTERESSADO: 'interested',
+      SCHEDULED_RETURN: 'defer',
+      RETORNO_FUTURO: 'defer',
+      ADIADO: 'defer',
+      NO_INTEREST: 'no_interest',
+      SEM_INTERESSE: 'no_interest',
+      UNCLASSIFIED: 'unclassified',
+      NAO_CLASSIFICADO: 'unclassified',
+      DOUBT: 'action',
+      DUVIDAS: 'action',
+    };
+    return map[normalized] || '';
+  }
+
   function renderAiClassification(buckets) {
     const rows = Array.isArray(buckets) ? buckets : [];
     const body = rows.length
-      ? rows.map((row) => `
-        <div class="erc-ai-row">
+      ? rows.map((row) => {
+        const tone = aiToneForKey(row.key || row.label);
+        const tab = aiTabForKey(row.key || row.label);
+        const tabAttr = tab ? ` data-erc-focus-tab="${escapeAttr(tab)}" role="button" tabindex="0"` : '';
+        return `
+        <div class="erc-ai-row${tab ? ' erc-ai-row--clickable' : ''}"${tabAttr}>
           <div class="erc-ai-row-label">
-            <span>${escapeHtml(row.label)}</span>
+            <span class="erc-ai-row-label-left">
+              <span class="erc-ai-dot" data-tone="${tone}"></span>
+              <span>${escapeHtml(row.label)}</span>
+            </span>
             <small>${formatNumber(row.count)} · ${Number(row.pct || 0)}%</small>
           </div>
-          <div class="erc-ai-bar" aria-hidden="true"><span style="width:${Math.max(4, Number(row.pct || 0))}%"></span></div>
-        </div>
-      `).join('')
-      : '<p class="erc-muted">Classificação IA indisponível.</p>';
+          <div class="erc-ai-bar" aria-hidden="true"><span data-tone="${tone}" style="width:${Math.max(4, Number(row.pct || 0))}%"></span></div>
+        </div>`;
+      }).join('')
+      : '<div class="erc-empty-state">Classificação IA indisponível.</div>';
     return `
       <section class="erc-panel-card">
         <header class="erc-panel-card-head">
           <h3>Classificação da IA</h3>
         </header>
-        <div class="erc-ai-list">${body}</div>
+        <div class="erc-panel-card-body">
+          <div class="erc-ai-list">${body}</div>
+        </div>
       </section>
     `;
   }
@@ -277,8 +418,9 @@
     if (!tip?.message) return '';
     return `
       <section class="erc-tip-card">
-        <span class="erc-tip-badge">Dica da IA</span>
+        <span class="erc-tip-badge">${ICONS.spark} Dica da IA</span>
         <p>${escapeHtml(tip.message)}</p>
+        <button type="button" class="erc-btn" id="ercAiTipBtn">Ver conversas</button>
       </section>
     `;
   }
@@ -344,9 +486,11 @@
             : escapeHtml(item.campaignName)}
         </td>
         <td>${renderClassificationChip(item)}</td>
-        <td>${formatRelativeTime(item.receivedAt)}</td>
+        <td>${renderTimeBadge(item.receivedAt)}</td>
         <td class="erc-table-actions">
-          <button type="button" class="erc-icon-btn" title="Abrir WhatsApp" data-open-conversation="${escapeAttr(item.conversationId || item.id)}">💬</button>
+          <button type="button" class="erc-icon-btn" data-tone="wa" title="Abrir WhatsApp" data-open-conversation="${escapeAttr(item.conversationId || item.id)}">${ICONS.wa}</button>
+          <button type="button" class="erc-icon-btn" title="Abrir conversa" data-open-conversation="${escapeAttr(item.conversationId || item.id)}">↗</button>
+          <button type="button" class="erc-icon-btn" title="Converter em Lead" data-convert-lead="${escapeAttr(item.conversationId || item.id)}">🎯</button>
         </td>
       </tr>
     `).join('');
@@ -357,21 +501,20 @@
       const selected = opt.key === state.windowKey ? ' selected' : '';
       return `<option value="${escapeAttr(opt.key)}"${selected}>${escapeHtml(opt.label)}</option>`;
     }).join('');
-    const windowLabel = state.data?.window?.label || WINDOW_OPTIONS.find((w) => w.key === state.windowKey)?.label || '';
     return `
       <header class="erc-toolbar">
         <div class="erc-toolbar-copy">
-          <p class="erc-eyebrow">Engage</p>
+          <p class="erc-eyebrow">Engage Solar</p>
           <h2 class="erc-title">Central de Respostas</h2>
           <p class="erc-lead">Acompanhe todas as respostas das suas campanhas em um só lugar.</p>
-          ${windowLabel ? `<p class="erc-window-hint">Período: ${escapeHtml(windowLabel)}</p>` : ''}
         </div>
         <div class="erc-toolbar-actions">
-          <label class="erc-field">
-            <span>Período</span>
-            <select id="ercWindowSelect">${windowOptions}</select>
+          <label class="erc-period-pill">
+            ${ICONS.calendar}
+            <select id="ercWindowSelect" aria-label="Período">${windowOptions}</select>
           </label>
-          <button type="button" class="erc-btn erc-btn--outline" id="ercRefreshBtn">Atualizar</button>
+          <button type="button" class="erc-btn erc-btn--ghost" id="ercFilterBtn" disabled title="Em breve">${ICONS.filter} Filtros</button>
+          <button type="button" class="erc-btn erc-btn--outline" id="ercRefreshBtn">${ICONS.refresh} Atualizar</button>
         </div>
       </header>
     `;
@@ -392,23 +535,24 @@
     return `
       ${renderKpiCards(data.summary)}
       <div class="erc-main-grid">
-        <div class="erc-main-col">
-          ${renderActionList('Respostas que precisam de ação', data.summary.needAction, data.needActionItems, 'action')}
-          ${renderActionList('Pediram para retornar depois', data.summary.scheduledReturn, data.scheduledReturnItems, 'scheduled')}
-        </div>
-        <div class="erc-side-col">
-          ${renderInterestBuckets(data.interestBuckets, interestedTotal)}
+        ${renderActionList('Respostas que precisam de ação', data.summary.needAction, data.needActionItems, 'action', 'action')}
+        ${renderActionList('Pediram para retornar depois', data.summary.scheduledReturn, data.scheduledReturnItems, 'scheduled', 'defer')}
+        ${renderInterestBuckets(data.interestBuckets, interestedTotal)}
+        <div class="erc-insights-col">
           ${renderResponseTime(data.avgResponseTimeMinutes, data.responseTimeSeries)}
           ${renderAiClassification(data.aiClassification)}
           ${renderAiTip(data.aiTip)}
         </div>
       </div>
-      <section class="erc-table-section">
+      <section class="erc-table-section" id="ercTableSection">
         <div class="erc-table-toolbar">
           <div class="erc-tabs" role="tablist">${renderTableTabs()}</div>
           <div class="erc-table-tools">
-            <input type="search" id="ercSearchInput" class="erc-search" placeholder="Buscar conversas…" value="${escapeAttr(state.searchTerm)}" />
-            <button type="button" class="erc-btn erc-btn--outline" id="ercExportBtn" disabled title="Em breve">Exportar</button>
+            <label class="erc-search-wrap">
+              ${ICONS.search}
+              <input type="search" id="ercSearchInput" class="erc-search" placeholder="Buscar conversas…" value="${escapeAttr(state.searchTerm)}" />
+            </label>
+            <button type="button" class="erc-btn erc-btn--outline" id="ercExportBtn" disabled title="Em breve">${ICONS.export} Exportar</button>
           </div>
         </div>
         <div class="erc-table-wrap">
@@ -460,14 +604,59 @@
 
     state.dom.root.querySelectorAll('[data-erc-tab]').forEach((button) => {
       button.addEventListener('click', () => {
-        state.activeTab = button.dataset.ercTab || '';
-        loadData();
+        focusTab(button.dataset.ercTab || '', { scroll: false });
+      });
+    });
+
+    state.dom.root.querySelectorAll('[data-erc-kpi-tab]').forEach((card) => {
+      const activate = (event) => {
+        if (event?.target?.closest?.('[data-es-nav-jump]')) return;
+        focusTab(card.dataset.ercKpiTab || '');
+      };
+      card.addEventListener('click', activate);
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          activate(event);
+        }
+      });
+    });
+
+    state.dom.root.querySelectorAll('[data-erc-focus-tab]').forEach((el) => {
+      const activate = (event) => {
+        if (event?.target?.closest?.('[data-open-conversation], [data-open-campaign], [data-es-nav-jump]')) return;
+        focusTab(el.dataset.ercFocusTab || '');
+      };
+      el.addEventListener('click', activate);
+      el.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          activate(event);
+        }
       });
     });
 
     state.dom.root.querySelectorAll('[data-open-conversation]').forEach((button) => {
       button.addEventListener('click', () => {
         void openConversation(button.dataset.openConversation);
+      });
+    });
+
+    state.dom.root.querySelectorAll('[data-convert-lead]').forEach((button) => {
+      button.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const conversationId = button.dataset.convertLead;
+        if (!conversationId || !window.EngagePipelineApi?.createLead) return;
+        try {
+          const result = await window.EngagePipelineApi.createLead(state.session, { conversationId });
+          if (result.created === false) {
+            window.alert('Já existia um lead ativo para esta conversa. Abrindo o Pipeline.');
+          }
+          document.querySelector('[data-es-nav="pipeline"]')?.click();
+        } catch (err) {
+          const mapped = window.EngagePipelineApi.mapApiError?.(err) || { message: err?.message };
+          window.alert(mapped.message || 'Não foi possível converter em Lead.');
+        }
       });
     });
 
@@ -486,6 +675,10 @@
         const panel = button.dataset.esNavJump;
         document.querySelector(`[data-es-nav="${panel}"]`)?.click();
       });
+    });
+
+    state.dom.root.querySelector('#ercAiTipBtn')?.addEventListener('click', () => {
+      focusTab('action');
     });
   }
 
@@ -524,6 +717,10 @@
     } finally {
       state.loading = false;
       render();
+      if (state.scrollToTable) {
+        state.scrollToTable = false;
+        scrollToConversations();
+      }
     }
   }
 

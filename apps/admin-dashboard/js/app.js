@@ -1,24 +1,4 @@
 (function () {
-  const KPI_ICONS = {
-    leads: '🎯',
-    chat: '💬',
-    reply: '↩️',
-    proposal: '📄',
-    sale: '✅',
-    money: '💰',
-  };
-
-  const INSIGHT_ICONS = {
-    danger: '⚠️',
-    warn: '🔥',
-    info: '📈',
-    success: '✨',
-  };
-
-  const MEDALS = { gold: '🥇', silver: '🥈', bronze: '🥉' };
-
-  const FUNNEL_WIDTHS = [100, 84, 68, 52, 38, 26];
-
   const NAV_ICON_SVGS = {
     whatsapp:
       '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">'
@@ -42,6 +22,7 @@
 
   const NAV = [
     { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
+    { id: 'audiencias', label: 'Audiências', icon: '👥' },
     { id: 'leads', label: 'Leads', icon: '🎯' },
     { id: 'conversas', label: 'Conversas', iconSvg: 'whatsapp' },
     { id: 'central-respostas', label: 'Central de Respostas', icon: '↩️' },
@@ -52,6 +33,7 @@
     { id: 'clientes', label: 'Clientes', icon: '👥' },
     { id: 'propostas', label: 'Propostas', icon: '💰' },
     { id: 'relatorios', label: 'Relatórios', icon: '📊' },
+    { id: 'engage-intelligence', label: 'Engage Intelligence', icon: '🧠', badge: 'Novo' },
     { id: 'engage-config', label: 'Engage Config', icon: '☀️' },
     {
       id: 'configuracoes',
@@ -63,7 +45,8 @@
   ];
 
   const PANEL_TITLES = {
-    dashboard: 'Dashboard',
+    dashboard: 'Dashboard Executivo',
+    audiencias: 'Audiências',
     leads: 'Leads',
     conversas: 'Conversas',
     'central-respostas': 'Central de Respostas',
@@ -74,6 +57,7 @@
     clientes: 'Clientes',
     propostas: 'Propostas',
     relatorios: 'Relatórios',
+    'engage-intelligence': 'Lead Recovery Intelligence',
     'engage-config': 'Engage Config',
     ...SETTINGS_TITLES,
   };
@@ -118,7 +102,6 @@
   const botInbox = () => window.ReservaAiBotInbox;
   const state = {
     panel: 'dashboard',
-    data: null,
     session: null,
     botInboxReady: false,
     inboxUnread: 0,
@@ -142,27 +125,6 @@
       return NAV_ICON_SVGS[item.iconSvg];
     }
     return escapeHtml(item?.icon || '');
-  }
-
-  function formatNumber(value) {
-    return Number(value).toLocaleString('pt-BR');
-  }
-
-  function sparklineSvg(points, color) {
-    const w = 110;
-    const h = 40;
-    const max = Math.max(...points);
-    const min = Math.min(...points);
-    const range = max - min || 1;
-    const step = w / (points.length - 1);
-    const coords = points
-      .map((v, i) => {
-        const x = i * step;
-        const y = h - ((v - min) / range) * (h - 8) - 4;
-        return `${x},${y}`;
-      })
-      .join(' ');
-    return `<svg class="es-sparkline" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${coords}"/></svg>`;
   }
 
   function renderNav() {
@@ -264,12 +226,43 @@
     const heroSub = qs('#esHeroSubtitle');
     const pageHeading = qs('#esPageHeading');
     if (pageHeading) {
-      pageHeading.hidden = panelId === 'conversas' || panelId === 'central-respostas' || panelId === 'engage-config' || panelId === 'clientes' || panelId === 'campanhas' || isSettingsPanel(panelId);
+      pageHeading.hidden = panelId === 'conversas' || panelId === 'central-respostas' || panelId === 'pipeline' || panelId === 'audiencias' || panelId === 'engage-intelligence' || panelId === 'engage-config' || panelId === 'clientes' || panelId === 'campanhas' || isSettingsPanel(panelId);
+    }
+
+    if (!isSettingsPanel(panelId)) {
+      SETTINGS?.deactivateAllSettingsPanels?.();
+    }
+    if (panelId !== 'clientes') {
+      window.ReservaAiClientsAdmin?.deactivate?.();
+    }
+    if (panelId !== 'engage-config') {
+      window.EngageConfig?.deactivate?.();
+    }
+    if (panelId !== 'campanhas') {
+      window.ReservaAiEngageCampaignsAdmin?.deactivate?.();
+    }
+    if (panelId !== 'central-respostas') {
+      window.ReservaAiEngageRepliesCenterAdmin?.deactivate?.();
+    }
+    if (panelId !== 'pipeline') {
+      window.ReservaAiEngagePipelineAdmin?.deactivate?.();
+    }
+    if (panelId !== 'dashboard') {
+      window.ReservaAiEngageExecutiveDashboard?.deactivate?.();
+    }
+    if (panelId !== 'audiencias') {
+      window.ReservaAiEngageAudiencesDashboardAdmin?.deactivate?.();
+    }
+    if (panelId !== 'engage-intelligence' && panelId !== 'engage-config') {
+      window.EngageLeadRecovery?.deactivate?.();
     }
 
     if (panelId === 'dashboard') {
-      if (heroTitle) heroTitle.textContent = 'Dashboard';
-      if (heroSub) heroSub.textContent = 'Visão geral do seu negócio solar';
+      if (heroTitle) heroTitle.textContent = 'Dashboard Executivo';
+      if (heroSub) {
+        heroSub.textContent = 'Visão geral da sua operação — Audiências → Campanhas → Respostas → Leads → Pipeline → Recuperados';
+      }
+      window.ReservaAiEngageExecutiveDashboard?.activate?.(state.session);
     } else if (panelId === 'conversas') {
       if (heroTitle) heroTitle.textContent = 'Conversas';
       if (heroSub) heroSub.textContent = 'Inbox WhatsApp — mensagens e IA';
@@ -297,26 +290,25 @@
       if (heroTitle) heroTitle.textContent = title;
       if (heroSub) heroSub.textContent = 'Acompanhe todas as respostas das suas campanhas em um só lugar.';
       window.ReservaAiEngageRepliesCenterAdmin?.activate?.(state.session);
+    } else if (panelId === 'pipeline') {
+      const title = PANEL_TITLES[panelId] || panelId;
+      if (heroTitle) heroTitle.textContent = title;
+      if (heroSub) heroSub.textContent = 'Kanban comercial sobre as conversas — campanha, resposta, lead e atendimento no Inbox.';
+      window.ReservaAiEngagePipelineAdmin?.activate?.(state.session);
+    } else if (panelId === 'audiencias') {
+      const title = PANEL_TITLES[panelId] || panelId;
+      if (heroTitle) heroTitle.textContent = title;
+      if (heroSub) heroSub.textContent = 'Gerencie suas audiências e acompanhe o desempenho das suas bases de contatos.';
+      window.ReservaAiEngageAudiencesDashboardAdmin?.activate?.(state.session);
+    } else if (panelId === 'engage-intelligence') {
+      const title = PANEL_TITLES[panelId] || panelId;
+      if (heroTitle) heroTitle.textContent = title;
+      if (heroSub) heroSub.textContent = 'Tome decisões data-driven para recuperar leads e aumentar suas conversões.';
+      window.EngageLeadRecovery?.activate?.(state.session);
     } else {
       const title = PANEL_TITLES[panelId] || panelId;
       if (heroTitle) heroTitle.textContent = title;
       if (heroSub) heroSub.textContent = `Módulo ${title} — em breve`;
-    }
-
-    if (!isSettingsPanel(panelId)) {
-      SETTINGS?.deactivateAllSettingsPanels?.();
-    }
-    if (panelId !== 'clientes') {
-      window.ReservaAiClientsAdmin?.deactivate?.();
-    }
-    if (panelId !== 'engage-config') {
-      window.EngageConfig?.deactivate?.();
-    }
-    if (panelId !== 'campanhas') {
-      window.ReservaAiEngageCampaignsAdmin?.deactivate?.();
-    }
-    if (panelId !== 'central-respostas') {
-      window.ReservaAiEngageRepliesCenterAdmin?.deactivate?.();
     }
 
     const inbox = botInbox();
@@ -327,200 +319,6 @@
         inbox.deactivate();
       }
     }
-  }
-
-  function renderKpis(kpis) {
-    const mount = qs('#esKpiGrid');
-    if (!mount || !Array.isArray(kpis)) return;
-
-    mount.innerHTML = kpis
-      .map(
-        (kpi) => `
-      <article class="es-kpi-card">
-        <span class="es-kpi-icon" data-color="${escapeHtml(kpi.color)}" aria-hidden="true">${KPI_ICONS[kpi.icon] || '📊'}</span>
-        <p class="es-kpi-label">${escapeHtml(kpi.label)}</p>
-        <strong>${escapeHtml(kpi.value)}</strong>
-        <span class="es-kpi-delta">${escapeHtml(kpi.delta)}</span>
-      </article>
-    `,
-      )
-      .join('');
-  }
-
-  function renderPipeline(pipeline, conversion) {
-    const mount = qs('#esPipeline');
-    if (!mount || !Array.isArray(pipeline)) return;
-
-    mount.innerHTML = `
-      <div class="es-funnel">
-        ${pipeline
-          .map(
-            (row, index) => `
-          <div class="es-funnel-row">
-            <div class="es-funnel-track">
-              <div class="es-funnel-bar" style="width:${FUNNEL_WIDTHS[index]}%;opacity:${1 - index * 0.06}">${escapeHtml(row.stage)}</div>
-            </div>
-            <div class="es-funnel-meta">
-              <strong>${row.count}</strong>
-              <span>${escapeHtml(row.pct)}</span>
-            </div>
-          </div>
-        `,
-          )
-          .join('')}
-      </div>
-      <span class="es-funnel-pill">Taxa de conversão geral: ${escapeHtml(conversion)}</span>
-    `;
-  }
-
-  function renderWhatsapp(wa) {
-    const mount = qs('#esWhatsapp');
-    if (!mount || !wa) return;
-
-    mount.innerHTML = `
-      <div class="es-wa-stats">
-        <div class="es-wa-stat"><span>Mensagens Enviadas</span><strong>${escapeHtml(wa.sent)}</strong></div>
-        <div class="es-wa-stat"><span>Entregues</span><strong>${escapeHtml(wa.delivered)}</strong></div>
-        <div class="es-wa-stat"><span>Lidas</span><strong>${escapeHtml(wa.read)}</strong></div>
-        <div class="es-wa-stat"><span>Respondidas</span><strong>${escapeHtml(wa.replied)}</strong></div>
-      </div>
-      <div class="es-wa-footer">
-        <div>
-          <span class="es-kpi-label">Taxa de Resposta</span>
-          <strong>${wa.responseRate}%</strong>
-          <span class="es-kpi-delta">${escapeHtml(wa.responseDelta)}</span>
-        </div>
-        ${sparklineSvg([42, 48, 45, 52, 55, 58, wa.responseRate], '#22C55E')}
-      </div>
-    `;
-  }
-
-  function renderInsights(insights) {
-    const mount = qs('#esInsights');
-    if (!mount || !Array.isArray(insights)) return;
-
-    mount.innerHTML = insights
-      .map(
-        (item) => `
-      <div class="es-insight" data-tone="${escapeHtml(item.tone)}">
-        <span class="es-insight-icon" aria-hidden="true">${INSIGHT_ICONS[item.tone] || '•'}</span>
-        <div class="es-insight-body">
-          <strong>${escapeHtml(item.title)}</strong>
-          <span>${escapeHtml(item.desc)}</span>
-        </div>
-        <a href="#" class="es-insight-link">${escapeHtml(item.link)} →</a>
-      </div>
-    `,
-      )
-      .join('');
-  }
-
-  function renderCampaigns(campaigns) {
-    const mount = qs('#esCampaigns');
-    if (!mount || !Array.isArray(campaigns)) return;
-
-    mount.innerHTML = campaigns
-      .map(
-        (c) => `
-      <article class="es-campaign">
-        <div class="es-campaign-head">
-          <h3>${escapeHtml(c.name)}</h3>
-          <span class="es-campaign-status">${escapeHtml(c.status)}</span>
-        </div>
-        <div class="es-campaign-metrics">
-          <div><span>Enviados</span><strong>${formatNumber(c.sent)}</strong></div>
-          <div><span>Respondidos</span><strong>${formatNumber(c.replied)}</strong></div>
-          <div><span>Agendamentos</span><strong>${c.appointments}</strong></div>
-          <div><span>Vendas</span><strong>${c.sales}</strong></div>
-        </div>
-        <div class="es-campaign-progress" aria-hidden="true"><span style="width:${c.progress}%"></span></div>
-        <p class="es-campaign-budget">Orçamento: ${escapeHtml(c.budget)}</p>
-      </article>
-    `,
-      )
-      .join('');
-  }
-
-  function renderSellers(sellers) {
-    const mount = qs('#esSellers');
-    if (!mount || !Array.isArray(sellers)) return;
-
-    mount.innerHTML = sellers
-      .map((seller, index) => {
-        const rank = seller.medal
-          ? `<span class="es-seller-medal">${MEDALS[seller.medal]}</span>`
-          : `<span class="es-seller-rank">${index + 1}</span>`;
-        return `
-      <div class="es-seller">
-        ${rank}
-        <span class="es-seller-avatar" aria-hidden="true">${escapeHtml(seller.initials)}</span>
-        <div class="es-seller-info">
-          <strong>${escapeHtml(seller.name)}</strong>
-          <span>${seller.proposals} propostas · ${seller.sales} vendas</span>
-        </div>
-        <span class="es-seller-revenue">${escapeHtml(seller.revenue)}</span>
-      </div>
-    `;
-      })
-      .join('');
-  }
-
-  function renderFinance(finance, goal) {
-    const mount = qs('#esFinance');
-    if (!mount) return;
-
-    const blocks = Array.isArray(finance)
-      ? finance
-      : [
-          { label: 'Valor em Pipeline', value: finance.pipeline, color: '#2563EB', spark: [620, 700, 750, 800, 842] },
-          { label: 'Propostas Abertas', value: finance.openProposals, color: '#F97316', spark: [240, 270, 290, 305, 312] },
-          { label: 'Faturamento do Mês', value: finance.closedMonth, color: '#22C55E', spark: [120, 150, 175, 200, 212] },
-        ];
-
-    mount.innerHTML = `
-      ${blocks
-        .map(
-          (block) => `
-        <div class="es-finance-block">
-          <div>
-            <span>${escapeHtml(block.label)}</span>
-            <strong>${escapeHtml(block.value)}</strong>
-          </div>
-          ${sparklineSvg(block.spark || [1, 2, 3, 4, 5], block.color)}
-        </div>
-      `,
-        )
-        .join('')}
-      <div class="es-goal">
-        <div class="es-goal-head">
-          <span>Meta do mês: ${escapeHtml(goal.goal)}</span>
-          <strong>${goal.pct}%</strong>
-        </div>
-        <div class="es-goal-bar" aria-hidden="true"><span style="width:${goal.pct}%"></span></div>
-        <p class="es-goal-pct">${goal.pct}% da meta</p>
-      </div>
-    `;
-  }
-
-  function renderDashboard(data) {
-    renderKpis(data.kpis);
-    renderPipeline(data.pipeline, data.pipelineConversion);
-    renderWhatsapp(data.whatsapp);
-    renderInsights(data.insights);
-    renderCampaigns(data.campaigns);
-    renderSellers(data.sellers);
-    renderFinance(data.finance, data.financeGoal);
-  }
-
-  async function loadData() {
-    const response = await fetch('./data/mock-dashboard.json');
-    if (!response.ok) {
-      throw window.EngageUserMessages?.buildHttpError
-        ? window.EngageUserMessages.buildHttpError(response.status, null, { context: 'dashboard' })
-        : new Error('Não foi possível carregar o painel. Tente novamente.');
-    }
-    state.data = await response.json();
-    renderDashboard(state.data);
   }
 
   function bindChrome() {
@@ -880,6 +678,32 @@
     });
   }
 
+  function bindQuickActions() {
+    document.querySelectorAll('[data-es-quick]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const action = btn.getAttribute('data-es-quick');
+        if (action === 'audiencia') {
+          document.querySelector('[data-es-nav="audiencias"]')?.click();
+          window.EngageContactAudiences?.open?.(state.session);
+          return;
+        }
+        if (action === 'campanha') {
+          document.querySelector('[data-es-nav="campanhas"]')?.click();
+          return;
+        }
+        if (action === 'importacao') {
+          window.EngageContactImport?.open?.(state.session, {
+            onComplete: () => {
+              if (state.panel === 'audiencias') {
+                window.ReservaAiEngageAudiencesDashboardAdmin?.reload?.();
+              }
+            },
+          });
+        }
+      });
+    });
+  }
+
   async function init() {
     const auth = window.EngageSolarAuth;
     if (auth) {
@@ -905,17 +729,9 @@
 
     bindChrome();
     bindProfileMenu();
+    bindQuickActions();
     renderNav();
     activatePanel('dashboard');
-    try {
-      await loadData();
-    } catch (error) {
-      const grid = qs('#esKpiGrid');
-      const friendly = window.EngageUserMessages?.formatCatchError
-        ? window.EngageUserMessages.formatCatchError(error, { context: 'dashboard' })
-        : (error?.message || 'Não foi possível carregar o painel.');
-      if (grid) grid.innerHTML = `<div class="es-placeholder">${escapeHtml(friendly)}</div>`;
-    }
   }
 
   window.addEventListener('reserva:inbox-stats', (event) => {

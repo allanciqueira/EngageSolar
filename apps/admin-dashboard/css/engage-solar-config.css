@@ -131,6 +131,36 @@ body[data-es-panel-active="configuracoes-operador"] .engage-solar-config-deploy-
   font-size: 11px;
 }
 
+body[data-es-panel-active="configuracoes-operador"] .engage-solar-config-privacy {
+  display: grid;
+  gap: 10px;
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-solar-config-privacy-lead {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ra-text-soft, #64748b);
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-solar-config-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ra-text, #0f172a);
+  cursor: pointer;
+}
+
+body[data-es-panel-active="configuracoes-operador"] .engage-solar-config-check input {
+  margin-top: 3px;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  accent-color: var(--ra-primary, #2563eb);
+}
+
 @media (max-width: 900px) {
   body[data-es-panel-active="configuracoes-operador"] .engage-solar-config-params {
     grid-template-columns: 1fr;

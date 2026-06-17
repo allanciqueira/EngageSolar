@@ -46,6 +46,9 @@
     fator_geracao: 130,
     billUploadInviteText: '',
     simulationFollowUpText: '',
+    hideEconomiaInReply: false,
+    hideInvestimentoInReply: false,
+    hidePaybackInReply: false,
   };
 
   function qs(selector) {
@@ -368,6 +371,9 @@
       fator_geracao: Number.isFinite(fator) && fator > 0 ? fator : defaults.fator_geracao,
       billUploadInviteText: typeof source.billUploadInviteText === 'string' ? source.billUploadInviteText : '',
       simulationFollowUpText: typeof source.simulationFollowUpText === 'string' ? source.simulationFollowUpText : '',
+      hideEconomiaInReply: source.hideEconomiaInReply === true,
+      hideInvestimentoInReply: source.hideInvestimentoInReply === true,
+      hidePaybackInReply: source.hidePaybackInReply === true,
     };
   }
 
@@ -393,6 +399,9 @@
     state.dom.solarFatorGeracao.value = String(solar.fator_geracao);
     state.dom.solarBillInvite.value = solar.billUploadInviteText || '';
     state.dom.solarFollowUp.value = solar.simulationFollowUpText || '';
+    if (state.dom.solarHideEconomia) state.dom.solarHideEconomia.checked = solar.hideEconomiaInReply === true;
+    if (state.dom.solarHideInvestimento) state.dom.solarHideInvestimento.checked = solar.hideInvestimentoInReply === true;
+    if (state.dom.solarHidePayback) state.dom.solarHidePayback.checked = solar.hidePaybackInReply === true;
     [
       state.dom.solarEnabled,
       state.dom.solarCustoKwp,
@@ -400,6 +409,9 @@
       state.dom.solarFatorGeracao,
       state.dom.solarBillInvite,
       state.dom.solarFollowUp,
+      state.dom.solarHideEconomia,
+      state.dom.solarHideInvestimento,
+      state.dom.solarHidePayback,
     ].forEach((el) => {
       if (el) el.disabled = readonly;
     });
@@ -420,6 +432,9 @@
     const followUp = String(state.dom.solarFollowUp?.value || '').trim();
     if (billInvite) payload.billUploadInviteText = billInvite;
     if (followUp) payload.simulationFollowUpText = followUp;
+    if (state.dom.solarHideEconomia?.checked) payload.hideEconomiaInReply = true;
+    if (state.dom.solarHideInvestimento?.checked) payload.hideInvestimentoInReply = true;
+    if (state.dom.solarHidePayback?.checked) payload.hidePaybackInReply = true;
     return payload;
   }
 
@@ -1598,6 +1613,9 @@
     renderAll();
     if (qs('#operatorSpecialDatesRoot')) {
       void window.ReservaAiOperatorSpecialDates?.onWorkspaceLoaded?.();
+    }
+    if (qs('#operatorInboxAutoReplyPauseRoot')) {
+      void window.EngageInboxAutoReplyPauseConfig?.onWorkspaceLoaded?.();
     }
     if (state.activeTab === 'geral' && typeof window.ReservaAiTenantCompany?.reload === 'function') {
       void window.ReservaAiTenantCompany.reload({
@@ -3849,6 +3867,9 @@
       solarFatorGeracao: qs('#operatorConfigSolarFatorGeracao'),
       solarBillInvite: qs('#operatorConfigSolarBillInvite'),
       solarFollowUp: qs('#operatorConfigSolarFollowUp'),
+      solarHideEconomia: qs('#operatorConfigSolarHideEconomia'),
+      solarHideInvestimento: qs('#operatorConfigSolarHideInvestimento'),
+      solarHidePayback: qs('#operatorConfigSolarHidePayback'),
     };
 
     bindStaticEvents();
@@ -3861,6 +3882,15 @@
         requestExternal,
         setStatus,
         recordAudit,
+        canManageSelectedTenant,
+      });
+    }
+    if (qs('#operatorInboxAutoReplyPauseRoot') && typeof window.EngageInboxAutoReplyPauseConfig?.attach === 'function') {
+      window.EngageInboxAutoReplyPauseConfig.attach({
+        state,
+        tenantQuery,
+        requestExternal,
+        setStatus,
         canManageSelectedTenant,
       });
     }

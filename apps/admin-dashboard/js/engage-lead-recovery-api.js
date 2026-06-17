@@ -4,6 +4,7 @@
  */
 (function () {
   const metaApi = () => window.EngageMetaApi;
+  const QUEUE_STATUS_ACTIVE = 'active';
 
   function resolveTenantId(session) {
     const fromResolver = window.ReservaPermissions?.resolveEffectiveTenantId?.(session);
@@ -67,8 +68,9 @@
     return apiRequest(buildPaths(session, '/stats'), { method: 'GET', session });
   }
 
-  async function getInsights(session) {
-    return apiRequest(buildPaths(session, '/insights'), { method: 'GET', session });
+  async function getInsights(session, params = {}) {
+    const paths = appendQuery(buildPaths(session, '/insights'), params);
+    return apiRequest(paths, { method: 'GET', session });
   }
 
   async function getSignals(session) {
@@ -160,7 +162,13 @@
     };
   }
 
+  function activeQueueParams(extra = {}) {
+    return { status: QUEUE_STATUS_ACTIVE, ...extra };
+  }
+
   window.EngageLeadRecoveryApi = {
+    QUEUE_STATUS_ACTIVE,
+    activeQueueParams,
     resolveTenantId,
     canManage,
     getStats,

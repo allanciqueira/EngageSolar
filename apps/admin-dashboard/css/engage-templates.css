@@ -62,6 +62,15 @@
   font-size: 0.8125rem;
 }
 
+.et-success {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+  font-size: 0.8125rem;
+}
+
 .et-muted {
   color: var(--es-text-muted, #64748b);
   font-size: 0.8125rem;
@@ -317,27 +326,225 @@
   font-size: 0.9rem;
 }
 
+.et-wa-preview-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.et-wa-preview-tab {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #334155;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.et-wa-preview-tab.is-active {
+  border-color: #22c55e;
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.et-wa-preview-tab.is-disabled {
+  opacity: 0.55;
+}
+
 .et-wa-preview {
   border-radius: 12px;
-  background: linear-gradient(180deg, #e5ddd5 0%, #d9d0c8 100%);
+  background:
+    radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.18) 1px, transparent 0) 0 0 / 14px 14px,
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
   padding: 0.85rem;
 }
 
 .et-wa-preview-head {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #075e54;
+  color: #4ade80;
   margin-bottom: 0.45rem;
 }
 
 .et-wa-preview-bubble {
-  max-width: 92%;
-  padding: 0.55rem 0.7rem;
-  border-radius: 8px 8px 8px 2px;
-  background: #fff;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px 10px 10px 4px;
+  background: #1f2937;
+  border: 1px solid #334155;
   font-size: 0.82rem;
-  line-height: 1.4;
+  line-height: 1.45;
+  color: #f8fafc;
+}
+
+.et-wa-preview-bubble p {
+  margin: 0;
   white-space: pre-wrap;
+}
+
+.et-wa-preview-card {
+  max-width: 92%;
+}
+
+.et-wa-preview-footer {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid #334155;
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.et-wa-preview-time {
+  display: block;
+  margin-top: 0.35rem;
+  text-align: right;
+  font-size: 0.62rem;
+  color: #64748b;
+}
+
+.et-wa-preview-buttons {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.et-wa-preview-btn {
+  display: block;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  background: #1f2937;
+  border: 1px solid #334155;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #38bdf8;
+  text-align: center;
+}
+
+.et-wa-preview-btn[data-type="PHONE_NUMBER"] {
+  color: #60a5fa;
+}
+
+.et-wa-preview-btn[data-type="QUICK_REPLY"] {
+  color: #22c55e;
+}
+
+.et-section-title {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.88rem;
+}
+
+.et-components-block {
+  margin-top: 0.5rem;
+}
+
+.et-components-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.et-char-count {
+  font-size: 0.72rem;
+  color: var(--es-text-muted, #64748b);
+  font-weight: 500;
+}
+
+.et-btn-type-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.et-btn-type {
+  flex: 1 1 0;
+  min-width: 6.5rem;
+  justify-content: center;
+  font-size: 0.78rem;
+  padding: 0.5rem 0.65rem;
+  border-color: #cbd5e1;
+  background: #fff;
+}
+
+.et-btn-type:hover:not(:disabled) {
+  border-color: var(--es-primary, #2563eb);
+  color: var(--es-primary, #2563eb);
+  background: #f8fbff;
+}
+
+.et-btn-type:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.et-button-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.65rem 0;
+}
+
+.et-button-card {
+  padding: 0.75rem;
+  border: 1px solid var(--es-border, #e2e8f0);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.et-button-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.et-button-type-badge {
+  display: inline-flex;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.et-button-type-badge[data-tone="url"] {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.et-button-type-badge[data-tone="phone"] {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.et-button-type-badge[data-tone="quick"] {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.et-btn--ghost {
+  background: transparent;
+}
+
+.et-btn-remove {
+  min-width: 1.75rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.et-lint-item[data-severity="error"] {
+  color: #991b1b;
+}
+
+.et-lint-item[data-severity="warning"] {
+  color: #92400e;
 }
 
 .et-var-list {
@@ -388,13 +595,85 @@
   border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
-.et-preview-text {
-  margin-top: 1rem;
+.et-header-type-list {
+  display: grid;
+  gap: 0.45rem;
   padding: 0.75rem;
-  border-radius: 10px;
-  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid var(--es-border, #334155);
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.et-header-type-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.et-header-type-option input {
+  accent-color: #2563eb;
+}
+
+.et-header-text-field {
+  margin-top: 0.65rem;
+}
+
+.et-media-note {
+  margin: 0.65rem 0 0;
   font-size: 0.78rem;
-  white-space: pre-wrap;
+  color: var(--es-text-muted, #94a3b8);
+  line-height: 1.45;
+}
+
+.et-sample-media-block select {
+  width: 100%;
+}
+
+.et-wa-preview-header-text {
+  font-weight: 700;
+  font-size: 0.84rem;
+  margin-bottom: 0.45rem;
+  color: #f8fafc;
+}
+
+.et-wa-preview-header-media {
+  margin: -0.15rem -0.15rem 0.55rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #111827;
+  min-height: 120px;
+}
+
+.et-wa-preview-header-media img,
+.et-wa-preview-header-media video {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+}
+
+.et-wa-preview-header-media.is-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 140px;
+  border: 1px dashed #475569;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.et-wa-preview-header-doc {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid #334155;
+  font-size: 0.78rem;
+  color: #cbd5e1;
 }
 
 @media (max-width: 900px) {

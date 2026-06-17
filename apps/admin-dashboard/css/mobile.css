@@ -92,8 +92,13 @@
   }
 
   .erc-main-grid,
-  .erc-main-col {
+  .erc-insights-col {
     grid-template-columns: 1fr;
+  }
+
+  .erc-period-pill {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .erc-toolbar {
@@ -105,11 +110,6 @@
   .erc-toolbar-actions {
     width: 100%;
     flex-wrap: wrap;
-  }
-
-  .erc-field {
-    flex: 1 1 100%;
-    min-width: 0;
   }
 
   .erc-table-toolbar {
@@ -537,6 +537,10 @@
 
   .ech-import-stats {
     grid-template-columns: 1fr;
+  }
+
+  .engage-campaign-hourly-plot {
+    min-width: 576px;
   }
 
   .engage-campaign-hourly-chart {

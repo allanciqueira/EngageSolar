@@ -180,13 +180,16 @@
     ], payload);
   }
 
-  async function submitTemplate(session, templateId) {
+  async function submitTemplate(session, templateId, options = {}) {
     const tenantId = resolveTenantId(session);
     const enc = encodeURIComponent(templateId);
+    const body = {};
+    const sampleId = String(options?.sampleMediaAssetId || '').trim();
+    if (sampleId) body.sampleMediaAssetId = sampleId;
     return apiWrite('POST', [
       `/api/operator/engage/templates/${enc}/submit?tenantId=${encodeURIComponent(tenantId)}`,
       `/api/operator/engage/tenants/${encodeURIComponent(tenantId)}/templates/${enc}/submit`,
-    ], {});
+    ], body);
   }
 
   async function syncTemplate(session, templateId) {

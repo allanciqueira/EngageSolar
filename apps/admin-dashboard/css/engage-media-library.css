@@ -1,0 +1,141 @@
+/* Engage Config — Media Library */
+
+.eml-shell {
+  padding: 1.25rem 1.35rem 2rem;
+}
+
+.eml-head {
+  margin-bottom: 1rem;
+}
+
+.eml-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px);
+  gap: 0.85rem;
+  margin-bottom: 0.65rem;
+}
+
+.eml-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--es-text-muted);
+}
+
+.eml-field input,
+.eml-field select {
+  width: 100%;
+  border: 1px solid var(--es-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  color: var(--es-text);
+  background: var(--es-surface);
+}
+
+.eml-help {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--es-text-muted);
+}
+
+.eml-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.eml-empty {
+  margin: 1rem 0 0;
+  color: var(--es-text-muted);
+  font-size: 0.9rem;
+}
+
+.eml-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.85rem;
+}
+
+.eml-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--es-border);
+  border-radius: 14px;
+  background: var(--es-surface);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(11, 42, 91, 0.05);
+}
+
+.eml-card-preview {
+  aspect-ratio: 4 / 3;
+  background: #f4f6fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.eml-card-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.eml-card-thumb--doc {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.eml-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem;
+}
+
+.eml-card-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--es-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eml-card-meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--es-text-muted);
+}
+
+.eml-btn {
+  align-self: flex-start;
+  border: 1px solid var(--es-border);
+  border-radius: 8px;
+  padding: 0.35rem 0.65rem;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  background: var(--es-surface);
+  color: var(--es-text);
+}
+
+.eml-btn--danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #b91c1c;
+}
+
+.eml-btn--danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+@media (max-width: 720px) {
+  .eml-toolbar {
+    grid-template-columns: 1fr;
+  }
+}

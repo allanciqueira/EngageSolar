@@ -104,7 +104,11 @@
       items.push({ severity: 'warning', code: 'body_long', message: 'Texto longo — prefira mensagens mais curtas.' });
     }
     if (LINK_RE.test(text)) {
-      items.push({ severity: 'error', code: 'link_found', message: 'Remova links do corpo — o cliente responde nesta conversa.' });
+      items.push({
+        severity: 'error',
+        code: 'link_found',
+        message: 'Remova links do corpo — use botão URL na secção Botões.',
+      });
     }
     if (hasInvalidPlaceholders(text)) {
       items.push({ severity: 'error', code: 'invalid_placeholder', message: 'Use apenas placeholders {{1}}, {{2}}, etc.' });
@@ -260,7 +264,395 @@
     return value === 'DRAFT' || value === 'REJECTED';
   }
 
+  const FOOTER_MAX = 60;
+  const HEADER_TEXT_MAX = 60;
+  const BUTTON_TEXT_MAX = 25;
+  const MAX_BUTTONS = 3;
+  const HTTPS_RE = /^https:\/\/.+/i;
+  const PHONE_RE = /^\+?[0-9][0-9\s().-]{7,}$/;
+
+  const HEADER_TYPE_OPTIONS = [
+    { key: 'NONE', label: 'Nenhum' },
+    { key: 'TEXT', label: 'Texto' },
+    { key: 'IMAGE', label: 'IMAGE' },
+    { key: 'VIDEO', label: 'VIDEO' },
+    { key: 'DOCUMENT', label: 'DOCUMENT' },
+  ];
+
+  const BUTTON_TYPE_LABELS = {
+    QUICK_REPLY: 'Quick Reply',
+    URL: 'URL',
+    PHONE_NUMBER: 'Telefone',
+  };
+
+  function normalizeHeaderType(value) {
+    const key = String(value || 'NONE').trim().toUpperCase();
+    return HEADER_TYPE_OPTIONS.some((opt) => opt.key === key) ? key : 'NONE';
+  }
+
+  function headerTypeRequiresMediaAsset(type) {
+    const key = normalizeHeaderType(type);
+    return key === 'IMAGE' || key === 'VIDEO' || key === 'DOCUMENT';
+  }
+
+  function mediaAssetTypeForHeader(type) {
+    return normalizeHeaderType(type);
+  }
+
+  function emptyComponents() {
+    return { headerType: 'NONE', headerText: '', footer: '', buttons: [] };
+  }
+
+  function parseFooterValue(value) {
+    if (value == null) return '';
+    if (typeof value === 'object') return String(value.text || '').trim();
+    return String(value).trim();
+  }
+
+  function parseHeaderFromSource(source) {
+    if (!source || typeof source !== 'object') {
+      return { headerType: 'NONE', headerText: '' };
+    }
+    const header = source.header;
+    if (header && typeof header === 'object') {
+      return {
+        headerType: normalizeHeaderType(header.type),
+        headerText: String(header.text || '').trim(),
+      };
+    }
+    if (source.headerType) {
+      return {
+        headerType: normalizeHeaderType(source.headerType),
+        headerText: String(source.headerText || '').trim(),
+      };
+    }
+    return { headerType: 'NONE', headerText: '' };
+  }
+
+  function defaultButton(type = 'URL') {
+    return { type: String(type || 'URL').toUpperCase(), text: '', url: '', phoneNumber: '' };
+  }
+
+  function normalizeButtons(buttons) {
+    if (!Array.isArray(buttons)) return [];
+    return buttons.map((btn) => {
+      const type = String(btn?.type || btn?.sub_type || 'QUICK_REPLY').toUpperCase();
+      return {
+        type,
+        text: String(btn?.text || '').trim(),
+        url: String(btn?.url || btn?.value || '').trim(),
+        phoneNumber: String(btn?.phoneNumber || btn?.phone_number || btn?.phone || '').trim(),
+      };
+    });
+  }
+
+  function parseTemplateComponents(source) {
+    if (!source) return emptyComponents();
+    if (typeof source === 'string') {
+      const trimmed = source.trim();
+      if (!trimmed) return emptyComponents();
+      try {
+        return parseTemplateComponents(JSON.parse(trimmed));
+      } catch (_e) {
+        return emptyComponents();
+      }
+    }
+    if (typeof source === 'object' && !Array.isArray(source)) {
+      if ('footer' in source || 'buttons' in source || 'header' in source || 'headerType' in source) {
+        const header = parseHeaderFromSource(source);
+        return {
+          ...header,
+          footer: parseFooterValue(source.footer),
+          buttons: normalizeButtons(source.buttons),
+        };
+      }
+    }
+    if (Array.isArray(source)) {
+      let footer = '';
+      let buttons = [];
+      let headerType = 'NONE';
+      let headerText = '';
+      source.forEach((comp) => {
+        const type = String(comp?.type || '').toUpperCase();
+        if (type === 'FOOTER') footer = String(comp.text || comp.footer || '');
+        if (type === 'HEADER') {
+          headerType = normalizeHeaderType(comp.format || comp.headerType || comp.type);
+          headerText = String(comp.text || '').trim();
+        }
+        if (type === 'BUTTONS' || type === 'BUTTON') {
+          buttons = normalizeButtons(comp.buttons || (comp.text ? [comp] : []));
+        }
+      });
+      return { headerType, headerText, footer, buttons };
+    }
+    return emptyComponents();
+  }
+
+  function resolveTemplateComponents(item) {
+    if (!item || typeof item !== 'object') return emptyComponents();
+    const candidates = [
+      item.templateComponents,
+      item.whatsappComponents,
+      item.draftComponents,
+      item.components,
+      item.metaComponents,
+      item.structure?.components,
+      item.draft?.templateComponents,
+      item.template?.components,
+      item.template?.templateComponents,
+      item.preview?.templateComponents,
+      item.preview?.components,
+    ];
+    let best = emptyComponents();
+    candidates.forEach((candidate) => {
+      const parsed = parseTemplateComponents(candidate);
+      if (best.headerType === 'NONE' && parsed.headerType !== 'NONE') {
+        best = { ...best, headerType: parsed.headerType, headerText: parsed.headerText };
+      }
+      if (!best.footer && parsed.footer) best = { ...best, footer: parsed.footer };
+      if (!best.buttons.length && parsed.buttons.length) best = { ...best, buttons: parsed.buttons };
+    });
+    if (item.headerType && best.headerType === 'NONE') {
+      best = { ...best, headerType: normalizeHeaderType(item.headerType) };
+    }
+    if (!best.footer && !best.buttons.length && best.headerType === 'NONE'
+      && ('footer' in item || 'buttons' in item || 'header' in item)) {
+      return parseTemplateComponents(item);
+    }
+    if (best.footer || best.buttons.length || best.headerType !== 'NONE') return best;
+    return parseTemplateComponents(item.templateComponents);
+  }
+
+  function buildTemplateComponentsPayload(footer, buttons, headerType, headerText) {
+    const cleanFooter = String(footer || '').trim();
+    const cleanButtons = normalizeButtons(buttons).filter((btn) => {
+      if (!btn.text) return false;
+      if (btn.type === 'URL') return Boolean(btn.url);
+      if (btn.type === 'PHONE_NUMBER') return Boolean(btn.phoneNumber);
+      return true;
+    });
+    const type = normalizeHeaderType(headerType);
+    const cleanHeaderText = String(headerText || '').trim();
+    const hasHeader = type !== 'NONE' && (type !== 'TEXT' || cleanHeaderText);
+    if (!cleanFooter && !cleanButtons.length && !hasHeader) return null;
+
+    const payload = {};
+    if (hasHeader) {
+      payload.header = type === 'TEXT'
+        ? { type: 'TEXT', text: cleanHeaderText }
+        : { type };
+    }
+    if (cleanFooter) payload.footer = { text: cleanFooter };
+    if (cleanButtons.length) {
+      payload.buttons = cleanButtons.map((btn) => {
+        if (btn.type === 'URL') {
+          return { type: 'URL', text: btn.text, url: btn.url };
+        }
+        if (btn.type === 'PHONE_NUMBER') {
+          return { type: 'PHONE_NUMBER', text: btn.text, phoneNumber: btn.phoneNumber };
+        }
+        return { type: 'QUICK_REPLY', text: btn.text };
+      });
+    }
+    return payload;
+  }
+
+  function buildMetaStyleComponents(footer, buttons, body, headerType, headerText) {
+    const cleanFooter = String(footer || '').trim();
+    const cleanButtons = normalizeButtons(buttons).filter((btn) => {
+      if (!btn.text) return false;
+      if (btn.type === 'URL') return Boolean(btn.url);
+      if (btn.type === 'PHONE_NUMBER') return Boolean(btn.phoneNumber);
+      return true;
+    });
+    const type = normalizeHeaderType(headerType);
+    const cleanHeaderText = String(headerText || '').trim();
+    const components = [];
+    const bodyText = String(body || '').trim();
+
+    if (type === 'TEXT' && cleanHeaderText) {
+      components.push({ type: 'HEADER', format: 'TEXT', text: cleanHeaderText });
+    } else if (headerTypeRequiresMediaAsset(type)) {
+      components.push({ type: 'HEADER', format: type });
+    }
+    if (bodyText) {
+      components.push({ type: 'BODY', text: bodyText });
+    }
+    if (cleanFooter) {
+      components.push({ type: 'FOOTER', text: cleanFooter });
+    }
+    if (cleanButtons.length) {
+      components.push({
+        type: 'BUTTONS',
+        buttons: cleanButtons.map((btn) => {
+          if (btn.type === 'URL') {
+            return { type: 'URL', text: btn.text, url: btn.url };
+          }
+          if (btn.type === 'PHONE_NUMBER') {
+            return {
+              type: 'PHONE_NUMBER',
+              text: btn.text,
+              phone_number: btn.phoneNumber,
+              phoneNumber: btn.phoneNumber,
+            };
+          }
+          return { type: 'QUICK_REPLY', text: btn.text };
+        }),
+      });
+    }
+    return components;
+  }
+
+  /** Inclui templateComponents + components (Meta) no POST/PATCH — api-engage pode persistir um ou outro. */
+  function attachTemplateComponentsToPayload(payload, footer, buttons, body, headerType, headerText) {
+    const rawButtons = normalizeButtons(buttons);
+    const templateComponents = buildTemplateComponentsPayload(footer, buttons, headerType, headerText);
+    const metaComponents = buildMetaStyleComponents(footer, buttons, body, headerType, headerText);
+    const type = normalizeHeaderType(headerType);
+
+    if (templateComponents) {
+      payload.templateComponents = templateComponents;
+      payload.whatsappComponents = templateComponents;
+      if (type !== 'NONE') payload.headerType = type;
+    } else if (!rawButtons.length && type === 'NONE') {
+      payload.templateComponents = null;
+    } else {
+      payload.templateComponents = buildTemplateComponentsPayload(footer, buttons, headerType, headerText)
+        || { header: type !== 'NONE' ? { type } : undefined, footer: null, buttons: [] };
+    }
+
+    if (metaComponents.length) {
+      payload.components = metaComponents;
+      payload.structure = { components: metaComponents };
+    }
+    return payload;
+  }
+
+  function readComponentsFromState(footer, buttons, headerType, headerText) {
+    return {
+      headerType: normalizeHeaderType(headerType),
+      headerText: String(headerText || '').trim(),
+      footer: String(footer || '').trim(),
+      buttons: normalizeButtons(buttons),
+    };
+  }
+
+  function lintTemplateComponents(footer, buttons, headerType, headerText) {
+    const items = [];
+    const foot = String(footer || '').trim();
+    const list = normalizeButtons(buttons).filter((btn) => btn.text || btn.url || btn.phoneNumber);
+    const type = normalizeHeaderType(headerType);
+    const hText = String(headerText || '').trim();
+
+    if (type === 'TEXT') {
+      if (!hText) {
+        items.push({ severity: 'error', code: 'header_text_required', message: 'Cabeçalho de texto exige conteúdo.' });
+      } else if (hText.length > HEADER_TEXT_MAX) {
+        items.push({
+          severity: 'error',
+          code: 'header_text_long',
+          message: `Cabeçalho: máximo ${HEADER_TEXT_MAX} caracteres.`,
+        });
+      }
+    }
+
+    if (foot.length > FOOTER_MAX) {
+      items.push({ severity: 'error', code: 'footer_long', message: `Rodapé: máximo ${FOOTER_MAX} caracteres.` });
+    }
+
+    if (list.length > MAX_BUTTONS) {
+      items.push({ severity: 'error', code: 'too_many_buttons', message: `Máximo ${MAX_BUTTONS} botões por template.` });
+    }
+
+    const types = new Set(list.map((btn) => btn.type));
+    const hasQuick = types.has('QUICK_REPLY');
+    const hasCta = types.has('URL') || types.has('PHONE_NUMBER');
+    if (hasQuick && hasCta) {
+      items.push({
+        severity: 'error',
+        code: 'button_mix',
+        message: 'Não misture Quick Reply com URL/Telefone no mesmo template.',
+      });
+    }
+
+    list.forEach((btn, index) => {
+      const n = index + 1;
+      if (!btn.text) {
+        items.push({ severity: 'error', code: `btn_${n}_text`, message: `Botão ${n}: texto obrigatório.` });
+      } else if (btn.text.length > BUTTON_TEXT_MAX) {
+        items.push({
+          severity: 'error',
+          code: `btn_${n}_text_long`,
+          message: `Botão ${n}: texto máximo ${BUTTON_TEXT_MAX} caracteres.`,
+        });
+      }
+      if (btn.type === 'URL') {
+        if (!btn.url) {
+          items.push({ severity: 'error', code: `btn_${n}_url`, message: `Botão ${n}: URL HTTPS obrigatória.` });
+        } else if (!HTTPS_RE.test(btn.url)) {
+          items.push({
+            severity: 'error',
+            code: `btn_${n}_url_https`,
+            message: `Botão ${n}: URL deve começar com https://`,
+          });
+        }
+      }
+      if (btn.type === 'PHONE_NUMBER') {
+        if (!btn.phoneNumber) {
+          items.push({ severity: 'error', code: `btn_${n}_phone`, message: `Botão ${n}: telefone obrigatório.` });
+        } else if (!PHONE_RE.test(btn.phoneNumber)) {
+          items.push({
+            severity: 'warning',
+            code: `btn_${n}_phone_format`,
+            message: `Botão ${n}: prefira formato internacional (+55…).`,
+          });
+        }
+      }
+    });
+
+    return {
+      severity: items.some((i) => i.severity === 'error')
+        ? 'error'
+        : (items.some((i) => i.severity === 'warning') ? 'warning' : 'ok'),
+      items,
+      hasErrors: items.some((i) => i.severity === 'error'),
+    };
+  }
+
+  function renderWhatsAppPreview(body, variables, components, options) {
+    const parsed = typeof components === 'object' && components
+      ? readComponentsFromState(
+        components.footer,
+        components.buttons,
+        components.headerType,
+        components.headerText,
+      )
+      : parseTemplateComponents(components);
+    const sampleAsset = options?.sampleAsset || null;
+    const headerMediaUrl = String(
+      sampleAsset?.publicUrl || sampleAsset?.url || sampleAsset?.previewUrl || '',
+    ).trim();
+    const headerMediaName = String(
+      sampleAsset?.name || sampleAsset?.fileName || sampleAsset?.originalName || 'documento.pdf',
+    ).trim();
+    return {
+      message: renderTemplatePreview(body, variables),
+      footer: parsed.footer,
+      buttons: parsed.buttons.filter((btn) => btn.text),
+      headerType: parsed.headerType,
+      headerText: parsed.headerText,
+      headerMediaUrl,
+      headerMediaName,
+    };
+  }
+
   window.EngageTemplatesUtils = {
+    FOOTER_MAX,
+    HEADER_TEXT_MAX,
+    HEADER_TYPE_OPTIONS,
+    BUTTON_TEXT_MAX,
+    MAX_BUTTONS,
+    BUTTON_TYPE_LABELS,
     slugifyTemplateName,
     normalizePurpose,
     buildTemplateName,
@@ -268,7 +660,21 @@
     placeholderIndexGaps,
     hasInvalidPlaceholders,
     lintTemplateContent,
+    lintTemplateComponents,
     renderTemplatePreview,
+    renderWhatsAppPreview,
+    parseTemplateComponents,
+    resolveTemplateComponents,
+    buildTemplateComponentsPayload,
+    buildMetaStyleComponents,
+    attachTemplateComponentsToPayload,
+    readComponentsFromState,
+    normalizeButtons,
+    defaultButton,
+    normalizeHeaderType,
+    headerTypeRequiresMediaAsset,
+    mediaAssetTypeForHeader,
+    emptyComponents,
     syncVariablesFromBody,
     suggestVariableName,
     defaultSampleForKey,

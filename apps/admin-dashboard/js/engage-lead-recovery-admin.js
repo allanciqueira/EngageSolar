@@ -1,10 +1,9 @@
 /**
- * Engage Config → Lead Recovery Intelligence.
+ * Engage Intelligence → Lead Recovery Intelligence (painel standalone).
  * @see HANDOFF-ENGAGE-SOLAR-FRONT-LEAD-RECOVERY-INTELLIGENCE.md
  */
 (function () {
   const api = () => window.EngageLeadRecoveryApi;
-  const OPP_LIMIT = 20;
   const CONTACTS_LIMIT = 100;
   const OPP_SORT_KEYS = [
     'name', 'recoveryScore', 'recoveryPriority', 'recoveryDaysSinceLoss', 'barrier',
@@ -18,6 +17,39 @@
   let loading = false;
   let busy = false;
   let viewTab = 'decision';
+  let oppPage = 1;
+  const OPP_PAGE_SIZE = 20;
+
+  const MAIN_TABS = [
+    { id: 'decision', label: 'Decisão' },
+    { id: 'analytics', label: 'Recovery Analytics' },
+  ];
+
+  const ICONS = {
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
+    export: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
+    rocket: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>',
+    users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+    alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>',
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    ban: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>',
+    brain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2A5.5 5.5 0 0 0 4 7.5c0 .88.21 1.71.58 2.45A5.5 5.5 0 0 0 6.5 21h11a5.5 5.5 0 0 0 1.92-10.05A5.5 5.5 0 0 0 14.5 2 5.5 5.5 0 0 0 9.5 2z"/></svg>',
+    money: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+  };
+
+  const KPI_STYLES = [
+    { icon: ICONS.users, bg: '#f5f3ff', color: '#7c3aed' },
+    { icon: ICONS.alert, bg: '#fef2f2', color: '#dc2626' },
+    { icon: ICONS.clock, bg: '#fef9c3', color: '#ca8a04' },
+    { icon: ICONS.target, bg: '#eff6ff', color: '#2563eb' },
+    { icon: ICONS.ban, bg: '#f1f5f9', color: '#64748b' },
+    { icon: ICONS.brain, bg: '#ecfdf5', color: '#16a34a' },
+    { icon: ICONS.money, bg: '#faf5ff', color: '#9333ea' },
+    { icon: ICONS.money, bg: '#eff6ff', color: '#2563eb' },
+  ];
   let stats = null;
   let insights = null;
   let signals = null;
@@ -32,9 +64,44 @@
   let reclassifyForce = false;
   let auditData = null;
   let error = '';
+  let activateSeq = 0;
 
   function $(id) {
     return document.getElementById(id);
+  }
+
+  function isStandalonePanel() {
+    return document.body.dataset.esPanelActive === 'engage-intelligence';
+  }
+
+  function getRoot() {
+    if (isStandalonePanel()) {
+      return document.getElementById('adminEngageLeadRecoveryRoot');
+    }
+    return document.getElementById('engageLeadRecoveryContent')
+      || document.getElementById('adminEngageLeadRecoveryRoot');
+  }
+
+  function activeQueueQuery(extra = {}) {
+    return api().activeQueueParams(extra);
+  }
+
+  function isDecisionTab() {
+    return viewTab === 'decision';
+  }
+
+  function pctOf(part, total) {
+    const p = Number(part || 0);
+    const t = Number(total || 0);
+    if (!t) return '—';
+    return `${((p / t) * 100).toFixed(1).replace('.', ',')}% do total`;
+  }
+
+  function defaultDateLabel() {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    return `${from.toLocaleDateString('pt-BR')} – ${to.toLocaleDateString('pt-BR')}`;
   }
 
   function escapeHtml(value) {
@@ -85,152 +152,231 @@
     return `${n.toLocaleString('pt-BR')} dias`;
   }
 
+  function formatCampaignTimestamp(iso) {
+    if (!iso) return '—';
+    return formatDateTime(iso);
+  }
+
+  function formatCampaignFailed(row) {
+    const at = row?.lastCampaignFailedAt;
+    const hint = String(
+      row?.lastCampaignFailedHint
+      || row?.lastCampaignFailureHint
+      || row?.lastCampaignFailureReason
+      || '',
+    ).trim();
+    if (!at && !hint) return '—';
+    const parts = [];
+    if (at) parts.push(formatDateTime(at));
+    if (hint) parts.push(hint);
+    return parts.join(' · ');
+  }
+
+  function renderLastCampaignCell(row) {
+    const name = row.lastCampaignName || '—';
+    const engagement = row.campaignEngagementLabel
+      ? ` · ${row.campaignEngagementLabel}`
+      : '';
+    return `${escapeHtml(name)}${engagement ? escapeHtml(engagement) : ''}`;
+  }
+
   function canManage() {
     return api()?.canManage?.(session) || false;
   }
 
+  let feedbackMsg = '';
+  let feedbackTone = 'neutral';
+
+  function isActivationCurrent(seq) {
+    return active && seq === activateSeq;
+  }
+
   function setFeedback(message, tone = 'neutral') {
-    const el = $('engageLeadRecoveryFeedback');
-    if (!el) return;
-    if (!message) {
-      el.hidden = true;
-      el.textContent = '';
-      return;
-    }
-    el.hidden = false;
-    el.dataset.tone = tone;
-    el.textContent = message;
+    feedbackMsg = message || '';
+    feedbackTone = tone;
+    if (active) render();
   }
 
   function setLoading(on) {
     loading = on;
-    const el = $('engageLeadRecoveryLoading');
-    if (el) el.hidden = !on;
-    render();
+    if (active) render();
   }
 
   function priorityTone(code) {
     const key = String(code || '').toUpperCase();
-    if (key === 'ALTA') return 'success';
-    if (key === 'MEDIA') return 'warn';
+    if (key === 'ALTA') return 'danger';
+    if (key === 'MEDIA') return 'info';
     if (key === 'BAIXA') return 'muted';
-    if (key === 'DESCARTAR') return 'danger';
+    if (key === 'DESCARTAR') return 'muted';
     return 'muted';
   }
 
   function priorityChip(code) {
-    return `<span class="ec-mc-chip" data-tone="${escapeHtml(priorityTone(code))}">${escapeHtml(api().labelPriority(code))}</span>`;
+    const tone = priorityTone(code);
+    return `<span class="elri-priority" data-tone="${escapeHtml(tone)}">${escapeHtml(api().labelPriority(code))}</span>`;
   }
 
-  function metricCard(label, value) {
+  function kpiCard(label, value, sub, styleIndex) {
+    const style = KPI_STYLES[styleIndex] || KPI_STYLES[0];
     return `
-      <article class="elri-metric">
-        <p class="elri-metric-label">${escapeHtml(label)}</p>
-        <p class="elri-metric-value">${escapeHtml(String(value ?? '—'))}</p>
+      <article class="elri-kpi-card">
+        <div class="elri-kpi-head">
+          <span class="elri-kpi-icon" style="background:${style.bg};color:${style.color}">${style.icon}</span>
+        </div>
+        <p class="elri-kpi-label">${escapeHtml(label)}</p>
+        <p class="elri-kpi-value">${escapeHtml(String(value ?? '—'))}</p>
+        ${sub ? `<p class="elri-kpi-sub">${escapeHtml(sub)}</p>` : ''}
       </article>`;
   }
 
   function renderToolbar() {
-    const el = $('engageLeadRecoveryActions');
-    if (!el) return;
     const adminBtns = canManage()
-      ? `
-        <button type="button" class="ec-mc-btn ec-mc-btn--ghost" id="engageLeadRecoveryReclassifyBtn"${busy ? ' disabled' : ''}>Reprocessar leads…</button>
-        <button type="button" class="ec-mc-btn ec-mc-btn--ghost" id="engageLeadRecoveryExportBtn"${busy ? ' disabled' : ''}>Exportar auditorias</button>`
+      ? `<button type="button" class="elri-btn elri-btn--ghost" data-elri-action="reclassify"${busy ? ' disabled' : ''}>Reprocessar leads…</button>`
       : '';
-    el.innerHTML = `
-      <button type="button" class="ec-mc-btn ec-mc-btn--ghost" id="engageLeadRecoveryRefreshBtn"${loading || busy ? ' disabled' : ''}>Atualizar</button>
-      ${adminBtns}`;
-    el.querySelector('#engageLeadRecoveryRefreshBtn')?.addEventListener('click', () => void refreshAll());
-    el.querySelector('#engageLeadRecoveryReclassifyBtn')?.addEventListener('click', () => void openReclassifyModal());
-    el.querySelector('#engageLeadRecoveryExportBtn')?.addEventListener('click', () => void onExportAudits());
+    const fullscreenBtn = !isStandalonePanel()
+      ? `<button type="button" class="elri-btn elri-btn--outline" data-elri-open-standalone>Engage Intelligence</button>`
+      : '';
+    return `
+      <header class="elri-toolbar">
+        <div>
+          <p class="elri-breadcrumb">Engage Solar › Inteligência › Lead Recovery</p>
+          <h2 class="elri-title">Lead Recovery Intelligence</h2>
+          <p class="elri-lead">Painel de decisão sobre leads perdidos — priorização, insights e reprocessamento controlado.</p>
+        </div>
+        <div class="elri-toolbar-actions">
+          <span class="elri-period-pill">${ICONS.calendar} ${escapeHtml(defaultDateLabel())}</span>
+          <button type="button" class="elri-btn elri-btn--ghost" disabled title="Em breve">${ICONS.filter} Filtros</button>
+          ${canManage() ? `<button type="button" class="elri-btn elri-btn--outline" data-elri-action="export"${busy ? ' disabled' : ''}>${ICONS.export} Exportar</button>` : ''}
+          <button type="button" class="elri-btn elri-btn--ghost" data-elri-action="refresh"${loading || busy ? ' disabled' : ''}>${ICONS.refresh} Atualizar</button>
+          ${adminBtns}
+          ${fullscreenBtn}
+        </div>
+      </header>`;
   }
 
-  function renderViewTabs() {
-    const el = $('engageLeadRecoveryViewTabs');
-    if (!el) return;
-    el.innerHTML = `
-      <button type="button" class="elri-view-tab${viewTab === 'decision' ? ' is-active' : ''}" data-elri-view="decision">Decisão</button>
-      <button type="button" class="elri-view-tab${viewTab === 'analytics' ? ' is-active' : ''}" data-elri-view="analytics">Recovery Analytics</button>`;
-    el.querySelectorAll('[data-elri-view]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        viewTab = btn.dataset.elriView || 'decision';
-        render();
-      });
-    });
+  function renderMainTabs() {
+    return `
+      <nav class="elri-main-tabs" role="tablist" aria-label="Lead Recovery">
+        ${MAIN_TABS.map((tab) => {
+          const active = viewTab === tab.id ? ' is-active' : '';
+          const soon = tab.soon ? ' is-soon' : '';
+          const disabled = tab.soon ? ' disabled' : '';
+          return `<button type="button" class="elri-main-tab${active}${soon}" role="tab" data-elri-main-tab="${escapeAttr(tab.id)}"${disabled}>${escapeHtml(tab.label)}</button>`;
+        }).join('')}
+      </nav>`;
   }
 
   function renderDecisionKpis() {
     const s = stats || {};
-    const i = insights || {};
+    const activeTotal = Number(s.activeOpportunityCount ?? insights?.totalAnalyzed ?? 0);
     return `
       <div class="elri-kpi-grid">
-        ${metricCard('Leads analisados', i.totalAnalyzed ?? '—')}
-        ${metricCard('Alta prioridade', s.highPriorityCount ?? 0)}
-        ${metricCard('Média prioridade', s.mediumPriorityCount ?? 0)}
-        ${metricCard('Baixa prioridade', s.lowPriorityCount ?? 0)}
-        ${metricCard('Descartar', s.discardPriorityCount ?? 0)}
-        ${metricCard('Análises com IA (tokens)', s.aiAnalysesWithTokens ?? 0)}
-        ${metricCard('Tokens IA (total)', formatTokens(s.totalAiTokens))}
-        ${metricCard('Custo IA estimado', formatCostUsd(s.totalEstimatedCostUsd))}
+        ${kpiCard('Oportunidades ativas', s.activeOpportunityCount ?? '—', 'fila operacional', 0)}
+        ${kpiCard('Alta prioridade (ativas)', s.activeHighPriorityCount ?? 0, pctOf(s.activeHighPriorityCount, activeTotal), 1)}
+        ${kpiCard('Média prioridade (ativas)', s.activeMediumPriorityCount ?? 0, pctOf(s.activeMediumPriorityCount, activeTotal), 2)}
+        ${kpiCard('Baixa prioridade (ativas)', s.activeLowPriorityCount ?? 0, pctOf(s.activeLowPriorityCount, activeTotal), 3)}
+        ${kpiCard('Descartar (base total)', s.discardPriorityCount ?? 0, 'inclui IA na fila ativa', 4)}
+        ${kpiCard('Análises com IA', s.aiAnalysesWithTokens ?? s.aiCount ?? 0, '', 5)}
+        ${kpiCard('Tokens IA (total)', formatTokens(s.totalAiTokens), '', 6)}
+        ${kpiCard('Custo IA estimado', formatCostUsd(s.totalEstimatedCostUsd), '', 7)}
       </div>`;
   }
 
-  function renderNextAction() {
+  function renderAnalyticsKpis() {
+    const s = stats || {};
+    return `
+      <div class="elri-kpi-grid">
+        ${kpiCard('Leads classificados', s.totalClassified ?? 0, '', 0)}
+        ${kpiCard('Recovery Score médio', s.avgRecoveryScore ?? '—', '', 1)}
+        ${kpiCard('Alta prioridade', s.highPriorityCount ?? 0, '', 2)}
+        ${kpiCard('Média prioridade', s.mediumPriorityCount ?? 0, '', 3)}
+        ${kpiCard('Baixa prioridade', s.lowPriorityCount ?? 0, '', 4)}
+        ${kpiCard('Descartar', s.discardPriorityCount ?? 0, '', 5)}
+        ${kpiCard('Enriquecidos por IA', s.aiCount ?? 0, '', 6)}
+        ${kpiCard('Enriquecidos por regras', s.rulesCount ?? 0, '', 7)}
+      </div>
+      <div class="elri-kpi-grid elri-kpi-grid--secondary">
+        ${kpiCard('Análises com tokens', s.aiAnalysesWithTokens ?? 0, '', 5)}
+        ${kpiCard('Tokens IA (total)', formatTokens(s.totalAiTokens), '', 6)}
+        ${kpiCard('Custo IA estimado', formatCostUsd(s.totalEstimatedCostUsd), '', 7)}
+      </div>`;
+  }
+
+  function renderHeroBanner() {
     const nba = insights?.nextBestAction;
     if (!nba) return '';
+    const count = Number(nba.leadCount || 0);
+    const time = nba.bestTimeLabel || nba.bestTimeWindow || '';
+    const channels = nba.suggestedChannels || nba.channels || '';
+    const channelText = Array.isArray(channels) ? channels.join(' e ') : String(channels || '');
+    const details = [
+      `Campanha recomendada: ${nba.campaignLabel || '—'}`,
+      time ? `Melhor horário: ${time}` : '',
+      channelText ? `Canais sugeridos: ${channelText}` : (nba.reason || ''),
+    ].filter(Boolean).join(' · ');
     return `
-      <section class="elri-next-action">
-        <p class="elri-next-action-eyebrow">Próxima ação recomendada</p>
-        <p class="elri-next-action-count"><strong>${escapeHtml(String(nba.leadCount ?? 0))}</strong> leads</p>
-        <p class="elri-next-action-campaign">${escapeHtml(nba.campaignLabel || '—')}</p>
-        <p class="elri-next-action-reason">${escapeHtml(nba.reason || '')}</p>
+      <section class="elri-hero-banner">
+        <div class="elri-hero-banner-copy">
+          <span class="elri-hero-icon">${ICONS.rocket}</span>
+          <div>
+            <strong>${escapeHtml(String(count))} leads recuperáveis identificados</strong>
+            <p>${escapeHtml(details)}</p>
+          </div>
+        </div>
+        <button type="button" class="elri-btn elri-btn--primary" data-elri-scroll="opportunities">Ver oportunidades</button>
       </section>`;
+  }
+
+  function renderInsightBar(label, count, max) {
+    const pct = max > 0 ? Math.round((Number(count) / max) * 100) : 0;
+    return `
+      <div class="elri-insight-row">
+        <span class="elri-insight-row-label">${escapeHtml(label)}</span>
+        <span class="elri-insight-row-count">${escapeHtml(String(count ?? 0))} leads</span>
+        <div class="elri-insight-bar" aria-hidden="true"><span style="width:${Math.max(4, pct)}%"></span></div>
+      </div>`;
   }
 
   function renderRecoveryInsights() {
     const ri = insights?.recoveryInsights || {};
     const highlights = Array.isArray(ri.signalHighlights) ? ri.signalHighlights : [];
+    const rows = [
+      { label: `Principal barreira: ${ri.primaryBarrier?.label || '—'}`, count: ri.primaryBarrier?.count },
+      { label: `Principal canal ineficaz: ${ri.primaryChannel?.label || '—'}`, count: ri.primaryChannel?.count },
+      ...highlights.map((h) => ({ label: h.label || '—', count: h.count })),
+    ].filter((r) => r.label);
+    const max = rows.reduce((m, r) => Math.max(m, Number(r.count || 0)), 1);
     return `
-      <section class="elri-card">
+      <section class="elri-panel">
         <h3>Recovery Insights</h3>
-        <dl class="elri-dl">
-          <div><dt>Principal barreira</dt><dd>${escapeHtml(ri.primaryBarrier?.label || '—')} · ${escapeHtml(String(ri.primaryBarrier?.count ?? 0))}</dd></div>
-          <div><dt>Principal canal</dt><dd>${escapeHtml(ri.primaryChannel?.label || '—')} · ${escapeHtml(String(ri.primaryChannel?.count ?? 0))}</dd></div>
-        </dl>
-        ${highlights.length ? `
-          <ul class="elri-highlight-list">
-            ${highlights.map((h) => `<li>${escapeHtml(h.label || '—')} · <strong>${escapeHtml(String(h.count ?? 0))}</strong></li>`).join('')}
-          </ul>` : ''}
+        ${rows.length ? rows.map((r) => renderInsightBar(r.label, r.count, max)).join('') : '<p class="elri-empty">Sem insights.</p>'}
       </section>`;
   }
 
   function renderSpecialOpportunities() {
     const items = Array.isArray(insights?.specialOpportunities) ? insights.specialOpportunities : [];
-    if (!items.length) {
-      return '<section class="elri-card"><h3>Oportunidades encontradas</h3><p class="ec-mc-muted">Nenhuma oportunidade especial.</p></section>';
-    }
     return `
-      <section class="elri-card">
-        <div class="elri-card-head">
+      <section class="elri-panel">
+        <div class="elri-panel-head">
           <h3>Oportunidades encontradas</h3>
-          ${signalId ? '<button type="button" class="ec-mc-btn ec-mc-btn--ghost" id="engageLeadRecoveryClearSignal">Ver todas</button>' : ''}
+          ${signalId ? '<button type="button" class="elri-link-btn" id="engageLeadRecoveryClearSignal">Ver todas</button>' : ''}
         </div>
-        <div class="elri-opp-grid">
-          ${items.map((item) => {
+        <div class="elri-opp-list">
+          ${items.length ? items.map((item) => {
             const sid = String(item.signalId || item.id || '').trim();
             const active = sid && sid === signalId;
-            const badge = api().labelOpportunityBadge(item.badge);
-            const badgeHtml = badge
-              ? `<span class="elri-opp-badge" data-tone="${escapeHtml(String(item.badge || '').toUpperCase() === 'ATENCAO' ? 'warn' : 'info')}">${escapeHtml(badge)}</span>`
-              : '';
+            const rawBadge = String(item.badge || '').trim().toUpperCase();
+            const badgeLabel = rawBadge === 'ATENCAO'
+              ? 'ATENÇÃO'
+              : (rawBadge === 'ABORDAGEM_ESPECIFICA' ? 'ABORDAGEM ESPECÍFICA' : 'ALTA OPORTUNIDADE');
+            const tone = rawBadge === 'ATENCAO' ? 'warn' : 'ok';
             return `
-              <button type="button" class="elri-opp-card${active ? ' is-active' : ''}" data-elri-signal="${escapeAttr(sid)}">
-                <strong>${escapeHtml(item.label || '—')}</strong>
-                <span>${escapeHtml(String(item.count ?? 0))} lead(s)</span>
-                ${badgeHtml}
-              </button>`;
-          }).join('')}
+              <div class="elri-opp-item">
+                <button type="button" class="${active ? 'is-active' : ''}" data-elri-signal="${escapeAttr(sid)}">${escapeHtml(item.label || '—')}</button>
+                <span class="elri-opp-count">${escapeHtml(String(item.count ?? 0))} lead${Number(item.count) === 1 ? '' : 's'}</span>
+                <span class="elri-opp-badge" data-tone="${tone}">${escapeHtml(badgeLabel)}</span>
+              </div>`;
+          }).join('') : '<p class="elri-empty">Nenhuma oportunidade especial.</p>'}
         </div>
       </section>`;
   }
@@ -238,24 +384,19 @@
   function renderBaseSummary() {
     const rows = Array.isArray(insights?.baseSummary) ? insights.baseSummary : [];
     if (!rows.length) return '';
-    return `
-      <section class="elri-card">
-        <h3>Resumo da base</h3>
-        <ul class="elri-summary-list">
-          ${rows.map((row, idx) => {
-            const text = idx === 0
-              ? `${row.count ?? 0} ${row.label || ''}`
-              : `${row.percentage ?? 0}% ${row.label || ''}`;
-            return `<li>${escapeHtml(String(text).trim())}</li>`;
-          }).join('')}
-        </ul>
-      </section>`;
+    const pills = rows.map((row, idx) => {
+      const main = idx === 0
+        ? `${row.count ?? 0} ${row.label || ''}`.trim()
+        : `${row.percentage ?? 0}% ${row.label || ''}`.trim();
+      return `<div class="elri-base-pill"><strong>${escapeHtml(String(main))}</strong></div>`;
+    }).join('');
+    return `<section class="elri-base-strip" aria-label="Resumo da base">${pills}</section>`;
   }
 
-  function sortHeader(key, label, currentBy, currentDir) {
+  function sortHeader(key, label, currentBy, currentDir, table = 'opportunities') {
     const active = currentBy === key;
     const arrow = active ? (currentDir === 'asc' ? ' ↑' : ' ↓') : '';
-    return `<th scope="col"><button type="button" class="elri-sort-btn" data-elri-sort="${escapeAttr(key)}">${escapeHtml(label)}${arrow}</button></th>`;
+    return `<th scope="col"><button type="button" class="elri-sort-btn" data-elri-sort="${escapeAttr(key)}" data-elri-sort-table="${escapeAttr(table)}">${escapeHtml(label)}${arrow}</button></th>`;
   }
 
   function renderOpportunitiesTable() {
@@ -266,51 +407,107 @@
       ${sortHeader('name', 'Nome', oppSortBy, oppSortDir)}
       ${sortHeader('recoveryScore', 'Score', oppSortBy, oppSortDir)}
       ${sortHeader('recoveryPriority', 'Prioridade', oppSortBy, oppSortDir)}
-      ${sortHeader('recoveryDaysSinceLoss', 'Dias desde perda', oppSortBy, oppSortDir)}
+      ${sortHeader('recoveryDaysSinceLoss', 'Dias desde a perda', oppSortBy, oppSortDir)}
       ${sortHeader('barrier', 'Barreira', oppSortBy, oppSortDir)}
-      <th scope="col">Ação</th>
-      <th scope="col">Destaque</th>
+      ${sortHeader('recommendedAction', 'Ação', oppSortBy, oppSortDir)}
+      ${sortHeader('specialCaseBadge', 'Destaque', oppSortBy, oppSortDir)}
       ${sortHeader('registeredAt', 'Cadastro', oppSortBy, oppSortDir)}
       ${sortHeader('sourceAudienceName', 'Audiência', oppSortBy, oppSortDir)}
       ${sortHeader('lastCampaignName', 'Última campanha', oppSortBy, oppSortDir)}
       ${sortHeader('lastCampaignSentAt', 'Enviado há', oppSortBy, oppSortDir)}
-      <th scope="col">Auditoria</th>`;
+      ${sortHeader('lastCampaignFailedAt', 'Falha', oppSortBy, oppSortDir)}
+      ${sortHeader('lastCampaignReadAt', 'Leu', oppSortBy, oppSortDir)}
+      ${sortHeader('lastCampaignReplyAt', 'Respondeu', oppSortBy, oppSortDir)}
+      <th scope="col">Ações</th>`;
     const rows = items.map((row) => {
       const special = Boolean(row.specialCaseKind);
       const action = row.specialCaseActionHint || row.recommendedAction || '—';
-      const badge = api().labelOpportunityBadge(row.specialCaseBadge);
+      const badgeKey = String(row.specialCaseBadge || '').trim().toUpperCase();
+      const badgeLabel = badgeKey === 'CASO_ESPECIAL'
+        ? 'CASO ESPECIAL'
+        : api().labelOpportunityBadge(row.specialCaseBadge);
+      const badgeTone = badgeKey === 'CASO_ESPECIAL' ? 'special' : 'warn';
       return `
         <tr class="${special ? 'elri-row-special' : ''}">
           <td>${escapeHtml(row.name || row.phone || '—')}</td>
-          <td>${escapeHtml(String(row.recoveryScore ?? '—'))}</td>
+          <td><strong>${escapeHtml(String(row.recoveryScore ?? '—'))}</strong></td>
           <td>${priorityChip(row.recoveryPriority)}</td>
           <td>${escapeHtml(formatDays(row.recoveryDaysSinceLoss))}</td>
           <td>${escapeHtml(row.barrier || '—')}</td>
           <td>${escapeHtml(action)}</td>
-          <td>${badge ? `<span class="elri-opp-badge" data-tone="warn">${escapeHtml(badge)}</span>` : '—'}</td>
-          <td class="ec-mc-muted">${escapeHtml(formatDateTime(row.registeredAt))}</td>
+          <td>${badgeLabel ? `<span class="elri-opp-badge" data-tone="${badgeTone}">${escapeHtml(badgeLabel)}</span>` : '—'}</td>
+          <td>${escapeHtml(formatDateTime(row.registeredAt))}</td>
           <td>${escapeHtml(row.sourceAudienceName || '—')}</td>
-          <td>${escapeHtml(row.lastCampaignName || '—')}${row.campaignEngagementLabel ? ` · ${escapeHtml(row.campaignEngagementLabel)}` : ''}</td>
-          <td class="ec-mc-muted">${escapeHtml(formatDateTime(row.lastCampaignSentAt))}</td>
-          <td><button type="button" class="ec-mc-btn ec-mc-btn--ghost" data-elri-audit="${escapeAttr(row.contactId || row.id)}">Ver auditoria</button></td>
+          <td>${renderLastCampaignCell(row)}</td>
+          <td>${escapeHtml(formatCampaignTimestamp(row.lastCampaignSentAt))}</td>
+          <td>${escapeHtml(formatCampaignFailed(row))}</td>
+          <td>${escapeHtml(formatCampaignTimestamp(row.lastCampaignReadAt))}</td>
+          <td>${escapeHtml(formatCampaignTimestamp(row.lastCampaignReplyAt))}</td>
+          <td><button type="button" class="elri-link-btn" data-elri-audit="${escapeAttr(row.contactId || row.id)}">Ver detalhes</button></td>
         </tr>`;
     }).join('');
+    const pages = Math.max(1, Math.ceil(total / OPP_PAGE_SIZE));
+    const from = total ? (oppPage - 1) * OPP_PAGE_SIZE + 1 : 0;
+    const to = Math.min(oppPage * OPP_PAGE_SIZE, total);
+    const pageBtns = Array.from({ length: Math.min(pages, 5) }, (_, i) => i + 1).map((p) => {
+      const active = p === oppPage ? ' is-active' : '';
+      return `<button type="button" class="elri-page-btn${active}" data-elri-opp-page="${p}">${p}</button>`;
+    }).join('');
+    const sortOptions = [
+      { key: 'recoveryScore', label: 'Score' },
+      { key: 'recoveryDaysSinceLoss', label: 'Dias desde a perda' },
+      { key: 'name', label: 'Nome' },
+    ];
+    const sortSelect = sortOptions.map((o) => {
+      const sel = oppSortBy === o.key ? ' selected' : '';
+      return `<option value="${escapeAttr(o.key)}"${sel}>${escapeHtml(o.label)}</option>`;
+    }).join('');
     return `
-      <section class="elri-card">
-        <h3>Top 20 oportunidades de recuperação</h3>
-        ${filterLabel}
+      <section class="elri-table-card" id="elriOpportunitiesSection">
+        <header class="elri-table-head">
+          <h3>Top 20 oportunidades de recuperação</h3>
+          <div class="elri-table-actions">
+            ${filterLabel ? `<span class="elri-kpi-sub">${escapeHtml(opportunities.filterLabel)}</span>` : ''}
+            <label>Ordenar por:
+              <select id="elriOppSortSelect" aria-label="Ordenação">${sortSelect}</select>
+            </label>
+            <button type="button" class="elri-btn elri-btn--outline" data-elri-scroll="queue">Ver fila ativa</button>
+          </div>
+        </header>
         <div class="elri-table-wrap">
-          <table class="ech-table elri-table" aria-label="Top oportunidades">
+          <table class="elri-table" aria-label="Top oportunidades">
             <thead><tr>${headers}</tr></thead>
-            <tbody>${rows || '<tr><td colspan="12" class="ec-mc-muted">Nenhuma oportunidade.</td></tr>'}</tbody>
+            <tbody>${rows || '<tr><td colspan="15">Nenhuma oportunidade.</td></tr>'}</tbody>
           </table>
         </div>
-        ${total > items.length ? `<p class="elri-table-foot">Exibindo ${items.length} de ${total}</p>` : ''}
+        <footer class="elri-table-foot">
+          <span>Mostrando ${from} a ${to} de ${total.toLocaleString('pt-BR')} oportunidades</span>
+          <div class="elri-pagination">
+            ${pageBtns}
+            ${oppPage < pages ? `<button type="button" class="elri-page-btn" data-elri-opp-page="${oppPage + 1}">›</button>` : ''}
+          </div>
+        </footer>
       </section>`;
   }
 
   function renderContactsTable() {
     const items = Array.isArray(contacts.items) ? contacts.items : [];
+    const headers = `
+      ${sortHeader('name', 'Nome', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('category', 'Categoria', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('recoveryScore', 'Score', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('recoveryPriority', 'Prioridade', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('recoveryDaysSinceLoss', 'Dias desde a perda', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('barrier', 'Barreira', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('recommendedAction', 'Ação recomendada', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('registeredAt', 'Cadastro', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('sourceAudienceName', 'Audiência', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('lastCampaignName', 'Última campanha', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('lastCampaignSentAt', 'Enviado há', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('lastCampaignFailedAt', 'Falha', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('lastCampaignReadAt', 'Leu', contactsSortBy, contactsSortDir, 'contacts')}
+      ${sortHeader('lastCampaignReplyAt', 'Respondeu', contactsSortBy, contactsSortDir, 'contacts')}
+      <th scope="col">Auditoria</th>`;
     const rows = items.map((row) => `
       <tr>
         <td>${escapeHtml(row.name || row.phone || '—')}</td>
@@ -322,23 +519,27 @@
         <td>${escapeHtml(row.recommendedAction || '—')}</td>
         <td class="ec-mc-muted">${escapeHtml(formatDateTime(row.registeredAt))}</td>
         <td>${escapeHtml(row.sourceAudienceName || '—')}</td>
-        <td>${escapeHtml(row.lastCampaignName || '—')}</td>
-        <td class="ec-mc-muted">${escapeHtml(formatDateTime(row.lastCampaignSentAt))}</td>
-        <td><button type="button" class="ec-mc-btn ec-mc-btn--ghost" data-elri-audit="${escapeAttr(row.contactId || row.id)}">Ver auditoria</button></td>
+        <td>${renderLastCampaignCell(row)}</td>
+        <td class="ec-mc-muted">${escapeHtml(formatCampaignTimestamp(row.lastCampaignSentAt))}</td>
+        <td class="ec-mc-muted">${escapeHtml(formatCampaignFailed(row))}</td>
+        <td class="ec-mc-muted">${escapeHtml(formatCampaignTimestamp(row.lastCampaignReadAt))}</td>
+        <td class="ec-mc-muted">${escapeHtml(formatCampaignTimestamp(row.lastCampaignReplyAt))}</td>
+        <td><button type="button" class="elri-link-btn" data-elri-audit="${escapeAttr(row.contactId || row.id)}">Ver detalhes</button></td>
       </tr>`).join('');
     return `
-      <section class="elri-card">
-        <h3>Leads para recuperação</h3>
+      <section class="elri-table-card" id="elriActiveQueueSection">
+        <header class="elri-table-head">
+          <div>
+            <h3>Fila ativa — quem precisa de ação agora</h3>
+            <p class="elri-table-sub">Apenas oportunidades ACTIVE — leads ainda sem campanha enviada. Respostas, envios, leituras, falhas de entrega e contato efetuado saem desta fila automaticamente.</p>
+          </div>
+        </header>
         <div class="elri-table-wrap">
-          <table class="ech-table elri-table" aria-label="Leads para recuperação">
+          <table class="elri-table" aria-label="Fila ativa de recuperação">
             <thead>
-              <tr>
-                <th>Nome</th><th>Categoria</th><th>Score</th><th>Prioridade</th>
-                <th>Dias desde perda</th><th>Barreira</th><th>Ação recomendada</th>
-                <th>Cadastro</th><th>Audiência</th><th>Última campanha</th><th>Enviado</th><th>Auditoria</th>
-              </tr>
+              <tr>${headers}</tr>
             </thead>
-            <tbody>${rows || '<tr><td colspan="12" class="ec-mc-muted">Nenhum lead processado. Importe contatos ou execute reprocessamento.</td></tr>'}</tbody>
+            <tbody>${rows || '<tr><td colspan="15">Nenhum lead na fila ativa. Todos já receberam campanha ou foram encerrados manualmente.</td></tr>'}</tbody>
           </table>
         </div>
       </section>`;
@@ -381,28 +582,16 @@
       </section>`;
   }
 
-  function renderAnalyticsKpis() {
-    const s = stats || {};
-    return `
-      <div class="elri-kpi-grid">
-        ${metricCard('Leads classificados', s.totalClassified ?? 0)}
-        ${metricCard('Recovery Score médio', s.avgRecoveryScore ?? '—')}
-        ${metricCard('Alta prioridade', s.highPriorityCount ?? 0)}
-        ${metricCard('Média prioridade', s.mediumPriorityCount ?? 0)}
-        ${metricCard('Baixa prioridade', s.lowPriorityCount ?? 0)}
-        ${metricCard('Descartar', s.discardPriorityCount ?? 0)}
-        ${metricCard('Enriquecidos por IA', s.aiCount ?? 0)}
-        ${metricCard('Enriquecidos por regras', s.rulesCount ?? 0)}
-        ${metricCard('Análises com tokens', s.aiAnalysesWithTokens ?? 0)}
-        ${metricCard('Tokens IA (total)', formatTokens(s.totalAiTokens))}
-        ${metricCard('Custo IA estimado', formatCostUsd(s.totalEstimatedCostUsd))}
-      </div>`;
-  }
-
-  function renderDecisionView() {
+  function renderTabBody() {
+    if (viewTab === 'analytics') {
+      return `
+        ${renderAnalyticsKpis()}
+        ${renderScoreDistribution()}
+        ${renderTopSignals()}`;
+    }
     return `
       ${renderDecisionKpis()}
-      ${renderNextAction()}
+      ${renderHeroBanner()}
       <div class="elri-two-col">
         ${renderRecoveryInsights()}
         ${renderSpecialOpportunities()}
@@ -412,33 +601,79 @@
       ${renderContactsTable()}`;
   }
 
-  function renderAnalyticsView() {
-    return `
-      ${renderAnalyticsKpis()}
-      ${renderScoreDistribution()}
-      ${renderTopSignals()}`;
-  }
-
-  function renderContent() {
-    const el = $('engageLeadRecoveryContent');
-    if (!el) return;
+  function renderShell() {
+    const root = getRoot();
+    if (!root) return;
     if (loading && !stats && !insights) {
-      el.innerHTML = '';
+      root.innerHTML = `<div class="elri-shell"><div class="elri-loading">Carregando Lead Recovery…</div></div>`;
       return;
     }
-    el.innerHTML = viewTab === 'analytics' ? renderAnalyticsView() : renderDecisionView();
-    bindContentEvents(el);
+    const feedback = feedbackMsg
+      ? `<div class="elri-feedback" data-tone="${escapeHtml(feedbackTone)}" role="status">${escapeHtml(feedbackMsg)}</div>`
+      : '';
+    root.innerHTML = `
+      <div class="elri-shell">
+        ${renderToolbar()}
+        ${renderMainTabs()}
+        ${feedback}
+        ${renderTabBody()}
+      </div>`;
+    bindContentEvents(root);
+    bindShellEvents(root);
+  }
+
+  function bindShellEvents(root) {
+    root.querySelector('[data-elri-action="refresh"]')?.addEventListener('click', () => void refreshAll());
+    root.querySelector('[data-elri-action="export"]')?.addEventListener('click', () => void onExportAudits());
+    root.querySelector('[data-elri-action="reclassify"]')?.addEventListener('click', () => void openReclassifyModal());
+    root.querySelector('[data-elri-open-standalone]')?.addEventListener('click', () => {
+      document.querySelector('[data-es-nav="engage-intelligence"]')?.click();
+    });
+    root.querySelectorAll('[data-elri-main-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        const next = btn.dataset.elriMainTab || 'decision';
+        if (next === viewTab) return;
+        viewTab = next;
+        if (isDecisionTab()) {
+          void refreshDecisionQueue();
+        } else {
+          render();
+        }
+      });
+    });
+    root.querySelectorAll('[data-elri-scroll]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.elriScroll === 'queue'
+          ? '#elriActiveQueueSection'
+          : '#elriOpportunitiesSection';
+        document.querySelector(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    root.querySelector('#elriOppSortSelect')?.addEventListener('change', (e) => {
+      oppSortBy = e.target.value || 'recoveryScore';
+      oppPage = 1;
+      void loadOpportunities();
+    });
+    root.querySelectorAll('[data-elri-opp-page]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        oppPage = Number(btn.dataset.elriOppPage || 1);
+        void loadOpportunities();
+      });
+    });
   }
 
   function bindContentEvents(root) {
     root.querySelector('#engageLeadRecoveryClearSignal')?.addEventListener('click', () => {
       signalId = '';
+      oppPage = 1;
       void loadOpportunities();
     });
     root.querySelectorAll('[data-elri-signal]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sid = btn.dataset.elriSignal || '';
         signalId = signalId === sid ? '' : sid;
+        oppPage = 1;
         void loadOpportunities();
       });
     });
@@ -448,12 +683,24 @@
     root.querySelectorAll('[data-elri-sort]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const key = btn.dataset.elriSort || 'recoveryScore';
+        const table = btn.dataset.elriSortTable || 'opportunities';
+        if (table === 'contacts') {
+          if (contactsSortBy === key) {
+            contactsSortDir = contactsSortDir === 'asc' ? 'desc' : 'asc';
+          } else {
+            contactsSortBy = key;
+            contactsSortDir = 'desc';
+          }
+          void loadContacts();
+          return;
+        }
         if (oppSortBy === key) {
           oppSortDir = oppSortDir === 'asc' ? 'desc' : 'asc';
         } else {
           oppSortBy = key;
           oppSortDir = 'desc';
         }
+        oppPage = 1;
         void loadOpportunities();
       });
     });
@@ -536,66 +783,98 @@
   }
 
   function render() {
-    renderToolbar();
-    renderViewTabs();
-    renderContent();
+    renderShell();
     renderReclassifyModal();
     renderAuditModal();
   }
 
   async function loadOpportunities() {
+    const seq = activateSeq;
+    if (!isActivationCurrent(seq)) return;
     try {
-      const params = {
-        limit: OPP_LIMIT,
+      const params = activeQueueQuery({
+        limit: OPP_PAGE_SIZE,
+        offset: (oppPage - 1) * OPP_PAGE_SIZE,
         sortBy: oppSortBy,
         sortDir: oppSortDir,
-      };
+      });
       if (signalId) params.signalId = signalId;
       opportunities = await api().getOpportunities(session, params);
       if (!Array.isArray(opportunities.items)) opportunities.items = [];
     } catch (err) {
+      if (!isActivationCurrent(seq)) return;
       opportunities = { items: [], total: 0 };
       const mapped = api().mapApiError(err);
       setFeedback(mapped.message, 'danger');
+      return;
     }
-    render();
+    if (isActivationCurrent(seq)) render();
   }
 
   async function loadContacts() {
+    const seq = activateSeq;
+    if (!isActivationCurrent(seq)) return;
     try {
-      contacts = await api().getContacts(session, {
+      contacts = await api().getContacts(session, activeQueueQuery({
         limit: CONTACTS_LIMIT,
         sortBy: contactsSortBy,
         sortDir: contactsSortDir,
-      });
+      }));
       if (!Array.isArray(contacts.items)) contacts.items = [];
     } catch (err) {
+      if (!isActivationCurrent(seq)) return;
       contacts = { items: [] };
+      const mapped = api().mapApiError(err);
+      setFeedback(mapped.message, 'danger');
+      return;
+    }
+    if (isActivationCurrent(seq)) render();
+  }
+
+  async function refreshDecisionQueue() {
+    const seq = activateSeq;
+    if (!isActivationCurrent(seq) || !isDecisionTab()) return;
+    try {
+      insights = await api().getInsights(session, activeQueueQuery());
+      if (!isActivationCurrent(seq)) return;
+      await Promise.all([loadContacts(), loadOpportunities()]);
+    } catch (err) {
+      if (!isActivationCurrent(seq)) return;
       const mapped = api().mapApiError(err);
       setFeedback(mapped.message, 'danger');
     }
   }
 
   async function refreshAll() {
-    if (!active) return;
+    const seq = activateSeq;
+    if (!isActivationCurrent(seq)) return;
     setLoading(true);
     setFeedback('');
     error = '';
     try {
-      const [statsRes, insightsRes, signalsRes] = await Promise.all([
+      const [statsRes, signalsRes] = await Promise.all([
         api().getStats(session),
-        api().getInsights(session),
         api().getSignals(session),
       ]);
+      if (!isActivationCurrent(seq)) return;
       stats = statsRes;
-      insights = insightsRes;
       signals = signalsRes;
-      await Promise.all([loadContacts(), loadOpportunities()]);
+      if (isDecisionTab()) {
+        insights = await api().getInsights(session, activeQueueQuery());
+        if (!isActivationCurrent(seq)) return;
+        await Promise.all([loadContacts(), loadOpportunities()]);
+      } else {
+        insights = null;
+        contacts = { items: [] };
+        opportunities = { items: [], total: 0 };
+      }
     } catch (err) {
+      if (!isActivationCurrent(seq)) return;
       const mapped = api().mapApiError(err);
       error = mapped.message;
       setFeedback(mapped.message, 'danger');
     } finally {
+      if (!isActivationCurrent(seq)) return;
       setLoading(false);
       render();
     }
@@ -671,7 +950,7 @@
   async function onExportAudits() {
     if (!canManage() || busy) return;
     busy = true;
-    renderToolbar();
+    render();
     try {
       const data = await api().exportAudits(session);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -692,10 +971,12 @@
     }
   }
 
+  let modalsBound = false;
+
   function bindModals() {
-    const panel = document.querySelector('[data-ec-panel="lead-recovery-intelligence"]');
-    if (!panel || panel.dataset.elriBound === '1') return;
-    panel.addEventListener('click', (e) => {
+    if (modalsBound) return;
+    document.addEventListener('click', (e) => {
+      if (!active) return;
       if (e.target.closest('[data-elri-reclassify-close]')) closeReclassifyModal();
       if (e.target.closest('[data-elri-audit-close]')) closeAuditModal();
     });
@@ -705,30 +986,46 @@
     $('engageLeadRecoveryAuditModal')?.addEventListener('click', (e) => {
       if (e.target.id === 'engageLeadRecoveryAuditModal') closeAuditModal();
     });
-    panel.dataset.elriBound = '1';
+    modalsBound = true;
   }
 
   async function activate(nextSession) {
+    const seq = ++activateSeq;
     active = true;
     if (window.ReservaPermissions?.enrichSessionWithOperatorMe) {
       session = await window.ReservaPermissions.enrichSessionWithOperatorMe(nextSession || session);
     } else {
       session = nextSession || session;
     }
+    if (!isActivationCurrent(seq)) return;
     viewTab = 'decision';
+    oppPage = 1;
     signalId = '';
     error = '';
-    setFeedback('');
+    feedbackMsg = '';
+    feedbackTone = 'neutral';
     bindModals();
+    render();
     await refreshAll();
   }
 
+  function clearRoots() {
+    const standalone = document.getElementById('adminEngageLeadRecoveryRoot');
+    const embedded = document.getElementById('engageLeadRecoveryContent');
+    if (standalone) standalone.innerHTML = '';
+    if (embedded) embedded.innerHTML = '';
+  }
+
   function deactivate() {
+    activateSeq += 1;
     active = false;
+    loading = false;
+    busy = false;
     closeReclassifyModal();
     closeAuditModal();
-    setLoading(false);
-    setFeedback('');
+    feedbackMsg = '';
+    feedbackTone = 'neutral';
+    clearRoots();
   }
 
   window.EngageLeadRecovery = { activate, deactivate };

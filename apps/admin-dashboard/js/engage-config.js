@@ -110,6 +110,12 @@
       window.EngageTemplatesAdmin?.deactivate?.();
     }
 
+    if (tabId === 'media-library') {
+      window.EngageMediaLibraryAdmin?.activate?.(session);
+    } else {
+      window.EngageMediaLibraryAdmin?.deactivate?.();
+    }
+
     if (tabId === 'contact-hub') {
       window.EngageContactHub?.activate?.(session);
     } else {
@@ -146,7 +152,6 @@
     currentSession = session || null;
     bindSubnav();
     restoreTab();
-    onTabActivated(currentTab, currentSession);
   }
 
   function deactivate() {
@@ -154,6 +159,7 @@
     window.EngageMetaConnections?.deactivate?.();
     window.EngageSenderProfiles?.deactivate?.();
     window.EngageTemplatesAdmin?.deactivate?.();
+    window.EngageMediaLibraryAdmin?.deactivate?.();
     window.EngageContactHub?.deactivate?.();
     window.EngageCrmSyncHealth?.deactivate?.();
     window.EngageTenantSettings?.deactivate?.();

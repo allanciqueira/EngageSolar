@@ -14,13 +14,15 @@
     <link rel="stylesheet" href="css/theme.css" />
     <link rel="stylesheet" href="css/layout.css" />
     <link rel="stylesheet" href="css/dashboard.css" />
-    <link rel="stylesheet" href="css/whatsapp.css" />
+    <link rel="stylesheet" href="css/engage-executive-dashboard.css?v=20260617-exec-dash" />
+    <link rel="stylesheet" href="css/whatsapp.css?v=20260617-ai-pause" />
     <link rel="stylesheet" href="css/engage-config.css" />
     <link rel="stylesheet" href="css/engage-crm-sync-health.css" />
     <link rel="stylesheet" href="css/engage-tenant-settings.css" />
     <link rel="stylesheet" href="css/engage-lead-recovery.css" />
     <link rel="stylesheet" href="css/engage-campaign-timeline.css" />
-    <link rel="stylesheet" href="css/engage-templates.css" />
+    <link rel="stylesheet" href="css/engage-templates.css?v=20260616-header-media" />
+    <link rel="stylesheet" href="css/engage-media-library.css" />
     <link rel="stylesheet" href="css/settings-nav.css" />
     <link rel="stylesheet" href="css/settings-reserva.css" />
     <link rel="stylesheet" href="css/sales-consultants.css" />
@@ -28,8 +30,11 @@
     <link rel="stylesheet" href="css/clients-reserva.css" />
     <link rel="stylesheet" href="css/company-geral-reserva.css" />
     <link rel="stylesheet" href="css/engage-solar-config.css" />
+    <link rel="stylesheet" href="css/engage-inbox-auto-reply-pause.css" />
     <link rel="stylesheet" href="css/engage-campaigns-reserva.css" />
     <link rel="stylesheet" href="css/engage-replies-center.css" />
+    <link rel="stylesheet" href="css/engage-pipeline.css?v=20260617-lead-intel" />
+    <link rel="stylesheet" href="css/engage-audiences-dashboard.css" />
     <link rel="stylesheet" href="css/engage-contact-hub.css" />
     <link rel="stylesheet" href="css/mobile.css" />
     <script src="js/config.js"></script>
@@ -75,9 +80,9 @@
 
         <div class="es-quick">
           <span class="es-quick-title">+ AÇÕES RÁPIDAS</span>
-          <button type="button" class="es-quick-btn"><span>Novo Lead</span></button>
-          <button type="button" class="es-quick-btn"><span>Nova Campanha</span></button>
-          <button type="button" class="es-quick-btn"><span>Nova Proposta</span></button>
+          <button type="button" class="es-quick-btn" data-es-quick="audiencia"><span>Nova Audiência</span></button>
+          <button type="button" class="es-quick-btn" data-es-quick="campanha"><span>Nova Campanha</span></button>
+          <button type="button" class="es-quick-btn" data-es-quick="importacao"><span>Nova Importação</span></button>
         </div>
 
         <div class="es-user">
@@ -148,48 +153,42 @@
 
         <div class="es-content">
           <div class="es-page-heading" id="esPageHeading">
-            <h1 id="esHeroTitle">Dashboard</h1>
+            <h1 id="esHeroTitle">Dashboard Executivo</h1>
             <p id="esHeroSubtitle">Visão geral do seu negócio solar</p>
           </div>
-          <section class="es-panel" data-es-panel="dashboard" id="esPanelDashboard">
-            <div class="es-date-bar">
-              <button type="button" class="es-date-btn" id="esDateBtn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Hoje, 01 de junho
-              </button>
-            </div>
+          <section class="es-panel es-panel--executive-dashboard" data-es-panel="dashboard" id="esPanelDashboard">
+            <div id="esExecToolbar"></div>
+            <div class="es-kpi-grid" id="esKpiGrid" aria-label="Resumo executivo"></div>
 
-            <div class="es-kpi-grid" id="esKpiGrid" aria-label="Resumo comercial"></div>
-
-            <div class="es-dashboard-grid">
+            <div class="es-dashboard-grid es-exec-grid">
               <article class="es-card es-card--pipeline">
-                <h2>Pipeline de Vendas</h2>
-                <div id="esPipeline"></div>
+                <h2>Funil Engage Solar</h2>
+                <div id="esExecFunnel"></div>
               </article>
 
               <article class="es-card es-card--whatsapp">
-                <h2>💬 WhatsApp — Resumo do Dia</h2>
-                <div id="esWhatsapp"></div>
+                <h2>WhatsApp — Resumo Operacional</h2>
+                <div id="esExecWhatsapp"></div>
               </article>
 
               <article class="es-card es-card--insights">
                 <h2>Insights Inteligentes</h2>
-                <div class="es-insights" id="esInsights"></div>
+                <div class="es-insights es-exec-insights" id="esExecInsights"></div>
               </article>
 
               <article class="es-card es-card--campaigns">
                 <h2>Campanhas Ativas</h2>
-                <div id="esCampaigns"></div>
+                <div id="esExecCampaigns"></div>
               </article>
 
-              <article class="es-card es-card--sellers">
-                <h2>Ranking de Consultores</h2>
-                <div id="esSellers"></div>
+              <article class="es-card es-card--audiences">
+                <h2>Top Audiências</h2>
+                <div id="esExecAudiences"></div>
               </article>
 
-              <article class="es-card es-card--finance">
-                <h2>Resumo Financeiro</h2>
-                <div id="esFinance"></div>
+              <article class="es-card es-card--pipeline-donut">
+                <h2>Performance do Pipeline</h2>
+                <div id="esExecPipeline"></div>
               </article>
             </div>
           </section>
@@ -277,8 +276,10 @@
                         <span class="whats-pro-live-dot" aria-hidden="true"></span>
                         <span>IA ativa</span>
                       </span>
+                      <span class="whats-pro-thread-ai-pause-badge" id="botInboxConversationAiBadge" hidden>IA pausada nesta conversa</span>
                     </div>
                     <div class="whats-pro-thread-actions">
+                      <button type="button" class="whats-pro-conversation-ai-btn" id="botInboxConversationAiPauseBtn" hidden>Pausar IA</button>
                       <button class="whats-pro-icon-btn" type="button" title="Pesquisar nesta conversa" aria-label="Pesquisar nesta conversa">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
                       </button>
@@ -293,6 +294,10 @@
                       </button>
                     </div>
                   </header>
+
+                  <p class="whats-pro-conversation-ai-hint" id="botInboxConversationAiHint" hidden>
+                    Pausa apenas esta conversa. O bot global do tenant continua com o estado configurado em Respostas automáticas (IA).
+                  </p>
 
                   <div class="whats-pro-engage-disposition-wrap" id="botInboxDisposition" hidden></div>
 
@@ -348,7 +353,7 @@
                     </button>
                     <input type="file" id="botInboxFileInput" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp,video/mp4" />
                     <div class="whats-pro-emoji-panel" id="botInboxEmojiPanel" role="menu" hidden></div>
-                    <input class="whats-pro-composer-input" id="botInboxComposerInput" type="text" placeholder="Digite uma mensagem para o cliente…" autocomplete="off" />
+                    <textarea class="whats-pro-composer-input" id="botInboxComposerInput" rows="1" placeholder="Digite uma mensagem para o cliente…" autocomplete="off"></textarea>
                     <button class="whats-pro-icon-btn whats-pro-composer-icon" type="button" data-composer-mic id="botInboxMicBtn" aria-label="Mensagem de voz">
                       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                     </button>
@@ -458,14 +463,42 @@
           <section class="es-panel es-panel--central-respostas" data-es-panel="central-respostas" hidden>
             <div class="erc-shell" id="adminEngageRepliesCenterRoot" aria-live="polite"></div>
           </section>
+          <section class="es-panel es-panel--audiencias" data-es-panel="audiencias" hidden>
+            <div id="adminEngageAudiencesDashboardRoot" aria-live="polite"></div>
+          </section>
+          <section class="es-panel es-panel--engage-intelligence" data-es-panel="engage-intelligence" hidden>
+            <div id="adminEngageLeadRecoveryRoot" aria-live="polite"></div>
+            <div class="elri-modal" id="engageLeadRecoveryReclassifyModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageLeadRecoveryReclassifyTitle">
+              <div class="elri-modal-dialog">
+                <header class="elri-modal-head">
+                  <h3 id="engageLeadRecoveryReclassifyTitle">Reprocessar leads</h3>
+                  <button type="button" class="elri-modal-close" data-elri-reclassify-close aria-label="Fechar">×</button>
+                </header>
+                <div class="elri-modal-body" id="engageLeadRecoveryReclassifyBody"></div>
+                <footer class="elri-modal-foot" id="engageLeadRecoveryReclassifyFooter"></footer>
+              </div>
+            </div>
+            <div class="elri-modal" id="engageLeadRecoveryAuditModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageLeadRecoveryAuditTitle">
+              <div class="elri-modal-dialog elri-modal-dialog--wide">
+                <header class="elri-modal-head">
+                  <h3 id="engageLeadRecoveryAuditTitle">Auditoria do lead</h3>
+                  <button type="button" class="elri-modal-close" data-elri-audit-close aria-label="Fechar">×</button>
+                </header>
+                <div class="elri-modal-body" id="engageLeadRecoveryAuditBody"></div>
+                <footer class="elri-modal-foot">
+                  <button type="button" class="elri-btn elri-btn--primary" data-elri-audit-close>Fechar</button>
+                </footer>
+              </div>
+            </div>
+          </section>
           <section class="es-panel" data-es-panel="automacao" hidden>
             <div class="es-placeholder"><strong>Automação</strong><br />Fluxos e bots — Fase 3.</div>
           </section>
           <section class="es-panel" data-es-panel="followup" hidden>
             <div class="es-placeholder"><strong>Follow-up</strong><br />Cadências automáticas — Fase 2.</div>
           </section>
-          <section class="es-panel" data-es-panel="pipeline" hidden>
-            <div class="es-placeholder"><strong>Pipeline</strong><br />Kanban comercial — Fase 2.</div>
+          <section class="es-panel es-panel--pipeline" data-es-panel="pipeline" hidden>
+            <div class="epl-shell" id="adminEngagePipelineRoot" aria-live="polite"></div>
           </section>
           <section class="es-panel" data-es-panel="clientes" hidden>
             <div class="clients-pro-shell" id="adminClientsRoot">
@@ -675,6 +708,7 @@
               <nav class="ec-subnav" id="engageConfigSubnav" role="tablist" aria-label="Engage Config">
                 <button type="button" class="ec-subnav-tab is-active" role="tab" data-ec-tab="meta-connections" aria-selected="true">Meta connections</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="templates" aria-selected="false" tabindex="-1">Templates WhatsApp</button>
+                <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="media-library" aria-selected="false" tabindex="-1">Media Library</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="sender-profiles" aria-selected="false" tabindex="-1">Sender profiles</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="contact-hub" aria-selected="false" tabindex="-1">Contact hub</button>
                 <button type="button" class="ec-subnav-tab" role="tab" data-ec-tab="crm-sync-health" aria-selected="false" tabindex="-1">Saúde CRM</button>
@@ -773,6 +807,10 @@
                   <div id="engageTemplatesRoot" class="et-shell" aria-live="polite"></div>
                 </section>
 
+                <section class="ec-tab-panel" data-ec-panel="media-library" role="tabpanel" hidden>
+                  <div id="engageMediaLibraryRoot" class="eml-root" aria-live="polite"></div>
+                </section>
+
                 <section class="ec-tab-panel" data-ec-panel="contact-hub" role="tabpanel" hidden>
                   <div class="ech-import-modal" id="engageContactImportModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageContactImportTitle">
                     <div class="ech-import-dialog">
@@ -858,41 +896,7 @@
                 </section>
 
                 <section class="ec-tab-panel" data-ec-panel="lead-recovery-intelligence" role="tabpanel" hidden>
-                  <div class="elri-shell" id="engageLeadRecoveryRoot">
-                    <header class="ec-mc-head">
-                      <div class="ec-mc-head-copy">
-                        <h2>Lead Recovery Intelligence</h2>
-                        <p class="ec-mc-lead">Inteligência de recuperação sobre leads perdidos — priorização, insights e reprocessamento controlado.</p>
-                      </div>
-                      <div class="ec-mc-head-actions" id="engageLeadRecoveryActions"></div>
-                    </header>
-                    <nav class="elri-view-tabs" id="engageLeadRecoveryViewTabs" role="tablist" aria-label="Vistas Lead Recovery"></nav>
-                    <div class="ec-mc-feedback" id="engageLeadRecoveryFeedback" role="status" hidden></div>
-                    <div class="ec-mc-loading" id="engageLeadRecoveryLoading" hidden>Carregando…</div>
-                    <div id="engageLeadRecoveryContent"></div>
-                  </div>
-                  <div class="elri-modal" id="engageLeadRecoveryReclassifyModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageLeadRecoveryReclassifyTitle">
-                    <div class="elri-modal-dialog">
-                      <header class="elri-modal-head">
-                        <h3 id="engageLeadRecoveryReclassifyTitle">Reprocessar leads</h3>
-                        <button type="button" class="elri-modal-close" data-elri-reclassify-close aria-label="Fechar">×</button>
-                      </header>
-                      <div class="elri-modal-body" id="engageLeadRecoveryReclassifyBody"></div>
-                      <footer class="elri-modal-foot" id="engageLeadRecoveryReclassifyFooter"></footer>
-                    </div>
-                  </div>
-                  <div class="elri-modal" id="engageLeadRecoveryAuditModal" hidden role="dialog" aria-modal="true" aria-labelledby="engageLeadRecoveryAuditTitle">
-                    <div class="elri-modal-dialog elri-modal-dialog--wide">
-                      <header class="elri-modal-head">
-                        <h3 id="engageLeadRecoveryAuditTitle">Auditoria do lead</h3>
-                        <button type="button" class="elri-modal-close" data-elri-audit-close aria-label="Fechar">×</button>
-                      </header>
-                      <div class="elri-modal-body" id="engageLeadRecoveryAuditBody"></div>
-                      <footer class="elri-modal-foot">
-                        <button type="button" class="ec-mc-btn ec-mc-btn--primary" data-elri-audit-close>Fechar</button>
-                      </footer>
-                    </div>
-                  </div>
+                  <div id="engageLeadRecoveryContent" class="elri-embed-root" aria-live="polite"></div>
                 </section>
 
                 <section class="ec-tab-panel" data-ec-panel="campaign-builder" role="tabpanel" hidden>
@@ -1786,10 +1790,72 @@
                       <textarea id="operatorConfigSolarFollowUp" rows="3" placeholder="Vazio = texto padrão (dúvidas, interesse, especialista). O ramo solar não usa o promptBase."></textarea>
                       <small class="engage-solar-config-hint">Campo JSON: <code>simulationFollowUpText</code>. A resposta com números é determinística (sem LLM); este texto mantém a conversa após os resultados.</small>
                     </label>
+                    <div class="engage-solar-config-privacy">
+                      <p class="engage-solar-config-privacy-lead">
+                        Privacidade comercial na resposta ao cliente — oculta linhas na mensagem WhatsApp. Consumo, kWp e gravação no CRM (Clientes → Simulações) permanecem inalterados.
+                      </p>
+                      <label class="engage-solar-config-check">
+                        <input id="operatorConfigSolarHideEconomia" type="checkbox" />
+                        <span>Não enviar economia mensal estimada (📉) ao cliente</span>
+                      </label>
+                      <label class="engage-solar-config-check">
+                        <input id="operatorConfigSolarHideInvestimento" type="checkbox" />
+                        <span>Não enviar investimento estimado (💵) ao cliente</span>
+                      </label>
+                      <label class="engage-solar-config-check">
+                        <input id="operatorConfigSolarHidePayback" type="checkbox" />
+                        <span>Não enviar retorno / payback (⏳) ao cliente</span>
+                      </label>
+                    </div>
                     <p class="engage-solar-config-deploy-note">
                       Deploy: serviço Python isolado — <code>SOLAR_ENERGY_SERVICE_URL</code> no worker.
                       Kill-switch global: <code>SOLAR_ENERGY_WORKER_ENABLED=false</code>.
                     </p>
+                  </div>
+                </section>
+
+                <section class="operator-config-card operator-config-card-span-2 engage-inbox-pause-config" data-operator-tab-target="gerais" id="operatorInboxAutoReplyPauseRoot" hidden>
+                  <header class="operator-config-card-head">
+                    <div>
+                      <span>WhatsApp · IA</span>
+                      <strong>Pausa de IA por conversa (Inbox)</strong>
+                    </div>
+                  </header>
+                  <p class="engage-inbox-pause-config-lead">
+                    Liga a auto-pausa opcional da IA em conversas específicas. O toggle global de respostas automáticas continua à parte; a retomada é manual no Inbox.
+                  </p>
+                  <label class="engage-inbox-pause-config-toggle">
+                    <input id="operatorConfigInboxPauseEnabled" type="checkbox" />
+                    <span class="engage-inbox-pause-config-toggle-copy">
+                      <strong>Ativar auto-pausa de IA por conversa</strong>
+                      <small>Desligada, nenhuma auto-pausa ocorre mesmo com os gatilhos abaixo marcados.</small>
+                    </span>
+                  </label>
+                  <div class="engage-inbox-pause-triggers" id="operatorConfigInboxPauseTriggers">
+                    <p class="engage-inbox-pause-triggers-lead">Gatilhos (se ativo)</p>
+                    <label class="engage-inbox-pause-check">
+                      <input id="operatorConfigInboxPauseCampaignReply" type="checkbox" />
+                      <span>Pausar ao receber resposta de campanha</span>
+                    </label>
+                    <label class="engage-inbox-pause-check">
+                      <input id="operatorConfigInboxPauseManualMessage" type="checkbox" />
+                      <span>Pausar quando operador enviar mensagem manual</span>
+                    </label>
+                    <label class="engage-inbox-pause-check">
+                      <input id="operatorConfigInboxPauseAssignedAgent" type="checkbox" />
+                      <span>Pausar quando vendedor/consultor for atribuído</span>
+                    </label>
+                    <label class="engage-inbox-pause-field">
+                      <span>Pausar nestas disposições</span>
+                      <input id="operatorConfigInboxPauseDispositions" type="text" placeholder="CONTACT_MADE, NO_INTEREST, OPT_OUT" autocomplete="off" />
+                      <small class="engage-inbox-pause-hint">Códigos separados por vírgula (ex.: CONTACT_MADE, NO_INTEREST, OPT_OUT).</small>
+                    </label>
+                  </div>
+                  <p class="engage-inbox-pause-footnote">
+                    A retomada é manual: o operador reativa a IA na conversa (badge «IA pausada» no Inbox).
+                  </p>
+                  <div class="engage-inbox-pause-actions">
+                    <button type="button" class="btn-primary" id="operatorConfigInboxPauseSave">Guardar</button>
                   </div>
                 </section>
 
@@ -2455,6 +2521,8 @@
       window.RESERVAAI_EXTERNAL_API_BASE_URL = '/api/operator';
     </script>
     <script src="js/operator-special-dates.js"></script>
+    <script src="js/engage-inbox-auto-reply-pause-api.js"></script>
+    <script src="js/engage-inbox-auto-reply-pause-admin.js"></script>
     <script src="js/tenant-company-admin.js"></script>
     <script src="js/config-admin.js"></script>
     <script src="js/pos-payments-config.js"></script>
@@ -2468,9 +2536,15 @@
     <script src="js/audit-admin.js"></script>
     <script src="js/service-packages-admin.js"></script>
     <script src="js/clients-admin.js"></script>
-    <script src="js/engage-campaigns-admin.js"></script>
+    <script src="js/engage-campaigns-admin.js?v=20260602-hoje"></script>
+    <script src="js/engage-executive-dashboard-api.js?v=20260617-exec-dash"></script>
+    <script src="js/engage-executive-dashboard-admin.js?v=20260617-exec-dash"></script>
+    <script src="js/engage-pipeline-api.js?v=20260617-lead-intel"></script>
     <script src="js/engage-replies-center-api.js"></script>
-    <script src="js/engage-replies-center-admin.js"></script>
+    <script src="js/engage-replies-center-admin.js?v=20260602-hoje"></script>
+    <script src="js/engage-pipeline-admin.js?v=20260617-lead-intel"></script>
+    <script src="js/engage-audiences-dashboard-api.js"></script>
+    <script src="js/engage-audiences-dashboard-admin.js"></script>
     <script src="js/engage-meta-api.js"></script>
     <script src="js/engage-sender-profiles-api.js"></script>
     <script src="js/engage-sender-profiles-admin.js"></script>
@@ -2487,16 +2561,18 @@
     <script src="js/engage-lead-recovery-admin.js"></script>
     <script src="js/engage-meta-connections.js"></script>
     <script src="js/engage-disposition-api.js"></script>
-    <script src="js/engage-templates-api.js"></script>
-    <script src="js/engage-templates-utils.js"></script>
-    <script src="js/engage-templates-admin.js"></script>
+    <script src="js/engage-templates-api.js?v=20260616-header-media"></script>
+    <script src="js/engage-templates-utils.js?v=20260616-header-media"></script>
+    <script src="js/engage-media-library-api.js"></script>
+    <script src="js/engage-templates-admin.js?v=20260616-sample-wizard"></script>
+    <script src="js/engage-media-library-admin.js"></script>
     <script src="js/engage-config.js"></script>
     <script src="js/settings-modules.js"></script>
     <script>
       /* WhatsApp inbox: messaging-service (não usar /api/operator) */
       window.RESERVAAI_EXTERNAL_API_BASE_URL = window.RESERVAAI_MESSAGING_API_BASE_URL || '/api/messaging';
     </script>
-    <script src="js/bot-whatsapp.js"></script>
+    <script src="js/bot-whatsapp.js?v=20260617-ai-pause"></script>
     <script src="js/app.js"></script>
   </body>
 </html>
