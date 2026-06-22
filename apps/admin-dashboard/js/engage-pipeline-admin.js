@@ -495,7 +495,6 @@
         <div class="epl-toolbar-copy">
           <p class="epl-eyebrow">Comercial · Energia Solar</p>
           <h1 class="epl-title">Pipeline Comercial</h1>
-          <p class="epl-subtitle">Decida rapidamente quem qualificar, quem visitar e quem está pronto para proposta — sem abrir a conversa.</p>
         </div>
         <div class="epl-toolbar-actions">
           <label class="epl-search-wrap">

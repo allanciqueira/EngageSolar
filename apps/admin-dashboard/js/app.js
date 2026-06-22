@@ -291,7 +291,7 @@
     } else if (panelId === 'central-respostas') {
       const title = PANEL_TITLES[panelId] || panelId;
       if (heroTitle) heroTitle.textContent = title;
-      if (heroSub) heroSub.textContent = 'Acompanhe todas as respostas das suas campanhas em um só lugar.';
+      if (heroSub) heroSub.textContent = '';
       window.ReservaAiEngageRepliesCenterAdmin?.activate?.(state.session);
     } else if (panelId === 'pipeline') {
       const title = PANEL_TITLES[panelId] || panelId;

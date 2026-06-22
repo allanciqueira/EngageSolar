@@ -506,7 +506,6 @@
         <div class="erc-toolbar-copy">
           <p class="erc-eyebrow">Engage Solar</p>
           <h2 class="erc-title">Central de Respostas</h2>
-          <p class="erc-lead">Acompanhe todas as respostas das suas campanhas em um só lugar.</p>
         </div>
         <div class="erc-toolbar-actions">
           <label class="erc-period-pill">
