@@ -226,7 +226,7 @@
     const heroSub = qs('#esHeroSubtitle');
     const pageHeading = qs('#esPageHeading');
     if (pageHeading) {
-      pageHeading.hidden = panelId === 'conversas' || panelId === 'central-respostas' || panelId === 'pipeline' || panelId === 'audiencias' || panelId === 'engage-intelligence' || panelId === 'engage-config' || panelId === 'clientes' || panelId === 'campanhas' || isSettingsPanel(panelId);
+      pageHeading.hidden = panelId === 'conversas' || panelId === 'central-respostas' || panelId === 'pipeline' || panelId === 'leads' || panelId === 'audiencias' || panelId === 'engage-intelligence' || panelId === 'engage-config' || panelId === 'clientes' || panelId === 'campanhas' || isSettingsPanel(panelId);
     }
 
     if (!isSettingsPanel(panelId)) {
@@ -246,6 +246,9 @@
     }
     if (panelId !== 'pipeline') {
       window.ReservaAiEngagePipelineAdmin?.deactivate?.();
+    }
+    if (panelId !== 'leads') {
+      window.ReservaAiEngageLeadsListAdmin?.deactivate?.();
     }
     if (panelId !== 'dashboard') {
       window.ReservaAiEngageExecutiveDashboard?.deactivate?.();
@@ -292,9 +295,13 @@
       window.ReservaAiEngageRepliesCenterAdmin?.activate?.(state.session);
     } else if (panelId === 'pipeline') {
       const title = PANEL_TITLES[panelId] || panelId;
-      if (heroTitle) heroTitle.textContent = title;
-      if (heroSub) heroSub.textContent = 'Kanban comercial sobre as conversas — campanha, resposta, lead e atendimento no Inbox.';
+      if (heroTitle) heroTitle.textContent = 'Pipeline Comercial';
+      if (heroSub) heroSub.textContent = 'Kanban solar — qualificação, visita técnica e proposta sem abrir a conversa.';
       window.ReservaAiEngagePipelineAdmin?.activate?.(state.session);
+    } else if (panelId === 'leads') {
+      if (heroTitle) heroTitle.textContent = 'Leads';
+      if (heroSub) heroSub.textContent = 'Lista completa de oportunidades comerciais.';
+      window.ReservaAiEngageLeadsListAdmin?.activate?.(state.session);
     } else if (panelId === 'audiencias') {
       const title = PANEL_TITLES[panelId] || panelId;
       if (heroTitle) heroTitle.textContent = title;

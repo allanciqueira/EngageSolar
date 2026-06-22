@@ -35,16 +35,19 @@
     drag: null,
     refreshTimerId: null,
     searchDebounceId: null,
-    intelligence: {
+    dom: {},
+    newLeadModal: {
       open: false,
       loading: false,
+      saving: false,
+      query: '',
+      conversations: [],
+      selectedId: '',
       error: '',
-      leadId: null,
-      card: null,
-      payload: null,
     },
-    dom: {},
   };
+
+  const leadDrawer = () => window.EngagePipelineLeadDrawer;
 
   function escapeHtml(value) {
     return String(value == null ? '' : value)
@@ -59,6 +62,165 @@
       .replace(/&/g, '&amp;')
       .replace(/"/g, '&quot;')
       .replace(/</g, '&lt;');
+  }
+
+  function collectKanbanConversationIds() {
+    const ids = new Set();
+    (state.kanban?.columns || []).forEach((col) => {
+      (col.cards || []).forEach((card) => {
+        const id = String(card?.conversationId || '').trim();
+        if (id) ids.add(id);
+      });
+    });
+    return ids;
+  }
+
+  function renderNewLeadModal() {
+    const modal = state.newLeadModal;
+    document.getElementById('eplNewLeadModalBackdrop')?.remove();
+    document.getElementById('eplNewLeadModal')?.remove();
+    if (!modal.open) return;
+
+    const existingLeadIds = collectKanbanConversationIds();
+    const rows = api()?.filterConversationsForLeadPicker?.(modal.conversations, modal.query, 30) || [];
+
+    const listHtml = modal.loading
+      ? '<p class="epl-new-lead-loading">Carregando conversas…</p>'
+      : (!rows.length
+        ? `<p class="epl-new-lead-empty">${escapeHtml(
+          modal.conversations.length && modal.query.trim()
+            ? 'Nenhuma conversa encontrada.'
+            : (modal.conversations.length ? 'Nenhuma conversa disponível.' : 'Digite nome ou telefone para buscar.'),
+        )}</p>`
+        : `<ul class="epl-new-lead-list" role="listbox" aria-label="Conversas">${rows.map((row) => {
+          const selected = row.id === modal.selectedId;
+          const hasLead = existingLeadIds.has(row.id);
+          return `
+            <li>
+              <button type="button" class="epl-new-lead-item${selected ? ' is-selected' : ''}" data-conversation-id="${escapeAttr(row.id)}" role="option" aria-selected="${selected ? 'true' : 'false'}">
+                <span class="epl-new-lead-item-avatar">${escapeHtml(api().initials(row.title))}</span>
+                <span class="epl-new-lead-item-copy">
+                  <strong>${escapeHtml(row.title)}</strong>
+                  <span>${escapeHtml(row.phoneDisplay)}</span>
+                  <small>${escapeHtml(row.lastMessagePreview)}</small>
+                </span>
+                ${hasLead ? '<span class="epl-new-lead-item-tag">Lead ativo</span>' : ''}
+              </button>
+            </li>`;
+        }).join('')}</ul>`);
+
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="epl-new-lead-backdrop" id="eplNewLeadModalBackdrop"></div>
+      <div class="epl-new-lead-modal" id="eplNewLeadModal" role="dialog" aria-labelledby="eplNewLeadModalTitle" aria-modal="true">
+        <header class="epl-new-lead-head">
+          <div>
+            <p class="epl-new-lead-eyebrow">Pipeline Comercial</p>
+            <h2 id="eplNewLeadModalTitle">Novo Lead</h2>
+            <p class="epl-new-lead-sub">Busque a conversa do WhatsApp por nome, telefone ou trecho da última mensagem.</p>
+          </div>
+          <button type="button" class="epl-new-lead-close" id="eplNewLeadModalClose" aria-label="Fechar">×</button>
+        </header>
+        <div class="epl-new-lead-search">
+          ${ICONS.search}
+          <input type="search" id="eplNewLeadSearch" placeholder="Nome, telefone ou mensagem…" value="${escapeAttr(modal.query)}" autocomplete="off" />
+        </div>
+        ${modal.error ? `<p class="epl-new-lead-error" role="alert">${escapeHtml(modal.error)}</p>` : ''}
+        <div class="epl-new-lead-body">${listHtml}</div>
+        <footer class="epl-new-lead-foot">
+          <button type="button" class="epl-btn epl-btn--ghost" id="eplNewLeadModalCancel">Cancelar</button>
+          <button type="button" class="epl-btn epl-btn--primary" id="eplNewLeadModalSubmit"${!modal.selectedId || modal.saving ? ' disabled' : ''}>
+            ${modal.saving ? 'Criando…' : 'Criar Lead'}
+          </button>
+        </footer>
+      </div>`);
+
+    document.getElementById('eplNewLeadModalBackdrop')?.addEventListener('click', closeNewLeadModal);
+    document.getElementById('eplNewLeadModalClose')?.addEventListener('click', closeNewLeadModal);
+    document.getElementById('eplNewLeadModalCancel')?.addEventListener('click', closeNewLeadModal);
+    document.getElementById('eplNewLeadModalSubmit')?.addEventListener('click', () => { void submitNewLead(); });
+
+    const searchInput = document.getElementById('eplNewLeadSearch');
+    searchInput?.addEventListener('input', () => {
+      state.newLeadModal.query = searchInput.value || '';
+      renderNewLeadModal();
+      searchInput.focus();
+      const len = searchInput.value.length;
+      searchInput.setSelectionRange(len, len);
+    });
+    searchInput?.focus();
+
+    document.querySelectorAll('.epl-new-lead-item').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.newLeadModal.selectedId = btn.getAttribute('data-conversation-id') || '';
+        state.newLeadModal.error = '';
+        renderNewLeadModal();
+      });
+    });
+  }
+
+  function closeNewLeadModal() {
+    state.newLeadModal.open = false;
+    state.newLeadModal.loading = false;
+    state.newLeadModal.saving = false;
+    state.newLeadModal.query = '';
+    state.newLeadModal.conversations = [];
+    state.newLeadModal.selectedId = '';
+    state.newLeadModal.error = '';
+    document.getElementById('eplNewLeadModalBackdrop')?.remove();
+    document.getElementById('eplNewLeadModal')?.remove();
+  }
+
+  async function loadNewLeadConversations() {
+    state.newLeadModal.loading = true;
+    state.newLeadModal.error = '';
+    renderNewLeadModal();
+    try {
+      state.newLeadModal.conversations = await api().fetchMessagingConversations(state.session);
+    } catch (err) {
+      const mapped = api()?.mapApiError?.(err) || {};
+      state.newLeadModal.error = mapped.message || err?.message || 'Erro ao carregar conversas.';
+      state.newLeadModal.conversations = [];
+    } finally {
+      state.newLeadModal.loading = false;
+      renderNewLeadModal();
+    }
+  }
+
+  async function openNewLeadModal() {
+    if (!state.session) return;
+    state.newLeadModal.open = true;
+    state.newLeadModal.query = '';
+    state.newLeadModal.selectedId = '';
+    state.newLeadModal.error = '';
+    state.newLeadModal.conversations = [];
+    renderNewLeadModal();
+    await loadNewLeadConversations();
+  }
+
+  async function submitNewLead() {
+    const conversationId = String(state.newLeadModal.selectedId || '').trim();
+    if (!conversationId || state.newLeadModal.saving) return;
+    state.newLeadModal.saving = true;
+    state.newLeadModal.error = '';
+    renderNewLeadModal();
+    try {
+      const result = await api().createLead(state.session, { conversationId });
+      closeNewLeadModal();
+      if (!result.created) {
+        window.alert('Já existia um lead ativo para esta conversa. O card foi destacado no Kanban.');
+      }
+      await loadData();
+      if (result.lead?.kanbanColumn) state.mobileColumn = result.lead.kanbanColumn;
+    } catch (err) {
+      const mapped = api().mapApiError(err);
+      state.newLeadModal.saving = false;
+      state.newLeadModal.error = mapped.message;
+      renderNewLeadModal();
+    }
+  }
+
+  async function promptNewLead() {
+    await openNewLeadModal();
   }
 
   function formatNumber(value) {
@@ -97,15 +259,30 @@
     return api()?.LEAD_STATUS_COLUMNS?.[key] || { emoji: '', label: key, status: key };
   }
 
-  function temperatureDisplay(card) {
+  function temperatureChip(card) {
     const temp = String(card?.leadTemperature || '').toUpperCase();
     const meta = api()?.LEAD_TEMPERATURE?.[temp];
     if (!meta) return '';
-    const manual = String(card?.temperatureSource || '').toUpperCase() === 'MANUAL';
-    const manualTag = manual
-      ? '<span class="epl-temp-manual" title="Temperatura definida manualmente">manual</span>'
-      : '';
-    return `<span class="epl-temp-icon" data-tone="${escapeAttr(meta.tone)}" title="${escapeAttr(meta.label)}${manual ? ' (definido manualmente)' : ''}">${meta.icon}${manualTag}</span>`;
+    return `<span class="epl-temp-chip" data-tone="${escapeAttr(meta.tone)}" title="${escapeAttr(meta.label)}">${meta.cardIcon || meta.icon}</span>`;
+  }
+
+  function qualificationBar(card) {
+    const pct = api()?.normalizeQualificationPct?.(card?.qualificationPct);
+    if (pct == null) return '';
+    return `
+      <div class="epl-card-qual">
+        <div class="epl-card-qual-head">
+          <span>📈 Qualificação</span>
+          <strong>${pct}%</strong>
+        </div>
+        <div class="epl-card-qual-track"><span style="width:${pct}%"></span></div>
+      </div>`;
+  }
+
+  function cardMetaLine(icon, value) {
+    const text = String(value || '').trim();
+    if (!text || text === '—') return '';
+    return `<div class="epl-card-meta-item"><span aria-hidden="true">${icon}</span><span>${escapeHtml(text)}</span></div>`;
   }
 
   function priorityBadge(priority) {
@@ -122,12 +299,30 @@
     return `<span class="epl-grade-badge" data-tone="${escapeAttr(tone)}" title="Grade comercial">${escapeHtml(raw)}</span>`;
   }
 
+  function formatPhoneCard(phone) {
+    const raw = String(phone || '').replace(/\D/g, '');
+    if (raw.length >= 12 && raw.startsWith('55')) {
+      const ddd = raw.slice(2, 4);
+      const rest = raw.slice(4);
+      if (rest.length >= 9) {
+        return `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5, 9)}`;
+      }
+    }
+    if (raw.length >= 10) {
+      const ddd = raw.slice(0, 2);
+      const rest = raw.slice(2);
+      return `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5, 9)}`;
+    }
+    return api()?.formatPhoneDisplay?.(phone) || String(phone || '').trim() || '—';
+  }
+
   function intelligenceRow(card) {
     const priority = priorityBadge(card.commercialPriority);
     const grade = gradeBadge(card.leadGrade);
-    const temp = temperatureDisplay(card);
-    if (!priority && !grade && !temp) return '';
-    return `<div class="epl-card-intelligence">${priority}${grade}${temp}</div>`;
+    const temp = temperatureChip(card);
+    const source = sourceIcon(card.source);
+    if (!priority && !grade && !temp && !source) return '';
+    return `<div class="epl-card-intelligence">${source}${priority}${grade}${temp}</div>`;
   }
 
   function sourceIcon(source) {
@@ -155,24 +350,21 @@
     if (!card?.id) return '';
     const scoreTone = api()?.scoreTone?.(card.leadScore) || 'neutral';
     const scoreHtml = card.leadScore != null
-      ? `<span class="epl-score-badge" data-tone="${scoreTone}" title="Lead Score comercial">${Math.round(card.leadScore)}</span>`
-      : '';
-    const snippet = card.lastMessage || card.title || '—';
-    const campaign = card.sourceCampaignName
-      ? `<div class="epl-card-campaign">Campanha: ${escapeHtml(card.sourceCampaignName)}</div>`
+      ? `<span class="epl-score-pill" data-tone="${scoreTone}" title="Lead Score">📊 ${Math.round(card.leadScore)}</span>`
       : '';
     const assignee = card.assignedAgentName
-      ? `<div class="epl-card-assignee"><span class="epl-card-assignee-avatar">${escapeHtml(api().initials(card.assignedAgentName))}</span> Responsável: ${escapeHtml(card.assignedAgentName)}</div>`
+      ? `<div class="epl-card-assignee"><span class="epl-card-assignee-avatar">${escapeHtml(api().initials(card.assignedAgentName))}</span><span class="epl-card-assignee-name">${escapeHtml(card.assignedAgentName)}</span></div>`
       : '<div class="epl-card-assignee epl-card-assignee--empty">Sem responsável</div>';
     const followUp = columnKey === 'FOLLOW_UP' && card.nextContactAt
-      ? `<div class="epl-card-followup">Retorno previsto: ${escapeHtml(formatDateShort(card.nextContactAt))}</div>`
+      ? `<div class="epl-card-followup">Retorno: ${escapeHtml(formatDateShort(card.nextContactAt))}</div>`
       : '';
-    const closed = columnKey === 'CLOSED'
-      ? `<span class="epl-closed-badge">Fechado</span>`
-      : '';
+    const closed = columnKey === 'CLOSED' ? `<span class="epl-closed-badge">Fechado</span>` : '';
+    const consumption = api()?.formatConsumptionKwh?.(card.avgConsumptionKwh);
+    const payment = card.paymentMethodLabel || card.paymentMethod || null;
+    const prazo = card.installationDeadlineLabel || card.installationDeadline || null;
 
     return `
-      <article class="epl-card"
+      <article class="epl-card epl-card--solar"
         draggable="true"
         data-lead-id="${escapeAttr(card.id)}"
         data-conversation-id="${escapeAttr(card.conversationId)}"
@@ -183,29 +375,29 @@
         <header class="epl-card-head">
           <div class="epl-card-contact">
             <span class="epl-card-avatar">${escapeHtml(api().initials(card.name))}</span>
-            <div>
-              <strong class="epl-card-name">${escapeHtml(card.name)}</strong>
-              <small class="epl-card-phone">${escapeHtml(api().formatPhoneDisplay(card.phone))}</small>
+            <div class="epl-card-identity">
+              <strong class="epl-card-name" title="${escapeAttr(card.name)}">${escapeHtml(card.name)}</strong>
+              <small class="epl-card-phone" title="${escapeAttr(api().formatPhoneDisplay(card.phone))}">${escapeHtml(formatPhoneCard(card.phone))}</small>
             </div>
           </div>
           <div class="epl-card-head-actions">
-            ${sourceIcon(card.source)}
-            <button type="button" class="epl-card-intel-btn" data-show-intelligence="${escapeAttr(card.id)}" title="Por que este score?">📊</button>
             <button type="button" class="epl-card-wa" data-open-conversation="${escapeAttr(card.conversationId)}" title="Abrir conversa">${ICONS.wa}</button>
             <button type="button" class="epl-card-move-menu" data-move-menu="${escapeAttr(card.id)}" title="Mover para…">${ICONS.move}</button>
           </div>
         </header>
         ${intelligenceRow(card)}
-        <p class="epl-card-snippet">${escapeHtml(snippet)}</p>
-        ${campaign}
+        <div class="epl-card-meta">
+          ${cardMetaLine('📍', card.city)}
+          ${cardMetaLine('⚡', consumption !== '—' ? consumption : null)}
+          ${cardMetaLine('💰', payment !== '—' ? payment : null)}
+          ${cardMetaLine('📅', prazo !== '—' ? prazo : null)}
+        </div>
+        ${qualificationBar(card)}
         ${assignee}
         ${followUp}
         <footer class="epl-card-foot">
           <span class="epl-card-time">${escapeHtml(formatRelativeTime(card.lastInteractionAt))}</span>
-          <div class="epl-card-badges">
-            ${closed}
-            ${scoreHtml}
-          </div>
+          <div class="epl-card-badges">${closed}${scoreHtml}</div>
         </footer>
       </article>`;
   }
@@ -301,9 +493,9 @@
     return `
       <header class="epl-toolbar">
         <div class="epl-toolbar-copy">
-          <p class="epl-eyebrow">Comercial · Kanban</p>
-          <h1 class="epl-title">Pipeline de Leads</h1>
-          <p class="epl-subtitle">Oportunidades comerciais ligadas às conversas — arraste cards entre colunas ou abra o Inbox para atender.</p>
+          <p class="epl-eyebrow">Comercial · Energia Solar</p>
+          <h1 class="epl-title">Pipeline Comercial</h1>
+          <p class="epl-subtitle">Decida rapidamente quem qualificar, quem visitar e quem está pronto para proposta — sem abrir a conversa.</p>
         </div>
         <div class="epl-toolbar-actions">
           <label class="epl-search-wrap">
@@ -327,60 +519,6 @@
     return `${renderKpiCards()}${renderKanban()}`;
   }
 
-  function renderIntelligenceDrawer() {
-    const intel = state.intelligence;
-    if (!intel.open) return '';
-    const card = intel.card || {};
-    const payload = intel.payload?.intelligence || {};
-    const breakdown = Array.isArray(payload.breakdown) ? payload.breakdown : [];
-    const computedAt = payload.computedAt
-      ? new Date(payload.computedAt).toLocaleString('pt-BR')
-      : '—';
-
-    const body = intel.loading
-      ? '<div class="epl-intel-loading">Calculando inteligência…</div>'
-      : intel.error
-        ? `<div class="epl-intel-error" role="alert">${escapeHtml(intel.error)}</div>`
-        : `
-          <div class="epl-intel-summary">
-            ${priorityBadge(payload.priority || card.commercialPriority)}
-            ${gradeBadge(payload.grade || card.leadGrade)}
-            ${temperatureDisplay({
-              leadTemperature: payload.temperature || card.leadTemperature,
-              temperatureSource: payload.temperatureSource || card.temperatureSource,
-            })}
-            ${payload.score != null ? `<span class="epl-intel-score">Lead Score: <strong>${Math.round(payload.score)}</strong></span>` : ''}
-          </div>
-          <p class="epl-intel-meta">Atualizado: ${escapeHtml(computedAt)}${payload.temperatureSource === 'MANUAL' ? ' · Temperatura definida manualmente' : ''}</p>
-          <h3 class="epl-intel-breakdown-title">Por que este score?</h3>
-          ${breakdown.length
-            ? `<ul class="epl-intel-breakdown">${breakdown.map((row) => {
-              const w = Number(row.weight || 0);
-              const tone = w >= 0 ? 'positive' : 'negative';
-              const sign = w > 0 ? '+' : '';
-              return `<li data-tone="${tone}"><span>${escapeHtml(row.label || row.key || '')}</span><strong>${sign}${w}</strong></li>`;
-            }).join('')}</ul>`
-            : '<p class="epl-intel-empty">Sem detalhamento disponível.</p>'}`;
-
-    return `
-      <div class="epl-intel-backdrop" id="eplIntelBackdrop" aria-hidden="true"></div>
-      <aside class="epl-intel-drawer" id="eplIntelDrawer" role="dialog" aria-labelledby="eplIntelTitle">
-        <header class="epl-intel-head">
-          <div>
-            <p class="epl-intel-eyebrow">Lead Intelligence</p>
-            <h2 id="eplIntelTitle">${escapeHtml(card.name || 'Lead')}</h2>
-            <p class="epl-intel-sub">${escapeHtml(api()?.formatPhoneDisplay?.(card.phone) || '')}</p>
-          </div>
-          <button type="button" class="epl-intel-close" id="eplIntelClose" aria-label="Fechar">×</button>
-        </header>
-        <div class="epl-intel-body">${body}</div>
-        <footer class="epl-intel-foot">
-          <button type="button" class="epl-btn epl-btn--outline" id="eplIntelOpenInbox">Abrir conversa</button>
-          <button type="button" class="epl-btn epl-btn--ghost" id="eplIntelCloseFoot">Fechar</button>
-        </footer>
-      </aside>`;
-  }
-
   function findCardById(leadId) {
     const columns = state.kanban?.columns || [];
     for (const col of columns) {
@@ -390,58 +528,20 @@
     return null;
   }
 
-  function closeIntelligenceDrawer() {
-    state.intelligence.open = false;
-    state.intelligence.loading = false;
-    state.intelligence.error = '';
-    state.intelligence.leadId = null;
-    state.intelligence.card = null;
-    state.intelligence.payload = null;
-    document.getElementById('eplIntelDrawer')?.remove();
-    document.getElementById('eplIntelBackdrop')?.remove();
-  }
-
-  function refreshIntelligenceDrawerDOM() {
-    document.getElementById('eplIntelBackdrop')?.remove();
-    document.getElementById('eplIntelDrawer')?.remove();
-    if (!state.intelligence.open) return;
-    document.body.insertAdjacentHTML('beforeend', renderIntelligenceDrawer());
-    bindIntelligenceDrawer();
-  }
-
-  async function openIntelligenceDrawer(leadId) {
-    const card = findCardById(leadId);
-    if (!card) return;
-    state.intelligence = {
-      open: true,
-      loading: true,
-      error: '',
-      leadId,
-      card,
-      payload: null,
-    };
-    refreshIntelligenceDrawerDOM();
-
-    try {
-      state.intelligence.payload = await api().getLeadIntelligence(state.session, leadId);
-      state.intelligence.error = '';
-    } catch (err) {
-      state.intelligence.error = api().mapApiError(err).message;
-    } finally {
-      state.intelligence.loading = false;
-      refreshIntelligenceDrawerDOM();
+  function mergeCardInKanban(updated) {
+    if (!updated?.id || !state.kanban?.columns) return;
+    for (const col of state.kanban.columns) {
+      const idx = (col.cards || []).findIndex((c) => c.id === updated.id);
+      if (idx >= 0) {
+        col.cards[idx] = { ...col.cards[idx], ...updated };
+        render();
+        return;
+      }
     }
   }
 
-  function bindIntelligenceDrawer() {
-    document.getElementById('eplIntelBackdrop')?.addEventListener('click', closeIntelligenceDrawer);
-    document.getElementById('eplIntelClose')?.addEventListener('click', closeIntelligenceDrawer);
-    document.getElementById('eplIntelCloseFoot')?.addEventListener('click', closeIntelligenceDrawer);
-    document.getElementById('eplIntelOpenInbox')?.addEventListener('click', () => {
-      const convId = state.intelligence.card?.conversationId;
-      closeIntelligenceDrawer();
-      void openConversation(convId);
-    });
+  function openLeadDrawer(leadId) {
+    leadDrawer()?.open?.(leadId);
   }
 
   function render() {
@@ -494,13 +594,6 @@
       });
     });
 
-    state.dom.root.querySelectorAll('[data-show-intelligence]').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        void openIntelligenceDrawer(btn.dataset.showIntelligence);
-      });
-    });
-
     state.dom.root.querySelectorAll('[data-open-conversation]').forEach((btn) => {
       btn.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -510,13 +603,13 @@
 
     state.dom.root.querySelectorAll('.epl-card').forEach((cardEl) => {
       cardEl.addEventListener('click', (event) => {
-        if (event.target.closest('[data-open-conversation], [data-move-menu], [data-show-intelligence], button')) return;
-        void openConversation(cardEl.dataset.conversationId);
+        if (event.target.closest('[data-open-conversation], [data-move-menu], button')) return;
+        openLeadDrawer(cardEl.dataset.leadId);
       });
       cardEl.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          void openConversation(cardEl.dataset.conversationId);
+          openLeadDrawer(cardEl.dataset.leadId);
         }
       });
       cardEl.addEventListener('dragstart', onDragStart);
@@ -530,10 +623,10 @@
       });
     });
 
-    state.dom.root.querySelectorAll('[data-drop-column]').forEach((zone) => {
-      zone.addEventListener('dragover', onDragOver);
-      zone.addEventListener('dragleave', onDragLeave);
-      zone.addEventListener('drop', onDrop);
+    state.dom.root.querySelectorAll('.epl-column').forEach((colEl) => {
+      colEl.addEventListener('dragover', onDragOver, true);
+      colEl.addEventListener('dragleave', onDragLeave, true);
+      colEl.addEventListener('drop', onDrop, true);
     });
 
     state.dom.root.querySelectorAll('[data-new-lead]').forEach((btn) => {
@@ -553,42 +646,74 @@
 
   function onDragStart(event) {
     const card = event.currentTarget;
-    state.drag = {
+    const payload = {
       leadId: card.dataset.leadId,
       fromColumn: card.dataset.columnKey,
       element: card,
     };
+    state.drag = payload;
     card.classList.add('is-dragging');
+    state.dom.root?.classList.add('is-dragging-lead');
     event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', card.dataset.leadId || '');
+    event.dataTransfer.setData('text/plain', payload.leadId || '');
+    event.dataTransfer.setData('application/x-engage-lead', JSON.stringify({
+      leadId: payload.leadId,
+      fromColumn: payload.fromColumn,
+    }));
   }
 
   function onDragEnd(event) {
     event.currentTarget.classList.remove('is-dragging');
-    state.dom.root.querySelectorAll('.epl-column-drop.is-drag-over').forEach((el) => el.classList.remove('is-drag-over'));
+    state.dom.root?.classList.remove('is-dragging-lead');
+    state.dom.root?.querySelectorAll('.epl-column.is-drag-over').forEach((el) => el.classList.remove('is-drag-over'));
     state.drag = null;
+  }
+
+  function columnFromDropEvent(event) {
+    const col = event.currentTarget.closest?.('.epl-column') || event.currentTarget;
+    return col?.dataset?.columnKey || col?.dataset?.dropColumn || null;
+  }
+
+  function readDragPayload(event) {
+    if (state.drag?.leadId) return state.drag;
+    try {
+      const raw = event.dataTransfer?.getData?.('application/x-engage-lead');
+      if (raw) return JSON.parse(raw);
+    } catch (_) { /* ignore */ }
+    const leadId = event.dataTransfer?.getData?.('text/plain');
+    if (leadId) return { leadId, fromColumn: null };
+    return null;
   }
 
   function onDragOver(event) {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
-    event.currentTarget.classList.add('is-drag-over');
+    const col = event.currentTarget.closest?.('.epl-column') || event.currentTarget;
+    col?.classList.add('is-drag-over');
   }
 
   function onDragLeave(event) {
-    event.currentTarget.classList.remove('is-drag-over');
+    const col = event.currentTarget.closest?.('.epl-column') || event.currentTarget;
+    const related = event.relatedTarget;
+    if (related && col.contains(related)) return;
+    col?.classList.remove('is-drag-over');
   }
 
   function onDrop(event) {
     event.preventDefault();
-    event.currentTarget.classList.remove('is-drag-over');
-    const toColumn = event.currentTarget.dataset.dropColumn;
-    if (!state.drag?.leadId || !toColumn || toColumn === state.drag.fromColumn) return;
-    void moveLead(state.drag.leadId, state.drag.fromColumn, toColumn);
+    event.stopPropagation();
+    const col = event.currentTarget.closest?.('.epl-column') || event.currentTarget;
+    col?.classList.remove('is-drag-over');
+    const toColumn = columnFromDropEvent(event);
+    const payload = readDragPayload(event);
+    if (!payload?.leadId || !toColumn) return;
+    const fromColumn = payload.fromColumn || state.drag?.fromColumn;
+    if (fromColumn && toColumn === fromColumn) return;
+    void moveLead(payload.leadId, fromColumn, toColumn);
   }
 
   async function moveLead(leadId, fromColumn, toColumn) {
-    const status = columnMeta(toColumn).status || toColumn;
+    const status = api().columnKeyToApiStatus?.(toColumn) || columnMeta(toColumn).status || toColumn;
     let body = { status };
     if (toColumn === 'FOLLOW_UP') {
       const dateRaw = window.prompt('Data de retorno (AAAA-MM-DD):', new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
@@ -600,16 +725,30 @@
       if (reason) body.closedReason = reason.trim();
     }
 
-    optimisticMove(leadId, fromColumn, toColumn);
+    const resolvedFrom = fromColumn || findCardColumnKey(leadId);
+    if (resolvedFrom) optimisticMove(leadId, resolvedFrom, toColumn);
     try {
-      await api().patchLeadStatus(state.session, leadId, body);
-      await loadData({ silent: true });
+      const updated = await api().patchLeadStatus(state.session, leadId, body);
+      if (updated?.id && state.kanban) {
+        state.kanban = api().mergeStatusPatchIntoKanban(state.kanban, updated);
+      }
+      state.summary = await api().getSummary(state.session);
+      state.error = '';
+      render();
     } catch (err) {
-      optimisticMove(leadId, toColumn, fromColumn);
+      if (resolvedFrom) optimisticMove(leadId, toColumn, resolvedFrom);
       const mapped = api().mapApiError(err);
       state.error = mapped.message;
       render();
     }
+  }
+
+  function findCardColumnKey(leadId) {
+    if (!state.kanban?.columns) return null;
+    for (const col of state.kanban.columns) {
+      if ((col.cards || []).some((c) => c.id === leadId)) return col.key;
+    }
+    return null;
   }
 
   function optimisticMove(leadId, fromColumn, toColumn) {
@@ -620,7 +759,7 @@
     if (!fromCol || !toCol) return;
     fromCol.cards = fromCol.cards.filter((c) => {
       if (c.id === leadId) {
-        card = { ...c, kanbanColumn: toColumn, status: columnMeta(toColumn).status };
+        card = { ...c, kanbanColumn: toColumn, status: api().columnKeyToApiStatus?.(toColumn) || columnMeta(toColumn).status };
         return false;
       }
       return true;
@@ -647,23 +786,6 @@
       await inbox.selectConversation(id, state.session);
     } else {
       await inbox.activate(state.session);
-    }
-  }
-
-  async function promptNewLead() {
-    const conversationId = window.prompt('ID da conversa para criar Lead (conversationId):');
-    if (!conversationId?.trim()) return;
-    try {
-      const result = await api().createLead(state.session, { conversationId: conversationId.trim() });
-      if (!result.created) {
-        window.alert('Já existia um lead ativo para esta conversa. O card foi destacado no Kanban.');
-      }
-      await loadData();
-      if (result.lead?.kanbanColumn) state.mobileColumn = result.lead.kanbanColumn;
-    } catch (err) {
-      const mapped = api().mapApiError(err);
-      state.error = mapped.message;
-      render();
     }
   }
 
@@ -732,6 +854,14 @@
     mount();
     state.session = session || state.session;
     state.active = true;
+    leadDrawer()?.init?.({
+      getSession: () => state.session,
+      preferInline: false,
+      mountSelector: null,
+      findCard: findCardById,
+      onLeadUpdated: mergeCardInKanban,
+      openConversation: (id) => { void openConversation(id); },
+    });
     void loadData();
     startRefresh();
   }
@@ -739,7 +869,8 @@
   function deactivate() {
     state.active = false;
     stopRefresh();
-    closeIntelligenceDrawer();
+    closeNewLeadModal();
+    leadDrawer()?.close?.();
   }
 
   window.ReservaAiEngagePipelineAdmin = {

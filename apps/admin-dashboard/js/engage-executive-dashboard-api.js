@@ -28,6 +28,77 @@
     CLOSED: '#64748b',
   };
 
+  const LEADS_SOURCE_LABELS = {
+    CAMPAIGN: 'Campanha',
+    INBOUND: 'Orgânico (inbound)',
+    SIMULATION: 'Simulação',
+    MANUAL: 'Manual',
+    RECOVERY: 'Recuperação',
+  };
+
+  const LEADS_SOURCE_SHORT = {
+    CAMPAIGN: 'campanha',
+    INBOUND: 'orgânico',
+    SIMULATION: 'simulação',
+    MANUAL: 'manual',
+    RECOVERY: 'recuperação',
+  };
+
+  const LEADS_SOURCE_COLORS = {
+    CAMPAIGN: '#2563eb',
+    INBOUND: '#16a34a',
+    SIMULATION: '#8b5cf6',
+    MANUAL: '#f59e0b',
+    RECOVERY: '#ef4444',
+  };
+
+  const LEADS_SOURCE_ORDER = ['CAMPAIGN', 'INBOUND', 'SIMULATION', 'MANUAL', 'RECOVERY'];
+
+  function normalizeLeadsBySource(raw) {
+    const src = (raw && typeof raw === 'object' && raw.leadsBySource)
+      ? raw.leadsBySource
+      : (raw || {});
+    return {
+      CAMPAIGN: Number(src.CAMPAIGN || 0) + Number(src.AI || 0),
+      INBOUND: Number(src.INBOUND || 0),
+      SIMULATION: Number(src.SIMULATION || 0),
+      MANUAL: Number(src.MANUAL || 0),
+      RECOVERY: Number(src.RECOVERY || 0),
+    };
+  }
+
+  function leadsBySourceSlices(summaryOrSource) {
+    const normalized = normalizeLeadsBySource(summaryOrSource);
+    const total = LEADS_SOURCE_ORDER.reduce((sum, key) => sum + normalized[key], 0);
+    if (!total) {
+      return { total: 0, slices: [] };
+    }
+    return {
+      total,
+      slices: LEADS_SOURCE_ORDER
+        .map((key) => ({
+          key,
+          label: LEADS_SOURCE_LABELS[key],
+          count: normalized[key],
+          pct: normalized[key] / total,
+          color: LEADS_SOURCE_COLORS[key],
+        }))
+        .filter((slice) => slice.count > 0),
+    };
+  }
+
+  function formatLeadsBySourceSubtitle(summaryOrSource, options = {}) {
+    const maxParts = Number(options.maxParts || 5);
+    const normalized = normalizeLeadsBySource(summaryOrSource);
+    const parts = LEADS_SOURCE_ORDER
+      .map((key) => ({ key, count: normalized[key] }))
+      .filter((item) => item.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, maxParts)
+      .map((item) => `${formatNumber(item.count)} ${LEADS_SOURCE_SHORT[item.key]}`);
+    return parts.join(' · ');
+  }
+
   function readExternalTokenClaims(token) {
     const raw = String(token || '').trim();
     if (!raw) return null;
@@ -163,8 +234,14 @@
     WINDOW_OPTIONS,
     FUNNEL_COLORS,
     PIPELINE_COLORS,
+    LEADS_SOURCE_LABELS,
+    LEADS_SOURCE_COLORS,
+    LEADS_SOURCE_ORDER,
     getDefaultTenantId,
     loadAll,
+    normalizeLeadsBySource,
+    leadsBySourceSlices,
+    formatLeadsBySourceSubtitle,
     formatNumber,
     formatPctFraction,
     formatDeltaPct,

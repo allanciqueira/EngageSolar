@@ -650,7 +650,10 @@
         try {
           const result = await window.EngagePipelineApi.createLead(state.session, { conversationId });
           if (result.created === false) {
-            window.alert('Já existia um lead ativo para esta conversa. Abrindo o Pipeline.');
+            const statusLabel = window.EngagePipelineApi.leadColumnLabel?.(result.lead)
+              || result.lead?.status
+              || 'ativo';
+            window.alert(`Lead já existente — ${statusLabel}`);
           }
           document.querySelector('[data-es-nav="pipeline"]')?.click();
         } catch (err) {

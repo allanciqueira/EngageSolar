@@ -1,0 +1,100 @@
+{
+  "mock": true,
+  "tenantId": "b579a106-7e65-45f6-8fa5-326d436c08a2",
+  "summary": {
+    "totalLeads": 87,
+    "new": 24,
+    "qualification": 18,
+    "inProgress": 23,
+    "waiting": 12,
+    "followUp": 7,
+    "recovered": 3,
+    "unassigned": 14,
+    "hot": 31,
+    "averageQualificationCompletion": 42
+  },
+  "facets": {
+    "status": { "NEW": 24, "IN_PROGRESS": 18, "ASSIGNED": 5, "WAITING_CUSTOMER": 12, "FOLLOW_UP": 7, "CLOSED": 21 },
+    "temperature": { "HOT": 31, "WARM": 38, "COLD": 18 },
+    "sources": { "INBOUND": 32, "AI": 22, "CAMPAIGN": 14, "MANUAL": 9, "RECOVERY": 6, "SIMULATION": 4 }
+  },
+  "pagination": { "page": 1, "limit": 20, "total": 87, "totalPages": 5 },
+  "leads": [
+    {
+      "id": "78404607-a88b-4e1f-91f0-30e82f69556a",
+      "conversationId": "4551e598-c5ee-4a24-b65c-af756ef0b72a",
+      "contactId": "245ee450-11ae-4566-8692-8e16e15029fb",
+      "name": "Glauco Modanezi",
+      "phone": "5511987878585",
+      "city": "Jundiaí/SP",
+      "source": "INBOUND",
+      "origin": { "label": "WhatsApp Orgânico", "campaignName": null, "audienceName": null },
+      "score": 74,
+      "grade": "B",
+      "temperature": "HOT",
+      "status": "ASSIGNED",
+      "commercialPriority": "ALTA",
+      "qualification": {
+        "completion": 60,
+        "highlights": {
+          "averageConsumptionKwh": 429.94,
+          "paymentMethod": "À vista",
+          "installationTimeframe": "30 dias"
+        }
+      },
+      "assignedSalesConsultant": { "id": "c1", "name": "Fabio Lumertz", "avatarUrl": null, "color": "#2563eb" },
+      "lastInteractionAt": "2026-06-02T13:42:00.000Z",
+      "lastInteractionBy": "Você",
+      "lastMessage": { "preview": "Gostaria de saber mais sobre financiamento", "direction": "outbound" },
+      "nextContactAt": null,
+      "createdAt": "2026-05-15T13:32:00.000Z",
+      "updatedAt": "2026-06-02T13:42:00.000Z"
+    },
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "conversationId": "conv-2",
+      "contactId": "contact-2",
+      "name": "Rosilene Silva",
+      "phone": "5511986565026",
+      "city": "Jundiaí/SP",
+      "source": "CAMPAIGN",
+      "origin": { "label": "Campanha", "campaignName": "Promoção Junho", "audienceName": "Anúncio Facebook" },
+      "score": 68,
+      "grade": "B",
+      "temperature": "HOT",
+      "status": "IN_PROGRESS",
+      "commercialPriority": "ALTA",
+      "qualification": { "completion": 25, "highlights": {} },
+      "assignedSalesConsultant": null,
+      "lastInteractionAt": "2026-06-02T12:00:00.000Z",
+      "lastInteractionBy": "Sistema",
+      "lastMessage": { "preview": "Quero uma simulação", "direction": "inbound" },
+      "nextContactAt": null,
+      "createdAt": "2026-06-12T08:00:00.000Z",
+      "updatedAt": "2026-06-02T12:00:00.000Z"
+    },
+    {
+      "id": "lead-edna-001",
+      "conversationId": "conv-3",
+      "contactId": "contact-3",
+      "name": "Edna Ferreira",
+      "phone": "5514991236474",
+      "city": "Sorocaba/SP",
+      "source": "INBOUND",
+      "origin": { "label": "WhatsApp Orgânico" },
+      "score": 45,
+      "grade": "C",
+      "temperature": "WARM",
+      "status": "NEW",
+      "commercialPriority": "MEDIA",
+      "qualification": { "completion": 8, "highlights": { "roofType": "Cerâmico" } },
+      "assignedSalesConsultant": null,
+      "lastInteractionAt": "2026-06-02T11:00:00.000Z",
+      "lastMessage": { "preview": "Bom dia", "direction": "inbound" },
+      "nextContactAt": null,
+      "createdAt": "2026-06-18T12:00:00.000Z",
+      "updatedAt": "2026-06-02T11:00:00.000Z"
+    }
+  ],
+  "fetchedAt": "2026-06-02T17:00:00.000Z"
+}

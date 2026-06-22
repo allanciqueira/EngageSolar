@@ -227,6 +227,55 @@
   flex: 0 0 auto;
 }
 
+.whats-pro-inbox-view {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem 0.35rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e9edef;
+}
+
+.whats-pro-inbox-view-btn {
+  flex: 1 1 0;
+  min-height: 32px;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #e0e3e7;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #54656f;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.whats-pro-inbox-view-btn:hover:not(:disabled) {
+  background: #f7f9fb;
+}
+
+.whats-pro-inbox-view-btn.is-active {
+  background: rgba(37, 211, 102, 0.15);
+  border-color: rgba(18, 140, 126, 0.35);
+  color: var(--whats-green-deep);
+}
+
+.whats-pro-inbox-view-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.whats-pro-search-hint {
+  margin: 0;
+  padding: 0.25rem 0.75rem 0.45rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: #667781;
+  background: #ffffff;
+  border-bottom: 1px solid #e9edef;
+}
+
 .whats-pro-filters {
   display: flex;
   flex-wrap: wrap;
@@ -692,6 +741,82 @@
   border-bottom-color: rgba(251, 191, 36, 0.35);
 }
 
+.whats-pro-engage-assign-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.whats-pro-engage-assign-actions .whats-pro-engage-lead-btn {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.whats-pro-engage-assign-actions--lead-only {
+  justify-content: flex-end;
+}
+
+.whats-pro-engage-lead-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(18, 140, 126, 0.35);
+  background: #ffffff;
+  color: var(--whats-green-deep);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.whats-pro-engage-lead-btn.is-create:hover:not(:disabled) {
+  background: rgba(18, 140, 126, 0.08);
+  border-color: rgba(18, 140, 126, 0.55);
+}
+
+.whats-pro-engage-lead-btn.is-done {
+  background: rgba(18, 140, 126, 0.12);
+  border-color: rgba(18, 140, 126, 0.28);
+  color: rgba(7, 94, 84, 0.92);
+  cursor: default;
+}
+
+.whats-pro-engage-lead-btn:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.whats-pro-engage-lead-feedback {
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+.whats-pro-engage-lead-meta,
+.whats-pro-engage-lead-info,
+.whats-pro-engage-lead-error {
+  margin: 0.25rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.whats-pro-engage-lead-meta {
+  color: rgba(7, 94, 84, 0.88);
+  font-weight: 600;
+}
+
+.whats-pro-engage-lead-info {
+  color: rgba(7, 94, 84, 0.82);
+}
+
+.whats-pro-engage-lead-error {
+  color: #b42318;
+}
+
 .whats-pro-engage-assign {
   padding: 0.6rem 0.85rem 0.55rem;
 }
@@ -722,13 +847,6 @@
   background: #ffffff;
   border: 1px solid rgba(18, 140, 126, 0.22);
   color: var(--whats-green-deep);
-}
-
-.whats-pro-engage-assign-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
 }
 
 .whats-pro-engage-assign-select {

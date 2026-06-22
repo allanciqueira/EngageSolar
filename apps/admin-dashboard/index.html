@@ -14,8 +14,8 @@
     <link rel="stylesheet" href="css/theme.css" />
     <link rel="stylesheet" href="css/layout.css" />
     <link rel="stylesheet" href="css/dashboard.css" />
-    <link rel="stylesheet" href="css/engage-executive-dashboard.css?v=20260617-exec-dash" />
-    <link rel="stylesheet" href="css/whatsapp.css?v=20260617-ai-pause" />
+    <link rel="stylesheet" href="css/engage-executive-dashboard.css?v=20260602-exec-text" />
+    <link rel="stylesheet" href="css/whatsapp.css?v=20260602-inbox-archive" />
     <link rel="stylesheet" href="css/engage-config.css" />
     <link rel="stylesheet" href="css/engage-crm-sync-health.css" />
     <link rel="stylesheet" href="css/engage-tenant-settings.css" />
@@ -33,7 +33,8 @@
     <link rel="stylesheet" href="css/engage-inbox-auto-reply-pause.css" />
     <link rel="stylesheet" href="css/engage-campaigns-reserva.css" />
     <link rel="stylesheet" href="css/engage-replies-center.css" />
-    <link rel="stylesheet" href="css/engage-pipeline.css?v=20260617-lead-intel" />
+    <link rel="stylesheet" href="css/engage-pipeline.css?v=20260602-drawer-actions" />
+    <link rel="stylesheet" href="css/engage-leads-list.css?v=20260602-leads-sort" />
     <link rel="stylesheet" href="css/engage-audiences-dashboard.css" />
     <link rel="stylesheet" href="css/engage-contact-hub.css" />
     <link rel="stylesheet" href="css/mobile.css" />
@@ -194,7 +195,7 @@
           </section>
 
           <section class="es-panel" data-es-panel="leads" hidden>
-            <div class="es-placeholder"><strong>Leads</strong><br />Módulo previsto para Fase 2.</div>
+            <div id="adminEngageLeadsListRoot"></div>
           </section>
           <section class="es-panel es-panel--conversas" data-es-panel="conversas" hidden>
             <div class="whats-pro-card">
@@ -232,6 +233,12 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
                   </button>
                 </div>
+
+                <div class="whats-pro-inbox-view" id="botInboxViewToggle" role="group" aria-label="Exibição da lista">
+                  <button type="button" class="whats-pro-inbox-view-btn is-active" data-inbox-view="active" aria-pressed="true">Ativas</button>
+                  <button type="button" class="whats-pro-inbox-view-btn" data-inbox-view="all" aria-pressed="false">Exibir todas</button>
+                </div>
+                <p class="whats-pro-search-hint" id="botInboxSearchHint" hidden>Busca em todas as conversas, inclusive arquivadas.</p>
 
                 <nav class="whats-pro-filters" id="botInboxFilters" role="tablist" aria-label="Filtrar conversas">
                   <button type="button" class="whats-pro-filter is-active" data-conv-filter="all" role="tab" aria-selected="true">Todas <span class="whats-pro-filter-count" data-conv-filter-count="all">0</span></button>
@@ -2537,12 +2544,15 @@
     <script src="js/service-packages-admin.js"></script>
     <script src="js/clients-admin.js"></script>
     <script src="js/engage-campaigns-admin.js?v=20260602-hoje"></script>
-    <script src="js/engage-executive-dashboard-api.js?v=20260617-exec-dash"></script>
-    <script src="js/engage-executive-dashboard-admin.js?v=20260617-exec-dash"></script>
-    <script src="js/engage-pipeline-api.js?v=20260617-lead-intel"></script>
+    <script src="js/engage-executive-dashboard-api.js?v=20260618-kpi-source"></script>
+    <script src="js/engage-executive-dashboard-admin.js?v=20260602-exec-text"></script>
+    <script src="js/engage-pipeline-api.js?v=20260602-drawer-actions"></script>
+    <script src="js/engage-pipeline-lead-drawer.js?v=20260602-drawer-actions"></script>
+    <script src="js/engage-leads-list-api.js?v=20260602-leads-sort"></script>
+    <script src="js/engage-leads-list-admin.js?v=20260602-leads-sort"></script>
     <script src="js/engage-replies-center-api.js"></script>
     <script src="js/engage-replies-center-admin.js?v=20260602-hoje"></script>
-    <script src="js/engage-pipeline-admin.js?v=20260617-lead-intel"></script>
+    <script src="js/engage-pipeline-admin.js?v=20260602-pipeline-dnd"></script>
     <script src="js/engage-audiences-dashboard-api.js"></script>
     <script src="js/engage-audiences-dashboard-admin.js"></script>
     <script src="js/engage-meta-api.js"></script>
@@ -2572,7 +2582,7 @@
       /* WhatsApp inbox: messaging-service (não usar /api/operator) */
       window.RESERVAAI_EXTERNAL_API_BASE_URL = window.RESERVAAI_MESSAGING_API_BASE_URL || '/api/messaging';
     </script>
-    <script src="js/bot-whatsapp.js?v=20260617-ai-pause"></script>
+    <script src="js/bot-whatsapp.js?v=20260602-inbox-archive"></script>
     <script src="js/app.js"></script>
   </body>
 </html>

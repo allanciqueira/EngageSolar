@@ -88,9 +88,51 @@
         <p class="es-kpi-label">${escapeHtml(c.label)}</p>
         <strong>${escapeHtml(c.value)}</strong>
         <span class="es-kpi-delta" data-tone="${escapeHtml(c.delta.tone)}">${escapeHtml(c.delta.text)}</span>
-        ${c.sub ? `<small class="es-exec-kpi-sub">${escapeHtml(c.sub)}</small>` : ''}
+        ${c.sub ? `<small class="es-exec-kpi-sub${c.highlight ? ' es-exec-kpi-sub--sources' : ''}">${escapeHtml(c.sub)}</small>` : ''}
       </article>
     `).join('');
+    mount.insertAdjacentHTML('beforeend', renderLeadsBySourceCard(summary));
+  }
+
+  function renderLeadsBySourceCard(summary) {
+    const breakdown = api()?.leadsBySourceSlices?.(summary);
+    const slices = breakdown?.slices || [];
+    const total = Number(summary?.leadsGenerated || breakdown?.total || 0);
+    if (!total || !slices.length) return '';
+
+    let acc = 0;
+    const gradientParts = slices.map((slice) => {
+      const pct = Number(slice.pct || 0) * 100;
+      const start = acc;
+      acc += pct;
+      return `${slice.color} ${start}% ${acc}%`;
+    });
+
+    return `
+      <article class="es-kpi-card es-exec-kpi es-exec-kpi--source">
+        <span class="es-kpi-icon" data-color="teal" aria-hidden="true">📊</span>
+        <p class="es-kpi-label">Leads por origem</p>
+        <div class="es-exec-kpi-source">
+          <div class="es-exec-donut es-exec-donut--xs" style="background:conic-gradient(${gradientParts.join(', ')})" role="img" aria-label="Leads por origem">
+            <div class="es-exec-donut-center">
+              <strong>${fmtNum(total)}</strong>
+              <span>leads</span>
+            </div>
+          </div>
+          <ul class="es-exec-kpi-source-legend">
+            ${slices.map((slice) => `
+              <li>
+                <span class="es-exec-dot" style="background:${slice.color}"></span>
+                <span class="es-exec-kpi-source-label">${escapeHtml(slice.label)}</span>
+                <strong>${fmtNum(slice.count)}</strong>
+                <em>${fmtPct(slice.pct)}</em>
+              </li>`).join('')}
+          </ul>
+        </div>
+        ${api()?.formatLeadsBySourceSubtitle?.(summary)
+          ? `<small class="es-exec-kpi-sub es-exec-kpi-sub--sources">${escapeHtml(api().formatLeadsBySourceSubtitle(summary))}</small>`
+          : ''}
+      </article>`;
   }
 
   function renderFunnel(funnel) {
@@ -105,14 +147,14 @@
     mount.innerHTML = `
       <div class="es-exec-funnel">
         ${stages.map((stage) => {
-          const width = Math.max(18, Math.round(Number(stage.pctOfBase || 0) * 100));
+          const pct = Math.round(Number(stage.pctOfBase || 0) * 100);
+          const width = Math.max(pct, 3);
           const color = colors[stage.key] || '#64748b';
           return `
             <div class="es-exec-funnel-row">
-              <div class="es-exec-funnel-bar-wrap">
-                <div class="es-exec-funnel-bar" style="width:${width}%;background:${color}">
-                  <span>${escapeHtml(stage.label || stage.key)}</span>
-                </div>
+              <span class="es-exec-funnel-label">${escapeHtml(stage.label || stage.key)}</span>
+              <div class="es-exec-funnel-bar-wrap" aria-hidden="true">
+                <div class="es-exec-funnel-bar" style="width:${width}%;background:${color}"></div>
               </div>
               <div class="es-exec-funnel-meta">
                 <strong>${fmtNum(stage.value)}</strong>
@@ -318,7 +360,7 @@
 
   function renderAll() {
     if (!state.data && state.loading) {
-      $('esKpiGrid').innerHTML = '<div class="es-exec-skeleton es-exec-skeleton--kpi"></div>'.repeat(6);
+      $('esKpiGrid').innerHTML = '<div class="es-exec-skeleton es-exec-skeleton--kpi"></div>'.repeat(7);
       ['esExecFunnel', 'esExecWhatsapp', 'esExecInsights', 'esExecCampaigns', 'esExecAudiences', 'esExecPipeline'].forEach((id) => {
         const el = $(id);
         if (el) el.innerHTML = '<div class="es-exec-skeleton"></div>';

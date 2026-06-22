@@ -56,6 +56,8 @@
     pendingSelectConversationId: null,
     messages: [],
     search: '',
+    inboxView: 'active',
+    searchDebounceId: null,
     activeFilter: 'all',
     botEnabled: true,
     busy: false,
@@ -88,6 +90,10 @@
     assignBusy: false,
     assignError: '',
     selectedAssignAgentId: '',
+    createLeadBusy: false,
+    createLeadError: '',
+    createLeadInfo: '',
+    conversationLeads: {},
     conversationPauseBusy: false,
     dom: {},
   };
@@ -1178,6 +1184,118 @@
     return phone.startsWith('lid:') || phone.includes('@g.us') || conversation?.isGroup === true;
   }
 
+  function isGlobalSearchActive() {
+    return state.search.trim().length >= 2;
+  }
+
+  function buildConversationsPath() {
+    const tenantId = encodeURIComponent(state.selectedTenantId);
+    if (isGlobalSearchActive()) {
+      return `/conversations/search?tenantId=${tenantId}&q=${encodeURIComponent(state.search.trim())}`;
+    }
+    const view = state.inboxView === 'all' ? 'all' : 'active';
+    return `/conversations?tenantId=${tenantId}&view=${view}`;
+  }
+
+  async function fetchConversations() {
+    const payload = await requestExternal(buildConversationsPath());
+    return Array.isArray(payload) ? payload : [];
+  }
+
+  function reconcileSelectedConversation() {
+    const pending = state.pendingSelectConversationId;
+    if (pending) {
+      state.selectedConversationId = pending;
+      state.pendingSelectConversationId = null;
+      return;
+    }
+    if (!state.selectedConversationId) {
+      state.selectedConversationId = state.conversations[0]?.id || null;
+      return;
+    }
+    if (!state.conversations.some((conversation) => conversation.id === state.selectedConversationId)) {
+      state.selectedConversationId = state.conversations[0]?.id || null;
+    }
+  }
+
+  function renderInboxViewToggle() {
+    if (!state.dom.viewToggle) {
+      return;
+    }
+    const searchOn = isGlobalSearchActive();
+    state.dom.viewToggle.hidden = searchOn;
+    state.dom.viewToggle.querySelectorAll('[data-inbox-view]').forEach((button) => {
+      const view = button.dataset.inboxView || 'active';
+      const active = !searchOn && view === state.inboxView;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      button.disabled = searchOn;
+    });
+  }
+
+  function renderSearchHint() {
+    if (!state.dom.searchHint) {
+      return;
+    }
+    state.dom.searchHint.hidden = !isGlobalSearchActive();
+  }
+
+  function emptyConversationsMessage() {
+    if (isGlobalSearchActive()) {
+      return 'Nenhuma conversa encontrada para esta busca.';
+    }
+    if (state.activeFilter !== 'all') {
+      return 'Nenhuma conversa encontrada para este filtro.';
+    }
+    if (state.inboxView === 'active') {
+      return 'Nenhuma conversa ativa. Use "Exibir todas" para ver arquivadas.';
+    }
+    return 'Nenhuma conversa encontrada.';
+  }
+
+  async function reloadConversationsList(options = {}) {
+    if (!state.selectedTenantId) {
+      state.conversations = [];
+      renderConversations();
+      renderThread();
+      return;
+    }
+    const showLoading = options.showLoading === true;
+    if (showLoading) {
+      setSyncMessage('Sincronizando conversas…', 'neutral');
+    }
+    try {
+      state.conversations = await fetchConversations();
+      reconcileSelectedConversation();
+      renderConversations();
+      if (showLoading) {
+        setSyncMessage('Inbox sincronizada.', 'success');
+      }
+    } catch (error) {
+      if (showLoading) {
+        setSyncMessage(formatUserError(error, 'whatsappSync'), 'error');
+      }
+      throw error;
+    }
+  }
+
+  function setInboxView(view) {
+    const next = view === 'all' ? 'all' : 'active';
+    if (state.inboxView === next && !isGlobalSearchActive()) {
+      renderInboxViewToggle();
+      return;
+    }
+    state.inboxView = next;
+    renderInboxViewToggle();
+    void reloadConversationsList().then(() => {
+      if (state.selectedConversationId) {
+        return loadMessages(true);
+      }
+      renderThread();
+      return undefined;
+    }).catch(() => {});
+  }
+
   function unreadCountFor(conversation) {
     const explicit = Number(conversation?.unreadCount || conversation?.unread || 0);
     if (Number.isFinite(explicit) && explicit > 0) {
@@ -1215,11 +1333,12 @@
 
   function filteredConversations() {
     const searchTerm = state.search.trim().toLowerCase();
+    const useBackendSearch = searchTerm.length >= 2;
     return state.conversations.filter((conversation) => {
       if (!passesActiveFilter(conversation)) {
         return false;
       }
-      if (!searchTerm) {
+      if (useBackendSearch || !searchTerm) {
         return true;
       }
       const last = lastMessageOf(conversation);
@@ -1287,11 +1406,13 @@
     }
 
     renderFilters();
+    renderInboxViewToggle();
+    renderSearchHint();
     emitInboxStats();
 
     const items = filteredConversations();
     if (!items.length) {
-      state.dom.chatList.innerHTML = '<div class="whats-pro-chat-empty">Nenhuma conversa encontrada para este filtro.</div>';
+      state.dom.chatList.innerHTML = `<div class="whats-pro-chat-empty">${escapeHtml(emptyConversationsMessage())}</div>`;
       return;
     }
 
@@ -1509,7 +1630,136 @@
     state.assignBusy = false;
     state.assignError = '';
     state.selectedAssignAgentId = '';
+    state.createLeadBusy = false;
+    state.createLeadError = '';
+    state.createLeadInfo = '';
     renderDispositionBar();
+  }
+
+  function getConversationLead(conversationId) {
+    const id = String(conversationId || '').trim();
+    if (!id) return null;
+    const lead = state.conversationLeads[id];
+    if (!lead) return null;
+    if (String(lead.status || '').trim().toUpperCase() === 'CLOSED') return null;
+    return lead;
+  }
+
+  function rememberConversationLead(conversationId, lead) {
+    const id = String(conversationId || '').trim();
+    if (!id || !lead) return;
+    state.conversationLeads[id] = lead;
+  }
+
+  async function handleCreateLead() {
+    const conversationId = state.selectedConversationId;
+    const pipelineApi = window.EngagePipelineApi;
+    if (!conversationId || !state.selectedTenantId || !pipelineApi?.createLead || state.createLeadBusy) {
+      return;
+    }
+    if (getConversationLead(conversationId)) {
+      return;
+    }
+
+    state.createLeadBusy = true;
+    state.createLeadError = '';
+    state.createLeadInfo = '';
+    renderDispositionBar();
+
+    try {
+      const result = await pipelineApi.createLead(state.session, { conversationId });
+      const lead = result?.lead;
+      if (lead) {
+        rememberConversationLead(conversationId, lead);
+      }
+      if (result?.created === false && lead) {
+        const statusLabel = pipelineApi.leadColumnLabel?.(lead) || lead.status || 'ativo';
+        state.createLeadInfo = `Lead já existente — ${statusLabel}`;
+      }
+    } catch (error) {
+      const mapped = pipelineApi.mapApiError?.(error) || { message: error?.message };
+      state.createLeadError = mapped.message || 'Não foi possível criar o lead.';
+    } finally {
+      state.createLeadBusy = false;
+      renderDispositionBar();
+    }
+  }
+
+  function renderCreateLeadButton() {
+    const conversationId = state.selectedConversationId;
+    if (!conversationId) {
+      return '';
+    }
+
+    const pipelineApi = window.EngagePipelineApi;
+    const activeLead = getConversationLead(conversationId);
+    const globalBusy = state.createLeadBusy
+      || state.dispositionBusy
+      || state.dispositionLoading
+      || state.assignBusy;
+
+    let label = 'Criar Lead';
+    let toneClass = 'is-create';
+    let disabled = globalBusy;
+
+    if (state.createLeadBusy) {
+      label = 'A criar lead…';
+      disabled = true;
+    } else if (activeLead) {
+      label = 'Lead no Pipeline';
+      toneClass = 'is-done';
+      disabled = true;
+    }
+
+    return `<button type="button" class="whats-pro-engage-lead-btn ${toneClass}" data-create-lead="1"${disabled ? ' disabled' : ''} title="Adicionar oportunidade ao Pipeline Comercial">${escapeHtml(label)}</button>`;
+  }
+
+  function renderCreateLeadFeedback() {
+    const conversationId = state.selectedConversationId;
+    if (!conversationId) {
+      return '';
+    }
+
+    const pipelineApi = window.EngagePipelineApi;
+    const activeLead = getConversationLead(conversationId);
+    const parts = [];
+
+    if (activeLead) {
+      parts.push(`<p class="whats-pro-engage-lead-meta">${escapeHtml(pipelineApi?.leadColumnLabel?.(activeLead) || activeLead.status || 'Ativo')}</p>`);
+    }
+    if (state.createLeadInfo) {
+      parts.push(`<p class="whats-pro-engage-lead-info">${escapeHtml(state.createLeadInfo)}</p>`);
+    }
+    if (state.createLeadError) {
+      parts.push(`<p class="whats-pro-engage-lead-error">${escapeHtml(state.createLeadError)}</p>`);
+    }
+
+    if (!parts.length) {
+      return '';
+    }
+
+    return `<div class="whats-pro-engage-lead-feedback">${parts.join('')}</div>`;
+  }
+
+  function renderCommercialOnlySection() {
+    const createLeadBtn = renderCreateLeadButton();
+    if (!createLeadBtn) {
+      return '';
+    }
+
+    return `
+      <section class="whats-pro-engage-assign" aria-label="Pipeline comercial">
+        <div class="whats-pro-engage-assign-actions whats-pro-engage-assign-actions--lead-only">
+          ${createLeadBtn}
+        </div>
+        ${renderCreateLeadFeedback()}
+      </section>`;
+  }
+
+  function bindCreateLeadEvents(el) {
+    el.querySelector('[data-create-lead]')?.addEventListener('click', () => {
+      void handleCreateLead();
+    });
   }
 
   function formatDispositionDate(iso) {
@@ -1631,6 +1881,8 @@
     const assignedName = String(ctx.assignedAgentName || '').trim();
     const assignBusy = state.assignBusy || state.dispositionAgentsLoading;
     const globalBusy = busy || assignBusy;
+    const createLeadBtn = renderCreateLeadButton();
+    const createLeadFeedback = renderCreateLeadFeedback();
 
     if (assignedId) {
       const swapOptions = agents
@@ -1644,7 +1896,7 @@
         .join('');
 
       return `
-        <section class="whats-pro-engage-assign" aria-label="Vendedor atribuído">
+        <section class="whats-pro-engage-assign" aria-label="Vendedor e pipeline">
           <div class="whats-pro-engage-assign-head">
             <span class="whats-pro-engage-assign-label">Vendedor</span>
             <span class="whats-pro-engage-assign-badge">${escapeHtml(assignedName || 'Atribuído')}</span>
@@ -1658,7 +1910,9 @@
               </select>
               <button type="button" class="whats-pro-engage-assign-btn is-primary" data-assign-action="swap" ${globalBusy || !state.selectedAssignAgentId ? 'disabled' : ''}>Trocar</button>
             ` : ''}
+            ${createLeadBtn}
           </div>
+          ${createLeadFeedback}
           ${state.assignError ? `<p class="whats-pro-engage-assign-error">${escapeHtml(state.assignError)}</p>` : ''}
         </section>`;
     }
@@ -1673,7 +1927,7 @@
       }).join('');
 
     return `
-      <section class="whats-pro-engage-assign" aria-label="Atribuir vendedor">
+      <section class="whats-pro-engage-assign" aria-label="Vendedor e pipeline">
         <div class="whats-pro-engage-assign-head">
           <span class="whats-pro-engage-assign-label">Vendedor</span>
         </div>
@@ -1683,7 +1937,9 @@
             ${options}
           </select>
           <button type="button" class="whats-pro-engage-assign-btn is-primary" data-assign-action="assign" ${globalBusy || !state.selectedAssignAgentId ? 'disabled' : ''}>Atribuir vendedor</button>
+          ${createLeadBtn}
         </div>
+        ${createLeadFeedback}
         ${state.dispositionAgentsLoading ? '<p class="whats-pro-engage-assign-hint">Carregando vendedores…</p>' : ''}
         ${!state.dispositionAgentsLoading && !agents.length ? '<p class="whats-pro-engage-assign-hint">Nenhum consultor comercial activo encontrado.</p>' : ''}
         ${state.assignError ? `<p class="whats-pro-engage-assign-error">${escapeHtml(state.assignError)}</p>` : ''}
@@ -1759,8 +2015,8 @@
     }
 
     const mode = state.dispositionMode;
-    const showShell = mode !== 'hidden' || state.dispositionLoading || state.dispositionError;
-    if (!showShell) {
+    const hasConversation = !!(state.selectedConversationId && state.selectedTenantId);
+    if (!hasConversation) {
       el.hidden = true;
       el.innerHTML = '';
       return;
@@ -1770,22 +2026,18 @@
     const api = window.EngageDispositionApi;
     const ctx = state.disposition || {};
     const busy = state.dispositionBusy || state.dispositionLoading;
-    const badgeLabel = api?.dispositionBadge?.(ctx) || 'Sem classificação';
-    const isContactMade = String(ctx.dispositionKind || '').trim().toUpperCase() === 'CONTACT_MADE';
-    const isOptOut = String(ctx.dispositionKind || '').trim().toUpperCase() === 'OPT_OUT';
-    const badgeToneClass = isContactMade ? ' is-contact-made' : (isOptOut ? ' is-opt-out' : '');
-    const returnLine = ctx.nextContactAt
-      ? `Retorno: ${formatDispositionDate(ctx.nextContactAt)}`
+    const commercialHtml = mode !== 'hidden' && api
+      ? renderSellerAssignSection(api, ctx, busy)
+      : renderCommercialOnlySection();
+    const dividerBeforeDisposition = commercialHtml && mode !== 'hidden'
+      ? '<div class="whats-pro-engage-divider" role="separator" aria-hidden="true"></div>'
       : '';
-    const reasoning = String(ctx.lossReasoning || '').trim();
-
-    const sellerHtml = api ? renderSellerAssignSection(api, ctx, busy) : '';
 
     if (mode === 'warning') {
       el.innerHTML = `
         <div class="whats-pro-engage-bar is-warning">
-          ${sellerHtml}
-          <div class="whats-pro-engage-divider" role="separator" aria-hidden="true"></div>
+          ${commercialHtml}
+          ${dividerBeforeDisposition}
           <div class="whats-pro-engage-disposition is-warning">
             <div class="whats-pro-engage-disposition-head">
               <span class="whats-pro-engage-disposition-title">Engage — resposta da campanha</span>
@@ -1796,9 +2048,28 @@
             ${state.dispositionError ? `<p class="whats-pro-engage-disposition-error">${escapeHtml(state.dispositionError)}</p>` : ''}
           </div>
         </div>`;
+      bindCreateLeadEvents(el);
       bindSellerAssignEvents(el);
       return;
     }
+
+    if (mode === 'hidden') {
+      el.innerHTML = `
+        <div class="whats-pro-engage-bar">
+          ${commercialHtml}
+        </div>`;
+      bindCreateLeadEvents(el);
+      return;
+    }
+
+    const badgeLabel = api?.dispositionBadge?.(ctx) || 'Sem classificação';
+    const isContactMade = String(ctx.dispositionKind || '').trim().toUpperCase() === 'CONTACT_MADE';
+    const isOptOut = String(ctx.dispositionKind || '').trim().toUpperCase() === 'OPT_OUT';
+    const badgeToneClass = isContactMade ? ' is-contact-made' : (isOptOut ? ' is-opt-out' : '');
+    const returnLine = ctx.nextContactAt
+      ? `Retorno: ${formatDispositionDate(ctx.nextContactAt)}`
+      : '';
+    const reasoning = String(ctx.lossReasoning || '').trim();
 
     const buttons = (api?.DISPOSITION_BUTTONS || []).map((btn) => {
       const alreadyContactMade = btn.kind === 'CONTACT_MADE' && isContactMade;
@@ -1812,8 +2083,8 @@
 
     el.innerHTML = `
       <div class="whats-pro-engage-bar">
-        ${sellerHtml}
-        <div class="whats-pro-engage-divider" role="separator" aria-hidden="true"></div>
+        ${commercialHtml}
+        ${dividerBeforeDisposition}
         <div class="whats-pro-engage-disposition ${busy ? 'is-busy' : ''}">
           <div class="whats-pro-engage-disposition-head">
             <span class="whats-pro-engage-disposition-title">Engage — resposta da campanha</span>
@@ -1833,6 +2104,7 @@
         </div>
       </div>`;
 
+    bindCreateLeadEvents(el);
     bindSellerAssignEvents(el);
 
     el.querySelector('#botInboxDispositionNote')?.addEventListener('input', (event) => {
@@ -2087,18 +2359,8 @@
       return;
     }
 
-    const payload = await requestExternal(`/conversations?tenantId=${encodeURIComponent(state.selectedTenantId)}`);
-    state.conversations = Array.isArray(payload) ? payload : [];
-
-    const pending = state.pendingSelectConversationId;
-    if (pending) {
-      state.selectedConversationId = pending;
-    } else if (
-      !state.selectedConversationId
-      || !state.conversations.some((conversation) => conversation.id === state.selectedConversationId)
-    ) {
-      state.selectedConversationId = state.conversations[0]?.id || null;
-    }
+    state.conversations = await fetchConversations();
+    reconcileSelectedConversation();
 
     renderConversations();
     await loadMessages(true);
@@ -2194,8 +2456,8 @@
   async function loadConversationsSilently() {
     if (!state.selectedTenantId) return;
     try {
-      const payload = await requestExternal(`/conversations?tenantId=${encodeURIComponent(state.selectedTenantId)}`);
-      state.conversations = Array.isArray(payload) ? payload : [];
+      state.conversations = await fetchConversations();
+      reconcileSelectedConversation();
       renderConversations();
       renderCrm();
     } catch (error) {
@@ -2633,6 +2895,9 @@
       const saveLogin = state.authService?.savePreferredLoginTenant
         || window.ReservaAiAuth?.savePreferredLoginTenant;
       saveLogin?.(state.selectedTenantId, tenant?.name);
+      state.inboxView = 'active';
+      state.search = '';
+      if (state.dom.search) state.dom.search.value = '';
       state.selectedConversationId = null;
       state.messages = [];
       void refreshWorkspace(true);
@@ -2640,7 +2905,29 @@
 
     state.dom.search?.addEventListener('input', () => {
       state.search = state.dom.search.value || '';
-      renderConversations();
+      renderSearchHint();
+      renderInboxViewToggle();
+      clearTimeout(state.searchDebounceId);
+      state.searchDebounceId = window.setTimeout(() => {
+        void reloadConversationsList().then(() => {
+          if (!state.conversations.some((conversation) => conversation.id === state.selectedConversationId)) {
+            state.selectedConversationId = state.conversations[0]?.id || null;
+            if (state.selectedConversationId) {
+              return openSelectedConversation();
+            }
+            renderThread();
+            return undefined;
+          }
+          highlightSelectedConversation();
+          return undefined;
+        }).catch(() => {});
+      }, 300);
+    });
+
+    state.dom.viewToggle?.querySelectorAll('[data-inbox-view]').forEach((button) => {
+      button.addEventListener('click', () => {
+        setInboxView(button.dataset.inboxView || 'active');
+      });
     });
 
     state.dom.filters?.querySelectorAll('[data-conv-filter]').forEach((button) => {
@@ -2791,6 +3078,8 @@
       shell: root,
       tenantSelect: qs('#botInboxTenant'),
       search: qs('#botInboxSearch'),
+      viewToggle: qs('#botInboxViewToggle'),
+      searchHint: qs('#botInboxSearchHint'),
       toggleOn: qs('#botInboxToggleOn'),
       toggleOff: qs('#botInboxToggleOff'),
       toggleHint: qs('#botInboxToggleHint'),
@@ -2867,6 +3156,8 @@
     populateEmojiPanel();
     portalContactModal();
     updateComposerControls();
+    renderInboxViewToggle();
+    renderSearchHint();
     renderThread();
     renderCrm();
     updateDebug();
@@ -2894,6 +3185,8 @@
     state.dispositionAgents = [];
     state.assignError = '';
     state.selectedAssignAgentId = '';
+    state.createLeadError = '';
+    state.createLeadInfo = '';
     renderDispositionBar();
     renderThreadLoading();
     renderCrm();
@@ -2988,6 +3281,8 @@
 
   function deactivate() {
     state.active = false;
+    clearTimeout(state.searchDebounceId);
+    state.searchDebounceId = null;
     stopPolling();
     stopBadgePolling();
     unbindVisibilityRefresh();
