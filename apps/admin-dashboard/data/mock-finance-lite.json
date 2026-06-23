@@ -1,0 +1,173 @@
+{
+  "mock": true,
+  "fetchedAt": "2026-06-02T12:00:00.000Z",
+  "summary": {
+    "currency": "BRL",
+    "generatedAt": "2026-06-02T12:00:00.000Z",
+    "cards": {
+      "totalDue": "2500.00",
+      "totalOverdue": "800.00",
+      "totalPaidMonth": "3200.00",
+      "next30Days": "1800.00",
+      "monthlyRecurringCost": "620.00"
+    }
+  },
+  "upcoming": {
+    "items": [
+      {
+        "id": "pay-001",
+        "description": "VPS Hostinger",
+        "amount": "120.00",
+        "dueDate": "2026-06-10",
+        "status": "PENDING",
+        "category": { "id": "cat-infra", "name": "Infraestrutura", "color": "#38bdf8" }
+      },
+      {
+        "id": "pay-002",
+        "description": "OpenAI API",
+        "amount": "500.00",
+        "dueDate": "2026-06-15",
+        "status": "PENDING",
+        "category": { "id": "cat-soft", "name": "Software", "color": "#a78bfa" }
+      },
+      {
+        "id": "pay-003",
+        "description": "Cloudflare Pro",
+        "amount": "180.00",
+        "dueDate": "2026-06-05",
+        "status": "OVERDUE",
+        "category": { "id": "cat-infra", "name": "Infraestrutura", "color": "#38bdf8" }
+      }
+    ]
+  },
+  "categoryBreakdown": {
+    "items": [
+      { "categoryId": "cat-soft", "categoryName": "Software", "color": "#a78bfa", "amount": "1500.00" },
+      { "categoryId": "cat-infra", "categoryName": "Infraestrutura", "color": "#38bdf8", "amount": "900.00" },
+      { "categoryId": "cat-admin", "categoryName": "Administrativo", "color": "#fbbf24", "amount": "450.00" }
+    ]
+  },
+  "categories": [
+    { "id": "cat-infra", "name": "Infraestrutura", "color": "#38bdf8", "active": true },
+    { "id": "cat-soft", "name": "Software", "color": "#a78bfa", "active": true },
+    { "id": "cat-mkt", "name": "Marketing", "color": "#f472b6", "active": true },
+    { "id": "cat-admin", "name": "Administrativo", "color": "#fbbf24", "active": true },
+    { "id": "cat-ops", "name": "Operacional", "color": "#34d399", "active": true }
+  ],
+  "payables": {
+    "items": [
+      {
+        "id": "pay-001",
+        "description": "VPS Hostinger",
+        "categoryId": "cat-infra",
+        "category": { "id": "cat-infra", "name": "Infraestrutura", "color": "#38bdf8", "active": true },
+        "supplier": "Hostinger",
+        "costCenter": "Engage Solar",
+        "amount": "120.00",
+        "dueDate": "2026-06-10",
+        "status": "PENDING",
+        "notes": null,
+        "recurringRuleId": "rec-001",
+        "recurrenceKey": "2026-06",
+        "paidAt": null
+      },
+      {
+        "id": "pay-002",
+        "description": "OpenAI API",
+        "categoryId": "cat-soft",
+        "category": { "id": "cat-soft", "name": "Software", "color": "#a78bfa", "active": true },
+        "supplier": "OpenAI",
+        "costCenter": "Engage Solar",
+        "amount": "500.00",
+        "dueDate": "2026-06-15",
+        "status": "PENDING",
+        "notes": "Plano mensal",
+        "recurringRuleId": "rec-002",
+        "recurrenceKey": "2026-06",
+        "paidAt": null
+      },
+      {
+        "id": "pay-003",
+        "description": "Cloudflare Pro",
+        "categoryId": "cat-infra",
+        "category": { "id": "cat-infra", "name": "Infraestrutura", "color": "#38bdf8", "active": true },
+        "supplier": "Cloudflare",
+        "costCenter": "Engage Solar",
+        "amount": "180.00",
+        "dueDate": "2026-06-05",
+        "status": "OVERDUE",
+        "notes": null,
+        "recurringRuleId": null,
+        "recurrenceKey": null,
+        "paidAt": null
+      },
+      {
+        "id": "pay-004",
+        "description": "Contabilidade mensal",
+        "categoryId": "cat-admin",
+        "category": { "id": "cat-admin", "name": "Administrativo", "color": "#fbbf24", "active": true },
+        "supplier": "Contábil Solar",
+        "costCenter": "Operação",
+        "amount": "850.00",
+        "dueDate": "2026-05-28",
+        "status": "PAID",
+        "notes": null,
+        "recurringRuleId": "rec-003",
+        "recurrenceKey": "2026-05",
+        "paidAt": "2026-05-28T14:30:00.000Z"
+      }
+    ],
+    "page": 1,
+    "pageSize": 50,
+    "total": 4
+  },
+  "recurring": {
+    "items": [
+      {
+        "id": "rec-001",
+        "description": "VPS Hostinger",
+        "categoryId": "cat-infra",
+        "category": { "id": "cat-infra", "name": "Infraestrutura", "color": "#38bdf8", "active": true },
+        "supplier": "Hostinger",
+        "costCenter": "Engage Solar",
+        "amount": "120.00",
+        "frequency": "MONTHLY",
+        "startDate": "2026-01-10",
+        "endDate": null,
+        "active": true,
+        "notes": null,
+        "nextGenerationDate": "2026-07-10"
+      },
+      {
+        "id": "rec-002",
+        "description": "OpenAI API",
+        "categoryId": "cat-soft",
+        "category": { "id": "cat-soft", "name": "Software", "color": "#a78bfa", "active": true },
+        "supplier": "OpenAI",
+        "costCenter": "Engage Solar",
+        "amount": "500.00",
+        "frequency": "MONTHLY",
+        "startDate": "2026-03-15",
+        "endDate": null,
+        "active": true,
+        "notes": "Plano mensal",
+        "nextGenerationDate": "2026-07-15"
+      },
+      {
+        "id": "rec-003",
+        "description": "Domínio engagesolar.com.br",
+        "categoryId": "cat-infra",
+        "category": { "id": "cat-infra", "name": "Infraestrutura", "color": "#38bdf8", "active": true },
+        "supplier": "Registro.br",
+        "costCenter": "Engage Solar",
+        "amount": "40.00",
+        "frequency": "YEARLY",
+        "startDate": "2025-08-01",
+        "endDate": null,
+        "active": true,
+        "notes": null,
+        "nextGenerationDate": "2026-08-01"
+      }
+    ]
+  }
+}

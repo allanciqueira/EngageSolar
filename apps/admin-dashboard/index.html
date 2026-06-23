@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="css/engage-replies-center.css" />
     <link rel="stylesheet" href="css/engage-pipeline.css?v=20260602-drawer-actions" />
     <link rel="stylesheet" href="css/engage-leads-list.css?v=20260602-leads-sort" />
+    <link rel="stylesheet" href="css/engage-finance-lite.css?v=20260602-finance" />
     <link rel="stylesheet" href="css/engage-audiences-dashboard.css" />
     <link rel="stylesheet" href="css/engage-contact-hub.css" />
     <link rel="stylesheet" href="css/mobile.css" />
@@ -706,6 +707,11 @@
           <section class="es-panel" data-es-panel="propostas" hidden>
             <div class="es-placeholder"><strong>Propostas</strong><br />Orçamentos e PDF — Fase 2.</div>
           </section>
+
+          <section class="es-panel es-panel--finance-lite" data-es-panels="financeiro-dashboard,financeiro-contas-pagar,financeiro-recorrencias,financeiro-categorias" hidden>
+            <div id="adminEngageFinanceLiteRoot" aria-live="polite"></div>
+          </section>
+
           <section class="es-panel" data-es-panel="relatorios" hidden>
             <div class="es-placeholder"><strong>Relatórios</strong><br />Analytics comercial — Fase 2.</div>
           </section>
@@ -2550,6 +2556,8 @@
     <script src="js/engage-pipeline-lead-drawer.js?v=20260602-drawer-actions"></script>
     <script src="js/engage-leads-list-api.js?v=20260602-leads-sort"></script>
     <script src="js/engage-leads-list-admin.js?v=20260602-leads-sort"></script>
+    <script src="js/engage-finance-lite-api.js?v=20260602-finance"></script>
+    <script src="js/engage-finance-lite-admin.js?v=20260602-finance"></script>
     <script src="js/engage-replies-center-api.js"></script>
     <script src="js/engage-replies-center-admin.js?v=20260602-hoje"></script>
     <script src="js/engage-pipeline-admin.js?v=20260602-pipeline-dnd"></script>

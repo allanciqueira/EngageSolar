@@ -20,6 +20,15 @@
     { id: 'whatsapp-api', label: 'WhatsApp API' },
   ];
 
+  const FINANCE_NAV = [
+    { id: 'financeiro-dashboard', label: 'Dashboard' },
+    { id: 'financeiro-contas-pagar', label: 'Contas a Pagar' },
+    { id: 'financeiro-recorrencias', label: 'Recorrências' },
+    { id: 'financeiro-categorias', label: 'Categorias' },
+  ];
+
+  const FINANCE_PANELS = new Set(FINANCE_NAV.map((item) => item.id));
+
   const NAV = [
     { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
     { id: 'audiencias', label: 'Audiências', icon: '👥' },
@@ -32,6 +41,13 @@
     { id: 'pipeline', label: 'Pipeline', icon: '📈' },
     { id: 'clientes', label: 'Clientes', icon: '👥' },
     { id: 'propostas', label: 'Propostas', icon: '💰' },
+    {
+      id: 'financeiro',
+      label: 'Financeiro',
+      icon: '💳',
+      group: true,
+      subNav: FINANCE_NAV,
+    },
     { id: 'relatorios', label: 'Relatórios', icon: '📊' },
     { id: 'engage-intelligence', label: 'Engage Intelligence', icon: '🧠', badge: 'Novo' },
     { id: 'engage-config', label: 'Engage Config', icon: '☀️' },
@@ -56,6 +72,10 @@
     pipeline: 'Pipeline',
     clientes: 'Clientes',
     propostas: 'Propostas',
+    'financeiro-dashboard': 'Financeiro — Dashboard',
+    'financeiro-contas-pagar': 'Contas a Pagar',
+    'financeiro-recorrencias': 'Recorrências',
+    'financeiro-categorias': 'Categorias',
     relatorios: 'Relatórios',
     'engage-intelligence': 'Lead Recovery Intelligence',
     'engage-config': 'Engage Config',
@@ -68,6 +88,14 @@
 
   function isConfigNavOpen(panelId) {
     return panelId === 'configuracoes' || isSettingsPanel(panelId);
+  }
+
+  function isFinancePanel(panelId) {
+    return FINANCE_PANELS.has(panelId);
+  }
+
+  function isFinanceNavOpen(panelId) {
+    return panelId === 'financeiro' || isFinancePanel(panelId);
   }
 
   function renderNavGroup(item, isOpen) {
@@ -86,7 +114,9 @@
     const parentActive =
       item.id === 'configuracoes'
         ? isOpen && (state.panel === 'configuracoes' || isSettingsPanel(state.panel))
-        : item.id === state.panel;
+        : item.id === 'financeiro'
+          ? isOpen && (state.panel === 'financeiro' || isFinancePanel(state.panel))
+          : item.id === state.panel;
 
     return `
       <div class="es-nav-group${groupClass}" data-open="${isOpen ? 'true' : 'false'}">
@@ -132,6 +162,7 @@
     if (!nav) return;
 
     const configOpen = isConfigNavOpen(state.panel);
+    const financeOpen = isFinanceNavOpen(state.panel);
 
     const mainItems = NAV.map((item) => {
       if (!item.group) {
@@ -153,7 +184,8 @@
       </button>`;
       }
 
-      return renderNavGroup(item, configOpen);
+      const groupOpen = item.id === 'financeiro' ? financeOpen : configOpen;
+      return renderNavGroup(item, groupOpen);
     }).join('');
 
     nav.innerHTML = mainItems;
@@ -172,6 +204,9 @@
         const toggleId = button.dataset.esNavToggle;
         if (!open && !isSettingsPanel(state.panel) && toggleId === 'configuracoes') {
           activatePanel('configuracoes-operador');
+        }
+        if (!open && !isFinancePanel(state.panel) && toggleId === 'financeiro') {
+          activatePanel('financeiro-dashboard');
         }
       });
     });
@@ -221,12 +256,16 @@
     document.querySelectorAll('[data-es-panel]').forEach((panel) => {
       panel.hidden = panel.dataset.esPanel !== panelId;
     });
+    document.querySelectorAll('[data-es-panels]').forEach((panel) => {
+      const list = String(panel.dataset.esPanels || '').split(',').map((s) => s.trim()).filter(Boolean);
+      panel.hidden = !list.includes(panelId);
+    });
 
     const heroTitle = qs('#esHeroTitle');
     const heroSub = qs('#esHeroSubtitle');
     const pageHeading = qs('#esPageHeading');
     if (pageHeading) {
-      pageHeading.hidden = panelId === 'conversas' || panelId === 'central-respostas' || panelId === 'pipeline' || panelId === 'leads' || panelId === 'audiencias' || panelId === 'engage-intelligence' || panelId === 'engage-config' || panelId === 'clientes' || panelId === 'campanhas' || isSettingsPanel(panelId);
+      pageHeading.hidden = panelId === 'conversas' || panelId === 'central-respostas' || panelId === 'pipeline' || panelId === 'leads' || panelId === 'audiencias' || panelId === 'engage-intelligence' || panelId === 'engage-config' || panelId === 'clientes' || panelId === 'campanhas' || isFinancePanel(panelId) || isSettingsPanel(panelId);
     }
 
     if (!isSettingsPanel(panelId)) {
@@ -249,6 +288,9 @@
     }
     if (panelId !== 'leads') {
       window.ReservaAiEngageLeadsListAdmin?.deactivate?.();
+    }
+    if (!isFinancePanel(panelId)) {
+      window.ReservaAiEngageFinanceLiteAdmin?.deactivate?.();
     }
     if (panelId !== 'dashboard') {
       window.ReservaAiEngageExecutiveDashboard?.deactivate?.();
@@ -312,6 +354,11 @@
       if (heroTitle) heroTitle.textContent = title;
       if (heroSub) heroSub.textContent = 'Tome decisões data-driven para recuperar leads e aumentar suas conversões.';
       window.EngageLeadRecovery?.activate?.(state.session);
+    } else if (isFinancePanel(panelId)) {
+      const title = PANEL_TITLES[panelId] || panelId;
+      if (heroTitle) heroTitle.textContent = title;
+      if (heroSub) heroSub.textContent = '';
+      window.ReservaAiEngageFinanceLiteAdmin?.activate?.(state.session, panelId);
     } else {
       const title = PANEL_TITLES[panelId] || panelId;
       if (heroTitle) heroTitle.textContent = title;
